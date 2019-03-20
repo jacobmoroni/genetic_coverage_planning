@@ -26,3 +26,5 @@ map_scaled = cv2.imread(file_name,cv2.IMREAD_GRAYSCALE)
 pather = PathMaker(map_scaled, scale, narrowest_hall, safety_buffer)
 
 pather.smartly_place_dots()
+pather.compute_traversable_graph(2.5)
+pather.visualize_waypoints()
