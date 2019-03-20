@@ -13,8 +13,8 @@ import cv2
 from pdb import set_trace
 import matplotlib.pyplot as plt
 
-# file_name = '/home/jacob/byu_classes/optimization/genetic_coverage_planning/map.png'
-file_name = '/home/jacob/Documents/byu_classes/optimization/genetic_coverage_planning/map.png'
+file_name = '/home/jacob/byu_classes/optimization/genetic_coverage_planning/map.png'
+# file_name = '/home/jacob/Documents/byu_classes/optimization/genetic_coverage_planning/map.png'
 thresh = 90
 scale_px2m = 1/0.44*0.0254 #measured estimate for this case 
 scale_des = 0.15 #roughly 6inches per pixel
@@ -100,15 +100,17 @@ def generateFeasiblePath(num_steps, velocity, dt, map, start_point, scale):
     step = 0
     theta = 0
     path = np.array([start_point])
+    theta_path = np.array([theta])
     current_point = start_point
     while step < num_steps:
-        theta_diff = np.random.random(1)*np.pi - np.pi/2
+        theta_diff = np.random.randn(1)*np.pi/4
         theta_diff = theta_diff[0]
         next_point = current_point + np.array([velocity*dt,0])@rot2d(theta+theta_diff)
         if isFeasible(next_point,map,scale):
             path = np.append(path,np.array([next_point]),axis = 0)
             current_point = next_point
             theta = theta + theta_diff
+            theta_path = np.append(theta_path, theta)
             step = step + 1
             stuck_counter = 0
             print (step)
@@ -117,23 +119,23 @@ def generateFeasiblePath(num_steps, velocity, dt, map, start_point, scale):
         
         if stuck_counter > 50:
             print ("got stuck")
-            return path
+            return path, theta_path
 
-    return path
+    return path, theta_path
 
 
 stuck_counter= 0
 
-current_map = generateMap(file_name,thresh,scale_px2m, scale_des,True)
+current_map = generateMap(file_name,thresh,scale_px2m, scale_des,False)
 dilated_map = getDilatedMap(current_map,0.7,scale_des)
 obs, free = generateObsAndFree(dilated_map, scale_des)
 start_point = np.array([23, 2]) 
-path = generateFeasiblePath(300, 1, 1,dilated_map,start_point, scale_des)
-# set_trace()
+path, theta_path = generateFeasiblePath(700, 1, 1,dilated_map,start_point, scale_des)
+set_trace()
 
 plt.plot(free[1],-free[0],'.')
 plt.plot(start_point[1], -start_point[0],'rx')
-plt.plot(path[:,1],-path[:,0])
+plt.plot(path[:,1],-path[:,0],'r')
 plt.show()
 
 
