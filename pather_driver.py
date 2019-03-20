@@ -1,4 +1,11 @@
 #! /usr/bin/env python3
+import sys
+dir_remove = []
+for p in sys.path:
+    if p.find('python2') !=-1:
+        dir_remove.append(p)
+for p in dir_remove:
+    sys.path.remove(p)
 
 from IPython.core.debugger import set_trace
 from importlib import reload
