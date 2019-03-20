@@ -52,6 +52,8 @@ def generateMap(file_name,thresh, img_scale, target_scale, visualize):
     map_shrunk = cv2.resize(map_bw,(new_width,new_height))
     if visualize:
         cv2.imshow('resized',map_shrunk)
+
+        cv2.imwrite('map_scaled.png',map_shrunk)
     #convert to array to begin generating obstacles
     map_mat = np.array(map_shrunk)
     if visualize:
@@ -60,7 +62,7 @@ def generateMap(file_name,thresh, img_scale, target_scale, visualize):
         if k == 27:         #wait for ESC key to exit
             cv2.destroyAllWindows()
         elif k == ord('s'):  #wait for 's' key to save and exit
-            # cv2.imwrite('messigray.png',img)
+
             cv2.destroyAllWindows()
 
     return map_mat
@@ -129,7 +131,7 @@ def generateFeasiblePath(num_steps, velocity, dt, map, start_point, scale):
 
 stuck_counter= 0
 
-current_map = generateMap(file_name,thresh,scale_px2m, scale_des,False)
+current_map = generateMap(file_name,thresh,scale_px2m, scale_des,True)
 dilated_map = getDilatedMap(current_map,0.7,scale_des)
 obs, free = generateObsAndFree(dilated_map, scale_des)
 start_point = np.array([23, 2])
