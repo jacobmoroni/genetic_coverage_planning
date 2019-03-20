@@ -1,4 +1,5 @@
 #this removes python2.7 paths so it wont screw everything up
+
 import sys
 dir_remove = []
 for p in sys.path:
@@ -6,22 +7,24 @@ for p in sys.path:
         dir_remove.append(p)
 for p in dir_remove:
     sys.path.remove(p)
+#
 
+from IPython.core.debugger import set_trace
+from importlib import reload
 
 import numpy as np
 import cv2
-from pdb import set_trace
 import matplotlib.pyplot as plt
 
 file_name = '/home/jacob/byu_classes/optimization/genetic_coverage_planning/map.png'
 # file_name = '/home/jacob/Documents/byu_classes/optimization/genetic_coverage_planning/map.png'
 thresh = 90
-scale_px2m = 1/0.44*0.0254 #measured estimate for this case 
+scale_px2m = 1/0.44*0.0254 #measured estimate for this case
 scale_des = 0.15 #roughly 6inches per pixel
 
 def generateMap(file_name,thresh, img_scale, target_scale, visualize):
     # set_trace()
-    map_raw = cv2.imread(file_name,0)
+    map_raw = cv2.imread(file_name,cv2.IMREAD_GRAYSCALE)
     if visualize:
         cv2.imshow('raw',map_raw)
 
@@ -41,7 +44,7 @@ def generateMap(file_name,thresh, img_scale, target_scale, visualize):
         cv2.imshow('filtered', map_bw)
 
     #shrink image to get desired scale
-    scale_px2m = img_scale #measured estimate for this case 
+    scale_px2m = img_scale #measured estimate for this case
     scale_des = target_scale #roughly 6inches per pixel
     height,width = map_bw.shape
     new_height = int(height*scale_px2m/scale_des)
@@ -71,7 +74,7 @@ def generateObsAndFree(map, scale_des):
 
     free_space_px = np.array(np.where(map == 0))
     free_space_m = free_space_px*(scale_des)
-    
+
     return obs_m, free_space_m
 
 def getDilatedMap(map, dilation, scale):
@@ -96,7 +99,7 @@ def isFeasible(point, map, scale):
         return False
 
 def generateFeasiblePath(num_steps, velocity, dt, map, start_point, scale):
-    stuck_counter = 0 
+    stuck_counter = 0
     step = 0
     theta = 0
     path = np.array([start_point])
@@ -116,7 +119,7 @@ def generateFeasiblePath(num_steps, velocity, dt, map, start_point, scale):
             print (step)
         else:
             stuck_counter = stuck_counter + 1
-        
+
         if stuck_counter > 50:
             print ("got stuck")
             return path, theta_path
@@ -129,7 +132,7 @@ stuck_counter= 0
 current_map = generateMap(file_name,thresh,scale_px2m, scale_des,False)
 dilated_map = getDilatedMap(current_map,0.7,scale_des)
 obs, free = generateObsAndFree(dilated_map, scale_des)
-start_point = np.array([23, 2]) 
+start_point = np.array([23, 2])
 path, theta_path = generateFeasiblePath(700, 1, 1,dilated_map,start_point, scale_des)
 set_trace()
 
@@ -137,5 +140,3 @@ plt.plot(free[1],-free[0],'.')
 plt.plot(start_point[1], -start_point[0],'rx')
 plt.plot(path[:,1],-path[:,0],'r')
 plt.show()
-
-
