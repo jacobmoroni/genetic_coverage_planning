@@ -27,7 +27,8 @@ class PathMaker(object):
         obstacles = (np.array(np.nonzero(self._mappy)) * self._scale)
         # distances = np.zeros((XY.shape[0], obstacles.shape[0]))
         # angles = np.zeros_like(distances)
-        displacements = np.array([obstacles[None, 0] - XY_scale[:,0, None], obstacles[None, 1] - XY_scale[:,1, None]])
+        displacements = np.array([obstacles[None, 0] - XY_scale[:,0, None], 
+                                  obstacles[None, 1] - XY_scale[:,1, None]])
         # print(displacements.shape)
         distances = np.linalg.norm(displacements, axis=0)
         angles = np.arctan2(displacements[1], displacements[0])
@@ -52,18 +53,53 @@ class PathMaker(object):
 
     def compute_traversable_graph(self, max_dist):
         self._graph = np.zeros((len(self._XY), len(self._XY)))
-        displacements = np.array([self._XY[None,:,0] - self._XY[:,0,None], self._XY[None,:,1] - self._XY[:,1,None]])
+        displacements = np.array([self._XY[None,:,0] - self._XY[:,0,None], 
+                                  self._XY[None,:,1] - self._XY[:,1,None]])
         distances = np.linalg.norm(displacements, axis=0)*self._scale
         angles = np.arctan2(displacements[1], displacements[0])
-
+        obstacles = (np.array(np.nonzero(self._mappy))) 
         idx_bool = distances<max_dist
         # print(f"idx_bool: {idx_bool.shape}")
         in_range_idx = np.array(np.where(idx_bool))
-        print(f"in_range_idx: {in_range_idx.shape}")
+        # print(f"in_range_idx: {in_range_idx.shape}")
         for i, edge in enumerate(in_range_idx.T):
-            # check to see if path is clear
-            self._graph[edge[0], edge[1]] = 1
+            if self.lineCollisionCheck(self._XY[edge[0]],self._XY[edge[1]],obstacles.T):
+                self._graph[edge[0], edge[1]] = 1
         # self._graph[in_range_idx[0], in_range_idx[1]] = 1
+        set_trace()
+
+     
+    def lineCollisionCheck(self,first, second, obstacles):
+        # Uses Line Equation to check for collisions along new line made by connecting nodes
+        # set_trace()
+        x1 = first[0]
+        y1 = first[1]
+        x2 = second[0]
+        y2 = second[1]
+
+        try:
+            a = y2 - y1
+            b = x2 - x1
+            c = x2*y1 - y2*x1
+        except ZeroDivisionError:
+            return False
+        if a == b and b == c and c == 0:
+            return False
+        dist = abs(a*obstacles[:,0]-b*obstacles[:,1]+c)/np.sqrt(a*a+b*b)#-obstacleList[:,2]
+        #filter to only look at obstacles within range of endpoints of lines
+        prox = np.bitwise_not(np.bitwise_and(
+                np.bitwise_or(
+                    np.bitwise_and(obstacles[:,0]<=x2, obstacles[:,0]<=x1),
+                    np.bitwise_and(obstacles[:,0]>=x2, obstacles[:,0]>=x1)),
+                np.bitwise_or(
+                    np.bitwise_and(obstacles[:,1]<=y2,obstacles[:,1]<=y1),
+                    np.bitwise_and(obstacles[:,1]>=y2,obstacles[:,1]>=y1))))
+
+        if dist[prox].size > 0:
+            if min(dist[prox])<=0:
+                return False
+            else:
+                return True 
 
     def visualize_waypoints(self):
         # do some visualization
