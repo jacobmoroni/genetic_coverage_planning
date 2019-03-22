@@ -43,10 +43,37 @@ class PathMaker(object):
         min_angles = angles[range(len(closest)),closest]
         idx_bool = min_distances<self._safety_buffer
         idx = np.array(np.where(idx_bool))
-        # set_trace()
         XY_scale[idx,0] = XY_scale[idx,0] - (self._safety_buffer-min_distances[idx])*np.cos(min_angles[idx])
         XY_scale[idx,1] = XY_scale[idx,1] - (self._safety_buffer-min_distances[idx])*np.sin(min_angles[idx])
-        # set_trace()
+
+        waypoint_displacements = np.array([XY_scale[None,:,0] - XY_scale[:,0,None], 
+                                  XY_scale[None,:,1] - XY_scale[:,1,None]])
+        #pruning hallways
+        waypoint_distances = np.linalg.norm(waypoint_displacements, axis=0)
+        waypoint_angles = np.arctan2(waypoint_displacements[1], waypoint_displacements[0])
+        #find waypoints too close to eachother
+        idx_bool = waypoint_distances<self._hall_width*0.7
+        waypoint_I = np.eye(XY_scale.shape[0])
+        idx_bool = np.logical_xor(waypoint_I,idx_bool)
+        pruning_idx = np.array(np.where(idx_bool)).T 
+        pruning_idx = np.unique(np.sort(pruning_idx),axis =0)
+        #prune waypoints where 2 are close to a single waypoint
+        unq, _, unq_count = np.unique(np.sort(pruning_idx,axis = None), return_inverse=True, return_counts=True)
+        count_mask = unq_count > 1
+        dup_ids = unq[count_mask]
+        for num in dup_ids:
+            row, _ = np.where(pruning_idx == num)
+            prune = pruning_idx[row][pruning_idx[row] != num]
+            XY_scale[prune] = -1*self._scale
+            pruning_idx[row] = -1
+        row,_ = np.where(pruning_idx == -1)
+        pruning_idx = np.delete(pruning_idx,row,0)
+
+        #where 2 are close to eachother, move one halfway and delete the other
+        # for wp in pruning_idx:
+            # XY_scale[wp[0],0] = XY_scale[wp[0],0] - (XY_scale[wp[0],0]- ##continue here
+
+
         XY = XY_scale*1/self._scale
         XY = np.rint(XY).astype(int)
         self._XY = XY
@@ -111,8 +138,10 @@ class PathMaker(object):
         img = self.pac_dots + 0.25*self._mappy + 0.25*map_dilated
         img_color = img[...,None]*np.array([1, 1, 1])
         start_idx = 246
+        check_idx = 359
         # draw the starting point
         cv2.circle(img_color, (self._XY[start_idx,1], self._XY[start_idx,0]), 5, (0,0,1))
+        cv2.circle(img_color, (self._XY[check_idx,1], self._XY[check_idx,0]), 5, (1,0,1))
         # img_color[self._XY[start_idx,0], self._XY[start_idx,1], :] = np.array([0,0,1])
         cv2.imshow('pac_dots',img_color)
         cv2.waitKey()
