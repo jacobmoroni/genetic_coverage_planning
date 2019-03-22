@@ -35,6 +35,5 @@ pather = PathMaker(mappy, scale, narrowest_hall, safety_buffer)
 pather.smartly_place_dots()
 pather.compute_traversable_graph(1.9)
 path = pather.makeMeAPath(100,201,5)
-set_trace()
 start_idx = 201
 mappy.visualize_waypoints(pather._XY, start_idx)
