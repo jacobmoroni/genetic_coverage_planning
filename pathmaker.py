@@ -68,10 +68,11 @@ class PathMaker(object):
             pruning_idx[row] = -1
         row,_ = np.where(pruning_idx == -1)
         pruning_idx = np.delete(pruning_idx,row,0)
-
+        
         #where 2 are close to eachother, move one halfway and delete the other
-        # for wp in pruning_idx:
-            # XY_scale[wp[0],0] = XY_scale[wp[0],0] - (XY_scale[wp[0],0]- ##continue here
+        for wp in pruning_idx:
+            XY_scale[wp[0],0] = XY_scale[wp[0],0] - (XY_scale[wp[0],0]- XY_scale[wp[1],0])/2
+            XY_scale[wp[0],1] = XY_scale[wp[0],1] - (XY_scale[wp[0],1]- XY_scale[wp[1],1])/2
 
 
         XY = XY_scale*1/self._scale
@@ -93,7 +94,6 @@ class PathMaker(object):
             if self.lineCollisionCheck(self._XY[edge[0]],self._XY[edge[1]],obstacles.T):
                 self._graph[edge[0], edge[1]] = 1
         # self._graph[in_range_idx[0], in_range_idx[1]] = 1
-        set_trace()
 
      
     def lineCollisionCheck(self,first, second, obstacles):
