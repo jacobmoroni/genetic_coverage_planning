@@ -1,3 +1,6 @@
+from IPython.core.debugger import set_trace
+from importlib import reload
+
 import numpy as np
 import cv2
 
@@ -12,6 +15,7 @@ class Mappy(object):
         self._min_view = min_view
         self._max_view = max_view
         self._view_angle = view_angle
+        self._grid = np.mgrid[0:self.shape[0] + self._scale:self._scale, 0:self.shape[0] + self._scale:self._scale]
 
         num_dilations = int(self._safety_buffer/self._scale)
         kernel = np.ones((3,3),np.uint8)
@@ -79,13 +83,21 @@ class Mappy(object):
         cv2.cv2.imshow('map with waypoints', img_color)
         cv2.waitKey()
 
-    def visualize_path(self, path):
-        pac_dots = np.zeros_like(self._img)
+    def visualize_path(self, waypoints, path_idx):
         # make this draw lines instead of points
-        pac_dots[waypoints[:,0], waypoints[:,1]] = 1
+        img = self._safety_img
+        img_color = img[...,None]*np.array([1, 1, 1])
+        path = waypoints[path_idx]
+        path = np.fliplr(path)
+        path = list(map(tuple,path))
+        for ii in range(len(path)-1):
+            cv2.line(img_color, path[ii],path[ii+1], (0,1,0),1)
+            # cv2.line(img, path[ii],path[ii+1], (1,1,1),1)
+
+        # pac_dots[waypoints[:,0], waypoints[:,1]] = (0,1,0)
         # self.pac_dots = self.pac_dots*(1-self._mappy)
-        img = pac_dots + 0.25*self._mappy + 0.25*map_dilated
-        cv2.cv2.imshow('map with waypoints', img)
+        cv2.imshow('map with path', img_color)
+        # cv2.imshow('map with all path', img)
         cv2.waitKey()
 
     def get_coverage(self, waypoints):
@@ -93,16 +105,24 @@ class Mappy(object):
         num_rays = int(self._max_view*self._view_angle/self._scale + 1)
         ray_angles = np.arange(num_rays)*self._view_angle/num_rays - self._view_angle/(num_rays/2.)
         for wpt in waypoints:
-            obstacles = (np.array(np.nonzero(self._img)) * self._scale)
-            displacements = np.array([obstacles[None, 0] - wpt[0, None],
-                                      obstacles[None, 1] - wpt[1, None]])
-            distances = np.linalg.norm(displacements, axis=0)
-            angles = np.arctan2(displacements[1], displacements[0]) - wpt[2]
-            #wrap
-            angles[angles < -np.pi] += 2*np.pi
-            angles[angles >  np.pi] -= 2*np.pi
-            # trace several rays that simulate the FOV
+            # find relative position of all obstacles
+            # obstacles = (np.array(np.nonzero(self._img)) * self._scale)
+            # displacements = np.array([obstacles[None, 0] - wpt[0, None],
+            #                           obstacles[None, 1] - wpt[1, None]])
+            # distances = np.linalg.norm(displacements, axis=0)
+            # angles = np.arctan2(displacements[1], displacements[0]) - wpt[2]
+            # #wrap
+            # angles[angles < -np.pi] += 2*np.pi
+            # angles[angles >  np.pi] -= 2*np.pi
 
+            # trace several rays that simulate the FOV
+            rel_grid = self._grid - x[:2, np.newaxis, np.newaxis]
+    #         print(rel_grid.shape
+            r_grid = np.linalg.norm(rel_grid, axis=0)
+            theta_grid = np.arctan2(rel_grid[1, :, :], rel_grid[0, :, :]) - x[2]
+            # wrap
+            theta_grid[theta_grid < -np.pi] += 2*np.pi
+            theta_grid[theta_grid >  np.pi] -= 2*np.pi
 
 
 

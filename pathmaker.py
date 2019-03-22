@@ -37,7 +37,7 @@ class PathMaker(object):
         # waypoint_angles = np.arctan2(waypoint_displacements[1], waypoint_displacements[0])
 
         #find waypoints too close to eachother
-        idx_bool = waypoint_distances<self._hall_width*0.9#0.7
+        idx_bool = waypoint_distances<self._hall_width*0.8#0.9#0.7
         waypoint_I = np.eye(XY_scale.shape[0])
         idx_bool = np.logical_xor(waypoint_I,idx_bool)
         pruning_idx = np.array(np.where(idx_bool)).T
@@ -79,26 +79,26 @@ class PathMaker(object):
         in_range_idx = np.array(np.where(idx_bool))
         # print(f"in_range_idx: {in_range_idx.shape}")
         for i, edge in enumerate(in_range_idx.T):
-            if self._mappy.lineCollisionCheck(self._XY[edge[0]],self._XY[edge[1]],self._safety_buffer/2):
+            if self._mappy.lineCollisionCheck(self._XY[edge[0]],self._XY[edge[1]],self._safety_buffer/3):
                 self._graph[edge[0], edge[1]] = 1
 
         # self._graph[in_range_idx[0], in_range_idx[1]] = 1
 
     def makeMeAPath(self,path_length,start_idx,path_memory):
         current_idx = start_idx
-        path = np.array([])
-        while len(path)<path_length:
+        path_idx = np.array([start_idx])
+        while len(path_idx)<path_length:
             choices = (np.where(self._graph[current_idx]))[0]
-            choices_comb = np.setdiff1d(choices,path[-path_memory:])
+            choices_comb = np.setdiff1d(choices,path_idx[-path_memory:])
             if len(choices_comb) > 0:
                 new_idx = np.random.choice(choices_comb)
             else:
                 # set_trace()
                 new_idx = np.random.choice(choices)
-            path = np.append(path,new_idx)
+            path_idx = np.append(path_idx,new_idx)
             current_idx = new_idx
             # print (current_idx)
-        return path
+        return path_idx.astype(int)
 
     #
 #
