@@ -86,26 +86,26 @@ class Chromosome( ):
         # #
         self._constr_vals = calc_constr_s()
 
+        self.xover_max_t_sep = None
     #
     def calc_obj(self):
-
+        coverage = self._mappy.getCoverage(self._dna)
         return [self._dna[0], coverage]
-
+    #
 
     def crossover(self, mate):
         dna1 = []
         dna2 = []
 
-        for ii, jj in zip(self.dna, mate.dna):
-            x_prob = np.random.rand()
-            if x_prob < 0.5:
-                dna1.append(jj)
-                dna2.append(ii)
-            else:
-                dna1.append(ii)
-                dna2.append(jj)
-            #
+        x_prob = np.random.rand()
+        if x_prob < 0.5:
+            dna1.append(jj)
+            dna2.append(ii)
+        else:
+            dna1.append(ii)
+            dna2.append(jj)
         #
+
         lil_timmy = Chromosome(dna1)
         lil_susy = Chromosome(dna2)
         return lil_timmy, lil_susy
@@ -116,6 +116,11 @@ class Chromosome( ):
         # return array of all constraint eq vals
         # maybe check here instead which constraints are feasible
         pass
+    #
+    def match_waypt(self, dna_mate):
+        # wpt is waypoint
+        for each forckade in self.dna:
+            ai = np.where(dna_mate.dna == forckade)
     #
 #
 
