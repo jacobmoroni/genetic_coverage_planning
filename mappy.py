@@ -65,12 +65,15 @@ class Mappy(object):
         cv2.cv2.imshow('map with buffer',self._safety_img)
         cv2.waitKey()
 
-    def visualize_waypoints(self, waypoints):
+    def visualize_waypoints(self, waypoints, start_idx=None):
         pac_dots = np.zeros_like(self._img)
         pac_dots[waypoints[:,0], waypoints[:,1]] = 1
         # self.pac_dots = self.pac_dots*(1-self._mappy)
         img = pac_dots + self._safety_img
-        cv2.cv2.imshow('map with waypoints', img)
+        img_color = img[...,None]*np.array([1, 1, 1])
+        if start_idx is not None:
+            cv2.circle(img_color, (waypoints[start_idx,1], waypoints[start_idx,0]), 5, (0,0,1))
+        cv2.cv2.imshow('map with waypoints', img_color)
         cv2.waitKey()
 
     def visualize_path(self, path):

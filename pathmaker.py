@@ -34,7 +34,7 @@ class PathMaker(object):
                                   XY_scale[None,:,1] - XY_scale[:,1,None]])
 
         waypoint_distances = np.linalg.norm(waypoint_displacements, axis=0)
-        waypoint_angles = np.arctan2(waypoint_displacements[1], waypoint_displacements[0])
+        # waypoint_angles = np.arctan2(waypoint_displacements[1], waypoint_displacements[0])
 
         #find waypoints too close to eachother
         idx_bool = waypoint_distances<self._hall_width*0.9#0.7
@@ -84,23 +84,5 @@ class PathMaker(object):
         # self._graph[in_range_idx[0], in_range_idx[1]] = 1
 
 
-
-    def visualize_waypoints(self):
-        # do some visualization
-        num_dilations = int(self._safety_buffer/self._scale)
-        kernel = np.ones((3,3),np.uint8)
-        map_dilated = cv2.dilate(self._mappy,kernel,iterations = num_dilations)
-        self.pac_dots[self._XY[:,0], self._XY[:,1]] = 1
-        # self.pac_dots = self.pac_dots*(1-self._mappy)
-        img = self.pac_dots + 0.25*self._mappy + 0.25*map_dilated
-        img_color = img[...,None]*np.array([1, 1, 1])
-        start_idx = 201
-        check_idx = 359
-        # draw the starting point
-        cv2.circle(img_color, (self._XY[start_idx,1], self._XY[start_idx,0]), 5, (0,0,1))
-        # cv2.circle(img_color, (self._XY[check_idx,1], self._XY[check_idx,0]), 5, (1,0,1))
-        # img_color[self._XY[start_idx,0], self._XY[start_idx,1], :] = np.array([0,0,1])
-        cv2.imshow('pac_dots',img_color)
-        cv2.waitKey()
     #
 #
