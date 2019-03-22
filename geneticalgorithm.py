@@ -37,10 +37,10 @@ class GeneticAlgorithm( ):
         # tourny or [ roulette ]
         pass
     #
-    def crossover(self):
-        # single-point vs uniform vs [ blend ]
-        pass
-    #
+    # def crossover(self):
+    #     # single-point vs uniform vs [ blend ]
+    #     pass
+    # #
     def mutation(self):
         # uniform vs [ dynamic ]
         pass
@@ -83,6 +83,24 @@ class Chromosome( ):
         # #
         self.constr_vals = calc_constr_s( )
 
+    #
+    def crossover(self, mate):
+        dna1 = []
+        dna2 = []
+
+        for ii, jj in zip(self.dna, mate.dna):
+            x_prob = np.random.rand()
+            if x_prob < 0.5:
+                dna1.append(jj)
+                dna2.append(ii)
+            else:
+                dna1.append(ii)
+                dna2.append(jj)
+            #
+        #
+        lil_timmy = Chromosome(dna1)
+        lil_susy = Chromosome(dna2)
+        return lil_timmy, lil_susy
     #
     def calc_obj_1(self):
         pass
