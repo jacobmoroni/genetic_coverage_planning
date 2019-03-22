@@ -79,7 +79,6 @@ class Chromosome( ):
 
         len_strand = len(strand)
 
-        # set_trace()
         self._dna = strand
 
         if len_strand > self._max_chromo_len - 1:
@@ -116,7 +115,6 @@ class Chromosome( ):
 
         x_prob = 0.2 # np.random.rand()
         if x_prob < 0.5:
-            # set_trace()
             xover_pts = self.match_waypt(mate._dna)
             xover_idx = np.arange( len(xover_pts) )
             single_idx = np.random.choice( xover_idx )
@@ -129,7 +127,6 @@ class Chromosome( ):
             dna1 = self._dna
             dna2 = mate._dna
         #
-        set_trace()
         idx = np.where(dna1 == -1)[0]
         dna1 = np.delete(dna1,idx)
         idx = np.where(dna2 == -1)[0]
@@ -137,7 +134,6 @@ class Chromosome( ):
 
         lil_timmy = Chromosome(dna1, self._mappy, self._scale, self._narrowest_hall, self._max_chromo_len)
         lil_susy = Chromosome(dna2, self._mappy, self._scale, self._narrowest_hall, self._max_chromo_len)
-        set_trace()
         return lil_timmy, lil_susy
     #
 

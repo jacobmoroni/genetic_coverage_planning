@@ -50,7 +50,6 @@ path_idx2 = pather.makeMeAPath(200,start_idx,5)
 poppy = Chromosome(path_idx, mappy, scale, narrowest_hall, max_chromo_len)
 mommy = Chromosome(path_idx2, mappy, scale, narrowest_hall, max_chromo_len)
 
-# set_trace()
 poppy.crossover(mommy)
 
 #
