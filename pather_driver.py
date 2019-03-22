@@ -16,6 +16,7 @@ import cv2
 import pathmaker
 reload(pathmaker)
 from pathmaker import PathMaker
+from mappy import Mappy
 
 file_name = "map_scaled.png"
 scale = 0.15
@@ -23,8 +24,10 @@ narrowest_hall = 1.75
 safety_buffer = 0.7
 map_scaled = cv2.imread(file_name,cv2.IMREAD_GRAYSCALE)/255
 
-pather = PathMaker(map_scaled, scale, narrowest_hall, safety_buffer)
+mappy = Mappy(map_scaled, scale, narrowest_hall, safety_buffer)
+
+pather = PathMaker(mappy, scale, narrowest_hall, safety_buffer)
 
 pather.smartly_place_dots()
 pather.compute_traversable_graph(5)
-pather.visualize_waypoints()
+mappy.visualize_waypoints(pather._XY)

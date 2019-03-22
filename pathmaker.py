@@ -21,19 +21,9 @@ class PathMaker(object):
         size = self._mappy.shape
         X,Y = np.mgrid[0:size[0]:stride,0:size[1]:stride]
         XY = np.vstack((X.flatten(), Y.flatten())).T
-        XY = XY[self._mappy[XY[:,0], XY[:,1]] == 0]
+        XY = XY[self._mappy._img[XY[:,0], XY[:,1]] == 0]
         XY_scale = XY*self._scale
-        # now we need to move dots to be at least safety_buffer away from obstacles
-        obstacles = (np.array(np.nonzero(self._mappy)) * self._scale)
-        displacements = np.array([obstacles[None, 0] - XY_scale[:,0, None],
-                                  obstacles[None, 1] - XY_scale[:,1, None]])
-        distances = np.linalg.norm(displacements, axis=0)
-        angles = np.arctan2(displacements[1], displacements[0])
-
-        closest = np.argmin(distances, axis=1)
-        print(closest.shape)
-        min_distances = distances[range(len(closest)),closest]
-        min_angles = angles[range(len(closest)),closest]
+        min_distances, min_angles = self._mappy.getClosestObstacles(XY_scale)
         idx_bool = min_distances<self._safety_buffer
         idx = np.array(np.where(idx_bool))
         XY_scale[idx,0] = XY_scale[idx,0] - (self._safety_buffer-min_distances[idx])*np.cos(min_angles[idx])
@@ -83,46 +73,17 @@ class PathMaker(object):
                                   self._XY[None,:,1] - self._XY[:,1,None]])
         distances = np.linalg.norm(displacements, axis=0)*self._scale
         angles = np.arctan2(displacements[1], displacements[0])
-        obstacles = (np.array(np.nonzero(self._mappy)))
+
         idx_bool = distances<max_dist
         # print(f"idx_bool: {idx_bool.shape}")
         in_range_idx = np.array(np.where(idx_bool))
         # print(f"in_range_idx: {in_range_idx.shape}")
         for i, edge in enumerate(in_range_idx.T):
-            if self.lineCollisionCheck(self._XY[edge[0]],self._XY[edge[1]],obstacles.T,self._safety_buffer/2):
+            if self._mappy.lineCollisionCheck(self._XY[edge[0]],self._XY[edge[1]],self._safety_buffer/2):
                 self._graph[edge[0], edge[1]] = 1
         # self._graph[in_range_idx[0], in_range_idx[1]] = 1
 
-    def lineCollisionCheck(self,first, second, obstacles,safety_buffer):
-        # Uses Line Equation to check for collisions along new line made by connecting nodes
-        x1 = first[0]
-        y1 = first[1]
-        x2 = second[0]
-        y2 = second[1]
 
-        try:
-            a = y2 - y1
-            b = x2 - x1
-            c = x2*y1 - y2*x1
-        except ZeroDivisionError:
-            return False
-        if a == b and b == c and c == 0:
-            return False
-        dist = abs(a*obstacles[:,0]-b*obstacles[:,1]+c)/np.sqrt(a*a+b*b)-safety_buffer
-        #filter to only look at obstacles within range of endpoints of lines
-        prox = np.bitwise_not(np.bitwise_and(
-                np.bitwise_or(
-                    np.bitwise_and(obstacles[:,0]<=x2, obstacles[:,0]<=x1),
-                    np.bitwise_and(obstacles[:,0]>=x2, obstacles[:,0]>=x1)),
-                np.bitwise_or(
-                    np.bitwise_and(obstacles[:,1]<=y2,obstacles[:,1]<=y1),
-                    np.bitwise_and(obstacles[:,1]>=y2,obstacles[:,1]>=y1))))
-
-        if dist[prox].size > 0:
-            if min(dist[prox])<=0:
-                return False
-            else:
-                return True
 
     def visualize_waypoints(self):
         # do some visualization
