@@ -81,8 +81,24 @@ class PathMaker(object):
         for i, edge in enumerate(in_range_idx.T):
             if self._mappy.lineCollisionCheck(self._XY[edge[0]],self._XY[edge[1]],self._safety_buffer/2):
                 self._graph[edge[0], edge[1]] = 1
+        
         # self._graph[in_range_idx[0], in_range_idx[1]] = 1
 
-
+    def makeMeAPath(self,path_length,start_idx,path_memory):
+        current_idx = start_idx
+        path = np.array([])
+        while len(path)<path_length:
+            choices = (np.where(self._graph[current_idx]))[0]
+            choices_comb = np.setdiff1d(choices,path[-path_memory:])
+            if len(choices_comb) > 0:
+                new_idx = np.random.choice(choices_comb)
+            else:
+                # set_trace()
+                new_idx = np.random.choice(choices)
+            path = np.append(path,new_idx)
+            current_idx = new_idx
+            print (current_idx)
+        return path
+            
     #
 #
