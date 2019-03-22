@@ -12,25 +12,25 @@ from objective import Objective
 class GeneticAlgorithm( ):
     def __init__( self ):
         # setup params
-        self.G_sz = 10
-        self.G_num = 10
-        self.T_sz = 4
-        self.gamma = 0.5
-        self.xover_probability = 0.5
-        self.xover_param = 0.5
-        self.mutate_probability = 0.5
-        self.mutate_param = 0.5
+        self._G_sz = 10
+        self._G_num = 10
+        self._T_sz = 4
+        self._gamma = 0.5
+        self._xover_probability = 0.5
+        self._xover_param = 0.5
+        self._mutate_probability = 0.5
+        self._mutate_param = 0.5
 
         # list for holding all chromosomes in parent generation
-        self.gen_parent = []
+        self._gen_parent = []
         # list for holding all chromosomes in children generation
-        self.gen_child = []
+        self._gen_child = []
     #
     def first_generation(self):
         # create random set of chromosomes
-        for ii in len(self.G_sz):
+        for ii in len(self._G_sz):
             rand_path = gen_path()
-            self.gen_parent.append( Chromosome(rand_path) )
+            self._gen_parent.append( Chromosome(rand_path) )
         #
     #
     def selection(self):
@@ -60,35 +60,39 @@ class GeneticAlgorithm( ):
 #
 
 class Chromosome( ):
-    def __init__(self, path):
+    def __init__(self, path, mappy, scale, hall_width, safety_buffer):
         # [ value ] vs binary
         # self.num_genes = 50
         # self.dna = []
         # for ii in len( self.num_genes ):
         #     self.dna.append( path[ii] )
         # #
-        self.dna = path
+        self._dna = path
+        self._mappy = mappy
+        self._scale = scale
+        self._hall_width = hall_width
+        self._safety_buffer = hall_width/2#safety_buffer
 
         # comput values of both objectives
-        self.obj_value_1 = calc_obj_1( )
-        self.obj_value_2 = calc_obj_2( )
+        self._obj_vals = calc_obj(map)
 
         # compute constraints for designs, check feasibility
-        self.constr_1 = 1
-        self.constr_feas = []
-        self.constr_infeas = []
+        self._constr_1 = 1
+        self._constr_feas = []
+        self._constr_infeas = []
         # for ii in len( num_constr ):
         #     constr_ii = 1
         #     self.constr_s.append( )
         # #
-        self.constr_vals = calc_constr_s( )
+        self._constr_vals = calc_constr_s()
 
     #
-    def calc_obj_1(self):
-        pass
-    #
-    def calc_obj_2(self):
-        pass
+    def calc_obj(self):
+
+        return [self._dna[0], coverage]
+
+    def visualize(self):
+
     #
     def calc_constr_s(self):
         # return array of all constraint eq vals

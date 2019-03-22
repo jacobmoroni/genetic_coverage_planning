@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 
 class PathMaker(object):
     def __init__(self, mappy, scale, hall_width, safety_buffer):
-        self._mappy = mappy/255
+        self._mappy = mappy
         self._scale = scale
         self._hall_width = hall_width
         self._safety_buffer = hall_width/2#safety_buffer
@@ -27,7 +27,7 @@ class PathMaker(object):
         obstacles = (np.array(np.nonzero(self._mappy)) * self._scale)
         # distances = np.zeros((XY.shape[0], obstacles.shape[0]))
         # angles = np.zeros_like(distances)
-        displacements = np.array([obstacles[None, 0] - XY_scale[:,0, None], 
+        displacements = np.array([obstacles[None, 0] - XY_scale[:,0, None],
                                   obstacles[None, 1] - XY_scale[:,1, None]])
         # print(displacements.shape)
         distances = np.linalg.norm(displacements, axis=0)
@@ -46,7 +46,7 @@ class PathMaker(object):
         XY_scale[idx,0] = XY_scale[idx,0] - (self._safety_buffer-min_distances[idx])*np.cos(min_angles[idx])
         XY_scale[idx,1] = XY_scale[idx,1] - (self._safety_buffer-min_distances[idx])*np.sin(min_angles[idx])
 
-        waypoint_displacements = np.array([XY_scale[None,:,0] - XY_scale[:,0,None], 
+        waypoint_displacements = np.array([XY_scale[None,:,0] - XY_scale[:,0,None],
                                   XY_scale[None,:,1] - XY_scale[:,1,None]])
         #pruning hallways
         waypoint_distances = np.linalg.norm(waypoint_displacements, axis=0)
@@ -55,7 +55,7 @@ class PathMaker(object):
         idx_bool = waypoint_distances<self._hall_width*0.7
         waypoint_I = np.eye(XY_scale.shape[0])
         idx_bool = np.logical_xor(waypoint_I,idx_bool)
-        pruning_idx = np.array(np.where(idx_bool)).T 
+        pruning_idx = np.array(np.where(idx_bool)).T
         pruning_idx = np.unique(np.sort(pruning_idx),axis =0)
         #prune waypoints where 2 are close to a single waypoint
         unq, _, unq_count = np.unique(np.sort(pruning_idx,axis = None), return_inverse=True, return_counts=True)
@@ -68,7 +68,7 @@ class PathMaker(object):
             pruning_idx[row] = -1
         row,_ = np.where(pruning_idx == -1)
         pruning_idx = np.delete(pruning_idx,row,0)
-        
+
         #where 2 are close to eachother, move one halfway and delete the other
         for wp in pruning_idx:
             XY_scale[wp[0],0] = XY_scale[wp[0],0] - (XY_scale[wp[0],0]- XY_scale[wp[1],0])/2
@@ -81,11 +81,11 @@ class PathMaker(object):
 
     def compute_traversable_graph(self, max_dist):
         self._graph = np.zeros((len(self._XY), len(self._XY)))
-        displacements = np.array([self._XY[None,:,0] - self._XY[:,0,None], 
+        displacements = np.array([self._XY[None,:,0] - self._XY[:,0,None],
                                   self._XY[None,:,1] - self._XY[:,1,None]])
         distances = np.linalg.norm(displacements, axis=0)*self._scale
         angles = np.arctan2(displacements[1], displacements[0])
-        obstacles = (np.array(np.nonzero(self._mappy))) 
+        obstacles = (np.array(np.nonzero(self._mappy)))
         idx_bool = distances<max_dist
         # print(f"idx_bool: {idx_bool.shape}")
         in_range_idx = np.array(np.where(idx_bool))
@@ -95,7 +95,7 @@ class PathMaker(object):
                 self._graph[edge[0], edge[1]] = 1
         # self._graph[in_range_idx[0], in_range_idx[1]] = 1
 
-     
+
     def lineCollisionCheck(self,first, second, obstacles):
         # Uses Line Equation to check for collisions along new line made by connecting nodes
         # set_trace()
@@ -126,7 +126,7 @@ class PathMaker(object):
             if min(dist[prox])<=0:
                 return False
             else:
-                return True 
+                return True
 
     def visualize_waypoints(self):
         # do some visualization
