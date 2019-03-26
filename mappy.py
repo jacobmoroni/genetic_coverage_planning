@@ -67,8 +67,6 @@ class Mappy(object):
             else:
                 return True
 
-
-
     def visualize(self):
         cv2.cv2.imshow('map with buffer',self._safety_img)
         cv2.waitKey()
@@ -101,7 +99,7 @@ class Mappy(object):
         # cv2.imshow('map with all path', img)
         cv2.waitKey()
 
-    # def get_coverage(self, organism):
+    # def getCoverage(self, organism):
     #     waypoints = organism.dna
     def getCoverage(self, all_waypoints, waypoints):
         coverage = np.copy(self._img)
@@ -110,15 +108,13 @@ class Mappy(object):
         alpha = self._view_angle/num_rays
         ray_angles = np.arange(num_rays)*alpha - alpha/2.
         cover_map = np.copy(self._img)
-        blah()
-        # TODO: waypoints[0:-1] ????????
+
         for ii, wpt in enumerate(tqdm(waypoints)):
-            if wpt == -1 or ii == len(waypoints-1):
+            if wpt == -1 or ii == len(waypoints)-1:
                 break
             #
-            # maybe wpt should be ii
             wpt_loc = all_waypoints[wpt]
-            next_wpt = all_waypoints[wpt+1]
+            next_wpt = all_waypoints[waypoints[ii+1]]
             wpt_theta = np.arctan2(next_wpt[1]-wpt_loc[1], next_wpt[0]-wpt_loc[0])
             # find relative position of all obstacles
             # obstacles = (np.array(np.nonzero(self._img)) * self._scale)
