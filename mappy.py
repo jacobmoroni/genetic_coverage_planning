@@ -3,6 +3,7 @@ from importlib import reload
 
 import numpy as np
 import cv2
+from tqdm import tqdm
 
 class Mappy(object):
     def __init__(self, img, scale, hall_width, min_view, max_view, view_angle):
@@ -15,7 +16,7 @@ class Mappy(object):
         self._min_view = min_view
         self._max_view = max_view
         self._view_angle = view_angle
-        self._grid = np.mgrid[0:self.shape[0] + self._scale:self._scale, 0:self.shape[0] + self._scale:self._scale]
+        self._grid = np.mgrid[0:self.shape[0]*self._scale:self._scale, 0:self.shape[1]*self._scale:self._scale]
 
         num_dilations = int(self._safety_buffer/self._scale)
         kernel = np.ones((3,3),np.uint8)
@@ -100,11 +101,21 @@ class Mappy(object):
         # cv2.imshow('map with all path', img)
         cv2.waitKey()
 
-    def get_coverage(self, waypoints):
+    # def get_coverage(self, organism):
+    #     waypoints = organism.dna
+    def get_coverage(self, all_waypoints, waypoints):
         coverage = np.copy(self._img)
         num_rays = int(self._max_view*self._view_angle/self._scale + 1)
-        ray_angles = np.arange(num_rays)*self._view_angle/num_rays - self._view_angle/(num_rays/2.)
-        for wpt in waypoints:
+        # alpha: width of the ray
+        alpha = self._view_angle/num_rays
+        ray_angles = np.arange(num_rays)*alpha - alpha/2.
+        cover_map = np.copy(self._img)
+        for ii, wpt in enumerate(tqdm(waypoints)):
+            if wpt == -1 or ii == len(waypoints-1):
+                break
+            wpt_loc = all_waypoints[wpt]
+            next_wpt = all_waypoints[wpt+1]
+            wpt_theta = np.arctan2(next_wpt[1]-wpt_loc[1], next_wpt[0]-wpt_loc[0])
             # find relative position of all obstacles
             # obstacles = (np.array(np.nonzero(self._img)) * self._scale)
             # displacements = np.array([obstacles[None, 0] - wpt[0, None],
@@ -114,15 +125,34 @@ class Mappy(object):
             # #wrap
             # angles[angles < -np.pi] += 2*np.pi
             # angles[angles >  np.pi] -= 2*np.pi
-
+            # TODO make this acutal measurements to obstacles
+            z = np.vstack((2*np.ones_like(ray_angles[None, :]), ray_angles[None, :]))
+            # print(z.shape)
             # trace several rays that simulate the FOV
-            rel_grid = self._grid - x[:2, np.newaxis, np.newaxis]
+            rel_grid = self._grid - wpt_loc[:2, np.newaxis, np.newaxis]
     #         print(rel_grid.shape
             r_grid = np.linalg.norm(rel_grid, axis=0)
-            theta_grid = np.arctan2(rel_grid[1, :, :], rel_grid[0, :, :]) - x[2]
+            theta_grid = np.arctan2(rel_grid[1, :, :], rel_grid[0, :, :]) - wpt_theta
             # wrap
             theta_grid[theta_grid < -np.pi] += 2*np.pi
             theta_grid[theta_grid >  np.pi] -= 2*np.pi
+            # generate an update mask
+            for zi in z:
+                meas_mask = r_grid < zi[0, np.newaxis, np.newaxis]
+
+                # max_mask = (r_grid < self.z_max)[:, :, np.newaxis]
+                # max_mask = np.tile(max_mask, (1, 1, z.shape[1]))
+        #         print("shape: {}".format(max_mask.shape))
+
+                theta_mask = np.abs(theta_grid - zi[1, np.newaxis]) < alpha/2.
+
+
+                free_mask = theta_mask & meas_mask
+                # print(cover_map.shape)
+                # print(free_mask.shape)
+                cover_map[free_mask] = 1
+        # cv2.imshow("Coverage", cover_map)
+        # cv2.waitKey()
 
 
 

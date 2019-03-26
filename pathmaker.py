@@ -32,7 +32,7 @@ class PathMaker(object):
         #pruning hallways
         waypoint_displacements = np.array([XY_scale[None,:,0] - XY_scale[:,0,None],
                                   XY_scale[None,:,1] - XY_scale[:,1,None]])
-
+        #
         waypoint_distances = np.linalg.norm(waypoint_displacements, axis=0)
         # waypoint_angles = np.arctan2(waypoint_displacements[1], waypoint_displacements[0])
 

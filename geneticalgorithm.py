@@ -33,7 +33,7 @@ class GeneticAlgorithm( ):
         # create random set of chromosomes
         for ii in len(self._G_sz):
             rand_path = gen_path()
-            self._gen_parent.append( Chromosome(rand_path) )
+            self._gen_parent.append( Organism(rand_path) )
         #
     #
     def selection(self):
@@ -62,8 +62,8 @@ class GeneticAlgorithm( ):
     #
 #
 
-class Chromosome( ):
-    def __init__(self, strand, mappy, scale, narrowest_hall, max_chromo_len):
+class Organism( ):
+    def __init__(self, dna, mappy, scale, narrowest_hall, max_dna_len):
         # [ value ] vs binary
         # self.num_genes = 50
         # self.dna = []
@@ -73,20 +73,20 @@ class Chromosome( ):
         # self._mappy = mym.mappy
         self._mappy = mappy
         self._scale = scale
-        self._hall_width = narrowest_hall
+        self._narrowest_hall = narrowest_hall
         self._safety_buffer = narrowest_hall * 0.5
-        self._max_chromo_len = max_chromo_len
+        self._max_dna_len = max_dna_len
 
-        len_strand = len(strand)
+        len_dna = len(dna)
 
-        self._dna = strand
+        self._len_dna = len_dna
+        self._dna = dna
 
-        if len_strand > self._max_chromo_len - 1:
-            self._dna = self._dna[0:self._max_chromo_len]
-        elif len_strand < self._max_chromo_len - 1:
-            self._dna = np.append( self._dna, np.ones(max_chromo_len - len_strand - 1) * -1 ).astype(int)
+        if len_dna > self._max_dna_len - 1:
+            self._dna = self._dna[0:self._max_dna_len]
+        elif len_dna < self._max_dna_len - 1:
+            self._dna = np.append( self._dna, np.ones(max_dna_len - len_dna - 1) * -1 ).astype(int)
         #
-        self._dna = np.append( len_strand, self._dna)
 
 
         # comput values of both objectives
@@ -115,7 +115,7 @@ class Chromosome( ):
 
         x_prob = 0.2 # np.random.rand()
         if x_prob < 0.5:
-            xover_pts = self.match_waypt(mate._dna)
+            xover_pts = self.match_waypt(mate._dna, mate._len_dna)
             xover_idx = np.arange( len(xover_pts) )
             single_idx = np.random.choice( xover_idx )
             single_pt = xover_pts[single_idx]
@@ -132,8 +132,8 @@ class Chromosome( ):
         idx = np.where(dna2 == -1)[0]
         dna2 = np.delete(dna2,idx)
 
-        lil_timmy = Chromosome(dna1, self._mappy, self._scale, self._narrowest_hall, self._max_chromo_len)
-        lil_susy = Chromosome(dna2, self._mappy, self._scale, self._narrowest_hall, self._max_chromo_len)
+        lil_timmy = Organism(dna1, self._mappy, self._scale, self._narrowest_hall, self._max_dna_len)
+        lil_susy = Organism(dna2, self._mappy, self._scale, self._narrowest_hall, self._max_dna_len)
         return lil_timmy, lil_susy
     #
 
@@ -143,13 +143,13 @@ class Chromosome( ):
         # maybe check here instead which constraints are feasible
         pass
     #
-    def match_waypt(self, dna_mate):
-
+    def match_waypt(self, dna_mate, len_dna_mate):
+        # set_trace()
         xover_pts = []
         # broadcast is brd
-        brd_mat = np.abs(self._dna[2:self._dna[0],None] - dna_mate[None,2:dna_mate[0]])
+        brd_diff_mat = np.abs(self._dna[1:self._len_dna+1,None] - dna_mate[None,1:len_dna_mate+1])
 
-        un_pruned_pts = np.array(np.where(brd_mat == 0)).T
+        un_pruned_pts = np.array(np.where(brd_diff_mat == 0)).T
 
         xover_tf = np.abs( un_pruned_pts[:,0] - un_pruned_pts[:,1] ) < self._time_thresh
         xover_pts = un_pruned_pts[xover_tf]

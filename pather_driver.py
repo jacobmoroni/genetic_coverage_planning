@@ -21,7 +21,7 @@ reload(mappy)
 reload(geneticalgorithm)
 from pathmaker import PathMaker
 from mappy import Mappy
-from geneticalgorithm import Chromosome
+from geneticalgorithm import Organism
 
 file_name = "map_scaled.png"
 scale = 0.15
@@ -32,6 +32,7 @@ max_view = 7
 view_angle = 69.4*np.pi/180
 max_chromo_len = 250
 start_idx = 207
+path_memory = 5
 
 map_scaled = cv2.imread(file_name,cv2.IMREAD_GRAYSCALE)/255
 
@@ -42,13 +43,15 @@ pather = PathMaker(mappy, scale, narrowest_hall, safety_buffer)
 pather.smartly_place_dots()
 pather.compute_traversable_graph(3.5)
 # for i in range(2):
-path_idx = pather.makeMeAPath(200,start_idx,5)
-path_idx2 = pather.makeMeAPath(200,start_idx,5)
+path_idx = pather.makeMeAPath(200,start_idx,path_memory)
+path_idx2 = pather.makeMeAPath(200,start_idx,path_memory)
     # mappy.visualize_path(pather._XY, path_idx)
 # mappy.visualize_waypoints(pather._XY, start_idx)
+mappy.get_coverage(pather._XY, path_idx)
+# set_trace()
 
-poppy = Chromosome(path_idx, mappy, scale, narrowest_hall, max_chromo_len)
-mommy = Chromosome(path_idx2, mappy, scale, narrowest_hall, max_chromo_len)
+poppy = Organism(path_idx, mappy, scale, narrowest_hall, max_chromo_len)
+mommy = Organism(path_idx2, mappy, scale, narrowest_hall, max_chromo_len)
 
 poppy.crossover(mommy)
 
