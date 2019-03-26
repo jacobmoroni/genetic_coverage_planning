@@ -12,12 +12,17 @@ class PathMaker(object):
         self._hall_width = hall_width
         self._safety_buffer = hall_width/2#safety_buffer
         size = self._mappy.shape
+        self._path_memory = 5
         # self._grid = np.mgrid[0:size[0]*scale:scale, 0:size[1]*scale:scale]
     #
-    def smartly_place_dots(self):
+    @property
+    def path_memory(self):
+        return self._path_memory
+
+    def smartlyPlaceDots(self):
         self.pac_dots = np.zeros_like(self._mappy)
         stride = int((self._hall_width)//self._scale)
-        print(self.pac_dots.shape)
+        print("Placing Dots", self.pac_dots.shape)
         size = self._mappy.shape
         X,Y = np.mgrid[0:size[0]:stride,0:size[1]:stride]
         XY = np.vstack((X.flatten(), Y.flatten())).T
@@ -30,6 +35,7 @@ class PathMaker(object):
         XY_scale[idx,1] = XY_scale[idx,1] - (self._safety_buffer-min_distances[idx])*np.sin(min_angles[idx])
 
         #pruning hallways
+        print("Pruning Dots")
         waypoint_displacements = np.array([XY_scale[None,:,0] - XY_scale[:,0,None],
                                   XY_scale[None,:,1] - XY_scale[:,1,None]])
         #
@@ -67,7 +73,7 @@ class PathMaker(object):
         XY = np.rint(XY).astype(int)
         self._XY = XY
 
-    def compute_traversable_graph(self, max_dist):
+    def computeTraversableGraph(self, max_dist):
         self._graph = np.zeros((len(self._XY), len(self._XY)))
         displacements = np.array([self._XY[None,:,0] - self._XY[:,0,None],
                                   self._XY[None,:,1] - self._XY[:,1,None]])
@@ -78,26 +84,41 @@ class PathMaker(object):
         # print(f"idx_bool: {idx_bool.shape}")
         in_range_idx = np.array(np.where(idx_bool))
         # print(f"in_range_idx: {in_range_idx.shape}")
-        for i, edge in enumerate(in_range_idx.T):
+        for ii, edge in enumerate(in_range_idx.T):
             if self._mappy.lineCollisionCheck(self._XY[edge[0]],self._XY[edge[1]],self._safety_buffer/3):
                 self._graph[edge[0], edge[1]] = 1
-
+            #
+        #
         # self._graph[in_range_idx[0], in_range_idx[1]] = 1
-
-    def makeMeAPath(self,path_length,start_idx,path_memory):
+    #
+    def saveTraversableGraph(self,file_name):
+        np.save(file_name, self._graph, allow_pickle=False, fix_imports=False)
+    #
+    def loadTraversableGraph(self,file_name):
+        self._graph = np.load(file_name)
+    #
+    def saveWptsXY(self,file_name):
+        np.save(file_name, self._XY, allow_pickle=False, fix_imports=False)
+    #
+    def loadWptsXY(self,file_name):
+        self._XY = np.load(file_name)
+    #
+    def makeMeAPath(self,path_length,start_idx):
         current_idx = start_idx
         path_idx = np.array([start_idx])
         while len(path_idx)<path_length:
             choices = (np.where(self._graph[current_idx]))[0]
-            choices_comb = np.setdiff1d(choices,path_idx[-path_memory:])
+            choices_comb = np.setdiff1d(choices,path_idx[-self._path_memory:])
             if len(choices_comb) > 0:
                 new_idx = np.random.choice(choices_comb)
             else:
                 # set_trace()
                 new_idx = np.random.choice(choices)
+            #
             path_idx = np.append(path_idx,new_idx)
             current_idx = new_idx
             # print (current_idx)
+        #
         return path_idx.astype(int)
 
     #

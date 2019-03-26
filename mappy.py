@@ -73,7 +73,7 @@ class Mappy(object):
         cv2.cv2.imshow('map with buffer',self._safety_img)
         cv2.waitKey()
 
-    def visualize_waypoints(self, waypoints, start_idx=None):
+    def visualizeWaypoints(self, waypoints, start_idx=None):
         pac_dots = np.zeros_like(self._img)
         pac_dots[waypoints[:,0], waypoints[:,1]] = 1
         # self.pac_dots = self.pac_dots*(1-self._mappy)
@@ -84,7 +84,7 @@ class Mappy(object):
         cv2.cv2.imshow('map with waypoints', img_color)
         cv2.waitKey()
 
-    def visualize_path(self, waypoints, path_idx):
+    def visualizePath(self, waypoints, path_idx):
         # make this draw lines instead of points
         img = self._safety_img
         img_color = img[...,None]*np.array([1, 1, 1])
@@ -103,16 +103,20 @@ class Mappy(object):
 
     # def get_coverage(self, organism):
     #     waypoints = organism.dna
-    def get_coverage(self, all_waypoints, waypoints):
+    def getCoverage(self, all_waypoints, waypoints):
         coverage = np.copy(self._img)
         num_rays = int(self._max_view*self._view_angle/self._scale + 1)
         # alpha: width of the ray
         alpha = self._view_angle/num_rays
         ray_angles = np.arange(num_rays)*alpha - alpha/2.
         cover_map = np.copy(self._img)
+        blah()
+        # TODO: waypoints[0:-1] ????????
         for ii, wpt in enumerate(tqdm(waypoints)):
             if wpt == -1 or ii == len(waypoints-1):
                 break
+            #
+            # maybe wpt should be ii
             wpt_loc = all_waypoints[wpt]
             next_wpt = all_waypoints[wpt+1]
             wpt_theta = np.arctan2(next_wpt[1]-wpt_loc[1], next_wpt[0]-wpt_loc[0])
@@ -172,7 +176,7 @@ class Occ_Map(object):
         self._log_m = np.zeros((m_width + 1, m_height + 1))
         self._grid = np.mgrid[0:width + resolution:resolution, 0:height + resolution:resolution]
 
-    def get_map(self):
+    def getMap(self):
         return 1.0 - 1.0/(1.0 + np.exp(self._log_m))
 
     def update(self, x, z, thk):

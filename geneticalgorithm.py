@@ -5,15 +5,15 @@ import numpy as np
 
 # TODO: import classes to compute both objective values
 # TODO: import fitness class (operates on both objectives)
-# import objective
+import pathmaker
 # import my_module as mym
-# reload(mym)
+reload(pathmaker)
 # reload(objective)
 # from objective import Objective
+from pathmaker import PathMaker
 
-
-class GeneticAlgorithm( ):
-    def __init__( self ):
+class GeneticalGorithm( ):
+    def __init__( self, pather ):
         # setup params
         self._G_sz = 10
         self._G_num = 10
@@ -28,11 +28,15 @@ class GeneticAlgorithm( ):
         self._gen_parent = []
         # list for holding all chromosomes in children generation
         self._gen_child = []
+
+        self.firstGeneration(pather)
     #
-    def first_generation(self):
+    def firstGeneration(self, pather):
         # create random set of chromosomes
+        path_length = 200
+        start_idx = 207
         for ii in len(self._G_sz):
-            rand_path = gen_path()
+            rand_path = pather.makeMeAPath(path,start_idx)
             self._gen_parent.append( Organism(rand_path) )
         #
     #
@@ -44,10 +48,7 @@ class GeneticAlgorithm( ):
     #     # single-point vs uniform vs [ blend ]
     #     pass
     # #
-    def mutation(self):
-        # uniform vs [ dynamic ]
-        pass
-    #
+
     def elitism(self):
         pass
     #
@@ -63,7 +64,7 @@ class GeneticAlgorithm( ):
 #
 
 class Organism( ):
-    def __init__(self, dna, mappy, scale, narrowest_hall, max_dna_len):
+    def __init__(self, dna, mappy, scale, narrowest_hall, max_dna_len, pather):
         # [ value ] vs binary
         # self.num_genes = 50
         # self.dna = []
@@ -76,17 +77,19 @@ class Organism( ):
         self._narrowest_hall = narrowest_hall
         self._safety_buffer = narrowest_hall * 0.5
         self._max_dna_len = max_dna_len
+        self._pather = pather
 
         len_dna = len(dna)
 
         self._len_dna = len_dna
         self._dna = dna
 
-        if len_dna > self._max_dna_len - 1:
-            self._dna = self._dna[0:self._max_dna_len]
-        elif len_dna < self._max_dna_len - 1:
-            self._dna = np.append( self._dna, np.ones(max_dna_len - len_dna - 1) * -1 ).astype(int)
-        #
+        # if len_dna > self._max_dna_len - 1:
+        #     self._dna = self._dna[0:self._max_dna_len]
+        # elif len_dna < self._max_dna_len - 1:
+        #     self._dna = np.append( self._dna, np.ones(max_dna_len - len_dna - 1) * -1 ).astype(int)
+        # #
+        self.padDna()
 
 
         # comput values of both objectives
@@ -106,16 +109,16 @@ class Organism( ):
         # self.xover_max_t_sep = None
         self._time_thresh = 70
     #
-    def calc_obj(self):
+    def calcObj(self):
         coverage = self._mappy.getCoverage(self._dna)
         return [self._dna[0], coverage]
     #
 
     def crossover(self, mate):
-
+        # TODO: remove static probability
         x_prob = 0.2 # np.random.rand()
         if x_prob < 0.5:
-            xover_pts = self.match_waypt(mate._dna, mate._len_dna)
+            xover_pts = self.matchWaypt(mate._dna, mate._len_dna)
             xover_idx = np.arange( len(xover_pts) )
             single_idx = np.random.choice( xover_idx )
             single_pt = xover_pts[single_idx]
@@ -132,18 +135,30 @@ class Organism( ):
         idx = np.where(dna2 == -1)[0]
         dna2 = np.delete(dna2,idx)
 
-        lil_timmy = Organism(dna1, self._mappy, self._scale, self._narrowest_hall, self._max_dna_len)
-        lil_susy = Organism(dna2, self._mappy, self._scale, self._narrowest_hall, self._max_dna_len)
+        lil_timmy = Organism(dna1, self._mappy, self._scale, self._narrowest_hall, self._max_dna_len, self._pather)
+        lil_susy = Organism(dna2, self._mappy, self._scale, self._narrowest_hall, self._max_dna_len, self._pather)
         return lil_timmy, lil_susy
     #
+    def mutation(self):
+        # uniform vs [ dynamic ]
+        # TODO: remove static probability
+        x_prob = 0.2 # np.random.rand()
+        if x_prob < 0.5:
+            idx = np.random.randint(0,self._len_dna)
+            len_tail = self._len_dna - idx
+            dna_tail = self._pather.makeMeAPath(len_tail, self._dna[idx])
+            dna_head = self._dna[0:idx]
+            self._dna = np.append(dna_head, dna_tail)
+        #
+        self.padDna()
 
-
-    def calc_constr_s(self):
+    #
+    def calcConstrS(self):
         # return array of all constraint eq vals
         # maybe check here instead which constraints are feasible
         pass
     #
-    def match_waypt(self, dna_mate, len_dna_mate):
+    def matchWaypt(self, dna_mate, len_dna_mate):
         # set_trace()
         xover_pts = []
         # broadcast is brd
@@ -156,6 +171,12 @@ class Organism( ):
 
         return xover_pts
     #
+    def padDna(self):
+        if self._len_dna > self._max_dna_len:
+            self._dna = self._dna[0:self._max_dna_len]
+        elif self._len_dna < self._max_dna_len:
+            self._dna = np.append( self._dna, np.ones(self._max_dna_len - self._len_dna) * -1 ).astype(int)
+        #
 #
 
 # class Generation( ):
