@@ -89,8 +89,11 @@ class Mappy(object):
         if a == b and b == 0:
             return False
 
-        obstacles = (np.array(np.nonzero(self._img))).T
-        dist = abs(a*obstacles[:,0]-b*obstacles[:,1]+c)/np.sqrt(a*a+b*b)-safety_buffer
+        num_dilations = int(safety_buffer/self._scale)
+        kernel = np.ones((3,3),np.uint8)
+        map_dilated = cv2.dilate(self._img,kernel,iterations = num_dilations)
+        obstacles = (np.array(np.nonzero(map_dilated))).T
+        dist = abs(a*obstacles[:,0]-b*obstacles[:,1]+c)/np.sqrt(a*a+b*b)#-safety_buffer
         #filter to only look at obstacles within range of endpoints of lines
         prox = np.bitwise_not(np.bitwise_and(
                 np.bitwise_or(
@@ -101,7 +104,7 @@ class Mappy(object):
                     np.bitwise_and(obstacles[:,1]>=y2,obstacles[:,1]>=y1))))
 
         if dist[prox].size > 0:
-            if min(dist[prox])<=0:
+            if min(dist[prox])<=1:
                 return False
             else:
                 return True
@@ -176,7 +179,7 @@ class Mappy(object):
             # print(z.shape)
             # trace several rays that simulate the FOV
             rel_grid = self._grid - wpt_loc[:2, np.newaxis, np.newaxis]
-    #         print(rel_grid.shape
+            # print(rel_grid.shape
             r_grid = np.linalg.norm(rel_grid, axis=0)
             theta_grid = np.arctan2(rel_grid[1, :, :], rel_grid[0, :, :]) - wpt_theta
             # wrap
@@ -189,7 +192,7 @@ class Mappy(object):
 
                 # max_mask = (r_grid < self.z_max)[:, :, np.newaxis]
                 # max_mask = np.tile(max_mask, (1, 1, z.shape[1]))
-        #         print("shape: {}".format(max_mask.shape))
+                # print("shape: {}".format(max_mask.shape))
 
                 theta_mask = np.abs(theta_grid - zi[1, np.newaxis]) < alpha/2.
 
@@ -201,12 +204,15 @@ class Mappy(object):
                 # print(z.shape)
                 # print(zi.shape)
                 # print(np.sum(theta_mask))
+            #
+        #
         coverage = (np.sum(cover_map) - num_occluded)/(cover_map.size - num_occluded)
         print(coverage)
         cv2.imshow("Coverage", cover_map)
         cv2.waitKey()
         return coverage
-
+    #
+#
 
 
 ################################################################################

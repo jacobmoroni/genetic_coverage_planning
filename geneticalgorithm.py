@@ -13,7 +13,7 @@ reload(pathmaker)
 from pathmaker import PathMaker
 
 class GeneticalGorithm( ):
-    def __init__( self, pather ):
+    def __init__( self, mappy, scale, narrowest_hall, max_dna_len, pather ):
         # setup params
         self._G_sz = 10
         self._G_num = 10
@@ -29,15 +29,21 @@ class GeneticalGorithm( ):
         # list for holding all chromosomes in children generation
         self._gen_child = []
 
-        self.firstGeneration(pather)
+        # create list of first generation
+        self.firstGeneration(mappy, scale, narrowest_hall, max_dna_len, pather)
+
+        # start species history
+        for ii in range(self._G_num):
+            pass
+        #
     #
-    def firstGeneration(self, pather):
+    def firstGeneration(self, mappy, scale, narrowest_hall, max_dna_len, pather):
         # create random set of chromosomes
         path_length = 200
         start_idx = 207
         for ii in len(self._G_sz):
             rand_path = pather.makeMeAPath(path,start_idx)
-            self._gen_parent.append( Organism(rand_path) )
+            self._gen_parent.append( Organism(rand_path, mappy, scale, narrowest_hall, max_dna_len, pather) )
         #
     #
     def selection(self):
@@ -105,7 +111,10 @@ class Organism( ):
         # self.xover_max_t_sep = None
         self._time_thresh = 70
 
+        # apply mutation
+        self.mutation()
 
+        self.obj_val = self.calcObj()
     #
     def calcObj(self):
         coverage = self._mappy.getCoverage(self._dna)

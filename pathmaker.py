@@ -13,7 +13,7 @@ class PathMaker(object):
         self._hall_width = hall_width
         self._safety_buffer = hall_width/2#safety_buffer
         size = self._mappy.shape
-        self._path_memory = 5
+        self._path_memory = 10
         # self._grid = np.mgrid[0:size[0]*scale:scale, 0:size[1]*scale:scale]
     #
     @property
@@ -81,30 +81,41 @@ class PathMaker(object):
         distances = np.linalg.norm(displacements, axis=0)*self._scale
         angles = np.arctan2(displacements[1], displacements[0])
         sector_width = np.pi/4
-        # for row in angles:
-        sector1 = np.array(np.where(np.logical_and(angles<(sector_width* 1/2), angles>(sector_width*-1/2))))
-        sector2 = np.array(np.where(np.logical_and(angles<(sector_width* 3/2), angles>(sector_width* 1/2))))
-        sector3 = np.array(np.where(np.logical_and(angles<(sector_width* 5/2), angles>(sector_width* 3/2))))
-        sector4 = np.array(np.where(np.logical_and(angles<(sector_width* 7/2), angles>(sector_width* 5/2))))
-        sector5 = np.array(np.where(np.logical_and(angles>(sector_width*-3/2), angles<(sector_width*-1/2))))
-        sector6 = np.array(np.where(np.logical_and(angles>(sector_width*-5/2), angles<(sector_width*-3/2))))
-        sector7 = np.array(np.where(np.logical_and(angles>(sector_width*-7/2), angles<(sector_width*-5/2))))
-        sector8 = np.array(np.where(np.logical_and(angles>(sector_width* 7/2), angles<(sector_width*-7/2))))
+        idx_bool = np.zeros_like(distances)
+        for ii, (angle_row, distance_row) in enumerate(zip(angles,distances)):
+            sector1 = np.array(np.where(np.logical_and(angle_row<(sector_width* 1/2), angle_row>(sector_width*-1/2)))).flatten()
+            sector2 = np.array(np.where(np.logical_and(angle_row<(sector_width* 3/2), angle_row>(sector_width* 1/2)))).flatten()
+            sector3 = np.array(np.where(np.logical_and(angle_row<(sector_width* 5/2), angle_row>(sector_width* 3/2)))).flatten()
+            sector4 = np.array(np.where(np.logical_and(angle_row<(sector_width* 7/2), angle_row>(sector_width* 5/2)))).flatten()
+            sector5 = np.array(np.where(np.logical_and(angle_row>(sector_width*-3/2), angle_row<(sector_width*-1/2)))).flatten()
+            sector6 = np.array(np.where(np.logical_and(angle_row>(sector_width*-5/2), angle_row<(sector_width*-3/2)))).flatten()
+            sector7 = np.array(np.where(np.logical_and(angle_row>(sector_width*-7/2), angle_row<(sector_width*-5/2)))).flatten()
+            sector8 = np.array(np.where(np.logical_or(angle_row>(sector_width* 7/2), angle_row<(sector_width*-7/2)))).flatten()
+            sector1 = np.delete(sector1,np.where(sector1==ii))
+            traversable_nodes = []
+            if sector1.size > 0:
+                traversable_nodes.append(sector1[np.argmin(distance_row[sector1])])
+            if sector2.size > 0:
+                traversable_nodes.append(sector2[np.argmin(distance_row[sector2])])
+            if sector3.size > 0:
+                traversable_nodes.append(sector3[np.argmin(distance_row[sector3])])
+            if sector4.size > 0:
+                traversable_nodes.append(sector4[np.argmin(distance_row[sector4])])
+            if sector5.size > 0:
+                traversable_nodes.append(sector5[np.argmin(distance_row[sector5])])
+            if sector6.size > 0:
+                traversable_nodes.append(sector6[np.argmin(distance_row[sector6])])
+            if sector7.size > 0:
+                traversable_nodes.append(sector7[np.argmin(distance_row[sector7])])
+            if sector8.size > 0:
+                traversable_nodes.append(sector8[np.argmin(distance_row[sector8])])
+            idx_bool[ii,traversable_nodes]=True
 
         # set_trace()
-        distance1 = np.argmin(distances[sector1], axis = 1)
-        distance2 = np.argmin(distances[sector2], axis = 1)
-        distance3 = np.argmin(distances[sector3], axis = 1)
-        distance4 = np.argmin(distances[sector4], axis = 1)
-        distance5 = np.argmin(distances[sector5], axis = 1)
-        distance6 = np.argmin(distances[sector6], axis = 1)
-        distance7 = np.argmin(distances[sector7], axis = 1)
-        distance8 = np.argmin(distances[sector8], axis = 1)
-
-        # set_trace()
-        idx_bool = distances<max_dist
+        idx_bool2 = distances<max_dist
+        idx_bool_total = np.logical_and(idx_bool,idx_bool2)
         # print(f"idx_bool: {idx_bool.shape}")
-        in_range_idx = np.array(np.where(idx_bool))
+        in_range_idx = np.array(np.where(idx_bool_total))
         # print(f"in_range_idx: {in_range_idx.shape}")
         for ii, edge in enumerate(tqdm(in_range_idx.T, desc="Pruning Collisions")):
             if self._mappy.lineCollisionCheck(self._XY[edge[0]],self._XY[edge[1]],self._safety_buffer/3):

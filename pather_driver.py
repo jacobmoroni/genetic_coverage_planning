@@ -56,18 +56,19 @@ else:
 
 mappy.all_waypoints = pather.waypoint_locs
 #
-# for i in range(2):
+# for i in range(50):
 path_idx = pather.makeMeAPath(200,start_idx)
+    # mappy.visualizePath(pather._XY, path_idx)
+
 path_idx2 = pather.makeMeAPath(200,start_idx)
-# mappy.visualizePath(pather._XY, path_idx)
 # mappy.visualizeWaypoints(pather._XY, start_idx)
 mappy.getCoverage(path_idx)
-# set_trace()
-
-poppy = Organism(path_idx, mappy, scale, narrowest_hall, max_dna_len, pather)
-mommy = Organism(path_idx2, mappy, scale, narrowest_hall, max_dna_len, pather)
-
-poppy.crossover(mommy)
-poppy.mutation()
+# # set_trace()
+#
+# poppy = Organism(path_idx, mappy, scale, narrowest_hall, max_dna_len, pather)
+# mommy = Organism(path_idx2, mappy, scale, narrowest_hall, max_dna_len, pather)
+#
+# poppy.crossover(mommy)
+# poppy.mutation()
 
 #
