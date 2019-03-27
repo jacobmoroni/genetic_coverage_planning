@@ -44,10 +44,6 @@ class GeneticalGorithm( ):
         # tourny or [ roulette ]
         pass
     #
-    # def crossover(self):
-    #     # single-point vs uniform vs [ blend ]
-    #     pass
-    # #
 
     def elitism(self):
         pass
@@ -108,6 +104,8 @@ class Organism( ):
 
         # self.xover_max_t_sep = None
         self._time_thresh = 70
+
+
     #
     def calcObj(self):
         coverage = self._mappy.getCoverage(self._dna)

@@ -23,7 +23,7 @@ from pathmaker import PathMaker
 from mappy import Mappy
 from geneticalgorithm import Organism
 
-use_old_graph = True
+use_old_graph = False
 old_graph_fname = 'wilk_3_graph.npy'
 old_wpts_fname = 'wilk_3_wpts.npy'
 
@@ -53,13 +53,15 @@ else:
     pather.computeTraversableGraph(3.5)
     pather.saveTraversableGraph('wilk_3_graph_new.npy')
     pather.saveWptsXY('wilk_3_wptsXY_new.npy')
+
+mappy.all_waypoints = pather.waypoint_locs
 #
 # for i in range(2):
 path_idx = pather.makeMeAPath(200,start_idx)
 path_idx2 = pather.makeMeAPath(200,start_idx)
 # mappy.visualizePath(pather._XY, path_idx)
 # mappy.visualizeWaypoints(pather._XY, start_idx)
-mappy.getCoverage(pather._XY, path_idx)
+mappy.getCoverage(path_idx)
 # set_trace()
 
 poppy = Organism(path_idx, mappy, scale, narrowest_hall, max_dna_len, pather)

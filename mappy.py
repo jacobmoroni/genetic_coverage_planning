@@ -22,7 +22,8 @@ class Mappy(object):
         kernel = np.ones((3,3),np.uint8)
         map_dilated = cv2.dilate(self._img,kernel,iterations = num_dilations)
         self._safety_img = 0.25*self._img + 0.25*map_dilated
-    
+        self.all_waypoints = None
+
     def generateNewMap(self, raw_file_name, output_file_name, bw_thresh, img_raw_scale, visualize = False):
         #TODO: Figure out the best way to di this
         map_raw = cv2.imread(raw_file_name,cv2.IMREAD_GRAYSCALE)
@@ -139,20 +140,27 @@ class Mappy(object):
 
     # def getCoverage(self, organism):
     #     waypoints = organism.dna
-    def getCoverage(self, all_waypoints, waypoints):
+    def getCoverage(self, waypoints):
+        if self.all_waypoints is None:
+            raise ValueError('Map has no waypoints')
         coverage = np.copy(self._img)
-        num_rays = int(self._max_view*self._view_angle/self._scale + 1)
+        # num_rays = int(self._max_view*self._view_angle/self._scale + 1)/2.
+        # print(num_rays)
+        num_rays = 10.
+        # num_rays = 1.
         # alpha: width of the ray
         alpha = self._view_angle/num_rays
-        ray_angles = np.arange(num_rays)*alpha - alpha/2.
+        ray_angles = np.arange(num_rays)*alpha - self._view_angle/2.
+        # print(ray_angles)
         cover_map = np.copy(self._img)
+        num_occluded = np.sum(cover_map)
 
-        for ii, wpt in enumerate(tqdm(waypoints)):
+        for ii, wpt in enumerate(tqdm(waypoints, desc="Viewing Waypoints")):
             if wpt == -1 or ii == len(waypoints)-1:
                 break
             #
-            wpt_loc = all_waypoints[wpt]
-            next_wpt = all_waypoints[waypoints[ii+1]]
+            wpt_loc = self.all_waypoints[wpt]*self._scale
+            next_wpt = self.all_waypoints[waypoints[ii+1]]*self._scale
             wpt_theta = np.arctan2(next_wpt[1]-wpt_loc[1], next_wpt[0]-wpt_loc[0])
             # find relative position of all obstacles
             # obstacles = (np.array(np.nonzero(self._img)) * self._scale)
@@ -164,7 +172,7 @@ class Mappy(object):
             # angles[angles < -np.pi] += 2*np.pi
             # angles[angles >  np.pi] -= 2*np.pi
             # TODO make this acutal measurements to obstacles
-            z = np.vstack((2*np.ones_like(ray_angles[None, :]), ray_angles[None, :]))
+            z = np.vstack((self._max_view*np.ones_like(ray_angles[None, :]), ray_angles[None, :]))
             # print(z.shape)
             # trace several rays that simulate the FOV
             rel_grid = self._grid - wpt_loc[:2, np.newaxis, np.newaxis]
@@ -175,8 +183,9 @@ class Mappy(object):
             theta_grid[theta_grid < -np.pi] += 2*np.pi
             theta_grid[theta_grid >  np.pi] -= 2*np.pi
             # generate an update mask
-            for zi in z:
+            for zi in z.T:
                 meas_mask = r_grid < zi[0, np.newaxis, np.newaxis]
+                meas_mask = meas_mask & (r_grid > 0.7)
 
                 # max_mask = (r_grid < self.z_max)[:, :, np.newaxis]
                 # max_mask = np.tile(max_mask, (1, 1, z.shape[1]))
@@ -189,63 +198,69 @@ class Mappy(object):
                 # print(cover_map.shape)
                 # print(free_mask.shape)
                 cover_map[free_mask] = 1
-        # cv2.imshow("Coverage", cover_map)
-        # cv2.waitKey()
+                # print(z.shape)
+                # print(zi.shape)
+                # print(np.sum(theta_mask))
+        coverage = (np.sum(cover_map) - num_occluded)/(cover_map.size - num_occluded)
+        print(coverage)
+        cv2.imshow("Coverage", cover_map)
+        cv2.waitKey()
+        return coverage
 
 
 
 ################################################################################
-class Occ_Map(object):
-    def __init__(self, width=100, height=100, resolution=1.0,
-                 z_max = 150, alpha= 1., beta=2*np.pi/180,
-                 p_free = 0.4, p_occ = 0.6):
-        m_width = int(width/resolution)
-        m_height = int(height/resolution)
-        self.z_max = z_max
-        self.alpha = alpha
-        self.beta = beta
-        self.l_free = np.log(p_free/(1 - p_free))
-        self.l_occ = np.log(p_occ/(1 - p_occ))
-#         self._m = np.zeros(m_width + 1, m_height + 1) + 0.5
-        self._log_m = np.zeros((m_width + 1, m_height + 1))
-        self._grid = np.mgrid[0:width + resolution:resolution, 0:height + resolution:resolution]
-
-    def getMap(self):
-        return 1.0 - 1.0/(1.0 + np.exp(self._log_m))
-
-    def update(self, x, z, thk):
-        rel_grid = self._grid - x[:2, np.newaxis, np.newaxis]
-#         print(rel_grid.shape)
-
-        r_grid = np.linalg.norm(rel_grid, axis=0)
-
-        theta_grid = np.arctan2(rel_grid[1, :, :], rel_grid[0, :, :]) - x[2]
-        # wrap
-        theta_grid[theta_grid < -np.pi] += 2*np.pi
-        theta_grid[theta_grid >  np.pi] -= 2*np.pi
-
-        # generate an update mask
-        meas_mask = r_grid[:, :, np.newaxis] < z[0, np.newaxis, np.newaxis, :] - self.alpha/2.
-
-        max_mask = (r_grid < self.z_max)[:, :, np.newaxis]
-        max_mask = np.tile(max_mask, (1, 1, z.shape[1]))
-#         print("shape: {}".format(max_mask.shape))
-
-        theta_mask = np.abs(theta_grid[:, :, np.newaxis] - thk[np.newaxis, :]) < self.beta/2.
-
-
-        free_mask = np.logical_or.reduce(max_mask & theta_mask & meas_mask, axis=-1)
-#         print("shape: {}".format(free_mask.shape))
-
-        # mask out the measurement range +/- the thickness alpha
-        meas_mask = r_grid[:, :, np.newaxis] < z[0, np.newaxis, np.newaxis, :] + self.alpha/2.
-        meas_mask = meas_mask & (r_grid[:, :, np.newaxis] > z[0, np.newaxis, np.newaxis, :] - self.alpha/2.)
-
-        occ_mask = np.logical_or.reduce(max_mask & theta_mask & meas_mask, axis=-1)
-#         print("shape: {}".format(occ_mask.shape))
-#         m_handle = plt.imshow(1- 1*np.flip(occ_mask[:, :].T, 0), cmap="gray")
-#         plt.show()
-#         print(rel_grid[:, :, 0])
-#         print("shape: {}".format(theta_mask.shape))
-
-        self._log_m += free_mask*self.l_free + occ_mask*self.l_occ
+# class Occ_Map(object):
+#     def __init__(self, width=100, height=100, resolution=1.0,
+#                  z_max = 150, alpha= 1., beta=2*np.pi/180,
+#                  p_free = 0.4, p_occ = 0.6):
+#         m_width = int(width/resolution)
+#         m_height = int(height/resolution)
+#         self.z_max = z_max
+#         self.alpha = alpha
+#         self.beta = beta
+#         self.l_free = np.log(p_free/(1 - p_free))
+#         self.l_occ = np.log(p_occ/(1 - p_occ))
+# #         self._m = np.zeros(m_width + 1, m_height + 1) + 0.5
+#         self._log_m = np.zeros((m_width + 1, m_height + 1))
+#         self._grid = np.mgrid[0:width + resolution:resolution, 0:height + resolution:resolution]
+#
+#     def getMap(self):
+#         return 1.0 - 1.0/(1.0 + np.exp(self._log_m))
+#
+#     def update(self, x, z, thk):
+#         rel_grid = self._grid - x[:2, np.newaxis, np.newaxis]
+# #         print(rel_grid.shape)
+#
+#         r_grid = np.linalg.norm(rel_grid, axis=0)
+#
+#         theta_grid = np.arctan2(rel_grid[1, :, :], rel_grid[0, :, :]) - x[2]
+#         # wrap
+#         theta_grid[theta_grid < -np.pi] += 2*np.pi
+#         theta_grid[theta_grid >  np.pi] -= 2*np.pi
+#
+#         # generate an update mask
+#         meas_mask = r_grid[:, :, np.newaxis] < z[0, np.newaxis, np.newaxis, :] - self.alpha/2.
+#
+#         max_mask = (r_grid < self.z_max)[:, :, np.newaxis]
+#         max_mask = np.tile(max_mask, (1, 1, z.shape[1]))
+# #         print("shape: {}".format(max_mask.shape))
+#
+#         theta_mask = np.abs(theta_grid[:, :, np.newaxis] - thk[np.newaxis, :]) < self.beta/2.
+#
+#
+#         free_mask = np.logical_or.reduce(max_mask & theta_mask & meas_mask, axis=-1)
+# #         print("shape: {}".format(free_mask.shape))
+#
+#         # mask out the measurement range +/- the thickness alpha
+#         meas_mask = r_grid[:, :, np.newaxis] < z[0, np.newaxis, np.newaxis, :] + self.alpha/2.
+#         meas_mask = meas_mask & (r_grid[:, :, np.newaxis] > z[0, np.newaxis, np.newaxis, :] - self.alpha/2.)
+#
+#         occ_mask = np.logical_or.reduce(max_mask & theta_mask & meas_mask, axis=-1)
+# #         print("shape: {}".format(occ_mask.shape))
+# #         m_handle = plt.imshow(1- 1*np.flip(occ_mask[:, :].T, 0), cmap="gray")
+# #         plt.show()
+# #         print(rel_grid[:, :, 0])
+# #         print("shape: {}".format(theta_mask.shape))
+#
+#         self._log_m += free_mask*self.l_free + occ_mask*self.l_occ

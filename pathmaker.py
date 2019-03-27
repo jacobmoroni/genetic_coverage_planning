@@ -4,6 +4,7 @@ from importlib import reload
 import numpy as np
 import cv2
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 
 class PathMaker(object):
     def __init__(self, mappy, scale, hall_width, safety_buffer):
@@ -79,12 +80,33 @@ class PathMaker(object):
                                   self._XY[None,:,1] - self._XY[:,1,None]])
         distances = np.linalg.norm(displacements, axis=0)*self._scale
         angles = np.arctan2(displacements[1], displacements[0])
+        sector_width = np.pi/4
+        # for row in angles:
+        sector1 = np.array(np.where(np.logical_and(angles<(sector_width* 1/2), angles>(sector_width*-1/2))))
+        sector2 = np.array(np.where(np.logical_and(angles<(sector_width* 3/2), angles>(sector_width* 1/2))))
+        sector3 = np.array(np.where(np.logical_and(angles<(sector_width* 5/2), angles>(sector_width* 3/2))))
+        sector4 = np.array(np.where(np.logical_and(angles<(sector_width* 7/2), angles>(sector_width* 5/2))))
+        sector5 = np.array(np.where(np.logical_and(angles>(sector_width*-3/2), angles<(sector_width*-1/2))))
+        sector6 = np.array(np.where(np.logical_and(angles>(sector_width*-5/2), angles<(sector_width*-3/2))))
+        sector7 = np.array(np.where(np.logical_and(angles>(sector_width*-7/2), angles<(sector_width*-5/2))))
+        sector8 = np.array(np.where(np.logical_and(angles>(sector_width* 7/2), angles<(sector_width*-7/2))))
 
+        # set_trace()
+        distance1 = np.argmin(distances[sector1], axis = 1)
+        distance2 = np.argmin(distances[sector2], axis = 1)
+        distance3 = np.argmin(distances[sector3], axis = 1)
+        distance4 = np.argmin(distances[sector4], axis = 1)
+        distance5 = np.argmin(distances[sector5], axis = 1)
+        distance6 = np.argmin(distances[sector6], axis = 1)
+        distance7 = np.argmin(distances[sector7], axis = 1)
+        distance8 = np.argmin(distances[sector8], axis = 1)
+
+        # set_trace()
         idx_bool = distances<max_dist
         # print(f"idx_bool: {idx_bool.shape}")
         in_range_idx = np.array(np.where(idx_bool))
         # print(f"in_range_idx: {in_range_idx.shape}")
-        for ii, edge in enumerate(in_range_idx.T):
+        for ii, edge in enumerate(tqdm(in_range_idx.T, desc="Pruning Collisions")):
             if self._mappy.lineCollisionCheck(self._XY[edge[0]],self._XY[edge[1]],self._safety_buffer/3):
                 self._graph[edge[0], edge[1]] = 1
             #
@@ -121,5 +143,8 @@ class PathMaker(object):
         #
         return path_idx.astype(int)
 
+    @property
+    def waypoint_locs(self):
+        return self._XY
     #
 #
