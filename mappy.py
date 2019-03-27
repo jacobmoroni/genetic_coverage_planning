@@ -22,6 +22,44 @@ class Mappy(object):
         kernel = np.ones((3,3),np.uint8)
         map_dilated = cv2.dilate(self._img,kernel,iterations = num_dilations)
         self._safety_img = 0.25*self._img + 0.25*map_dilated
+    
+    def generateNewMap(self, raw_file_name, output_file_name, bw_thresh, img_raw_scale, visualize = False):
+        #TODO: Figure out the best way to di this
+        map_raw = cv2.imread(raw_file_name,cv2.IMREAD_GRAYSCALE)
+        if visualize:
+            cv2.imshow('raw',map_raw)
+
+        map_bw = cv2.threshold(map_raw, bw_thresh, 255, cv2.THRESH_BINARY)[1]
+        map_bw = cv2.bitwise_not(map_bw)
+        if visualize:
+            cv2.imshow ('threshold_bw',map_bw)
+
+        #try to clean up noise in the map
+        kernel = np.ones((5,5),np.uint8)
+        map_bw = cv2.morphologyEx(map_bw, cv2.MORPH_CLOSE,kernel)
+        map_bw = cv2.morphologyEx(map_bw, cv2.MORPH_CLOSE,kernel)
+        if visualize:
+            cv2.imshow('filtered', map_bw)
+
+        #shrink image to get desired scale
+        scale_px2m = img_raw_scale #measured estimate for this case
+        scale_des = self._scale
+        height,width = map_bw.shape
+        new_height = int(height*scale_px2m/scale_des)
+        new_width = int(width*scale_px2m/scale_des)
+        map_shrunk = cv2.resize(map_bw,(new_width,new_height))
+        if visualize:
+            cv2.imshow('resized',map_shrunk)
+
+        cv2.imwrite(output_file_name, map_shrunk)
+        map_mat = np.array(map_shrunk)
+        if visualize:
+            #shut down when done
+            k = cv2.waitKey(0)
+            if k == 27:         #wait for ESC key to exit
+                cv2.destroyAllWindows()
+
+        self._img = map_mat
 
     def getClosestObstacles(self, XY_scale):
         # now we need to move dots to be at least safety_buffer away from obstacles

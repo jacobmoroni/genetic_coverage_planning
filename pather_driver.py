@@ -36,6 +36,8 @@ max_view = 7
 view_angle = 69.4*np.pi/180
 max_dna_len = 250
 start_idx = 207
+bw_thresh = 90
+scale_px2m = 1/0.44*0.0254 #measured estimate for this case
 
 map_scaled = cv2.imread(file_name,cv2.IMREAD_GRAYSCALE)/255
 

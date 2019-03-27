@@ -18,28 +18,25 @@ import matplotlib.pyplot as plt
 
 file_name = '/home/jacob/byu_classes/optimization/genetic_coverage_planning/map.png'
 # file_name = '/home/jacob/Documents/byu_classes/optimization/genetic_coverage_planning/map.png'
-thresh = 90
+bw_thresh = 90
 scale_px2m = 1/0.44*0.0254 #measured estimate for this case
 scale_des = 0.15 #roughly 6inches per pixel
 
-def generateMap(file_name,thresh, img_scale, target_scale, visualize):
+def generateMap(file_name, bw_thresh, img_scale, target_scale, visualize):
     # set_trace()
     map_raw = cv2.imread(file_name,cv2.IMREAD_GRAYSCALE)
     if visualize:
         cv2.imshow('raw',map_raw)
 
-    map_bw = cv2.threshold(map_raw, thresh, 255, cv2.THRESH_BINARY)[1]
+    map_bw = cv2.threshold(map_raw, bw_thresh, 255, cv2.THRESH_BINARY)[1]
     map_bw = cv2.bitwise_not(map_bw)
     if visualize:
         cv2.imshow ('threshold_bw',map_bw)
 
     #try to clean up noise in the map
     kernel = np.ones((5,5),np.uint8)
-    # map_bw = cv2.dilate(map_bw,kernel,iterations = 3)
-    # map_bw = cv2.erode(map_bw,kernel,iterations = 3)
     map_bw = cv2.morphologyEx(map_bw, cv2.MORPH_CLOSE,kernel)
     map_bw = cv2.morphologyEx(map_bw, cv2.MORPH_CLOSE,kernel)
-    # map_bw = cv2.morphologyEx(map_bw, cv2.MORPH_OPEN,kernel)
     if visualize:
         cv2.imshow('filtered', map_bw)
 
@@ -66,6 +63,8 @@ def generateMap(file_name,thresh, img_scale, target_scale, visualize):
             cv2.destroyAllWindows()
 
     return map_mat
+
+#these functions are used to generate paths through map. with no predetermined waypoints.
 
 def rot2d(angle):
     return np.array([[np.cos(angle), -np.sin(angle)],[np.sin(angle),np.cos(angle)]])
@@ -131,7 +130,7 @@ def generateFeasiblePath(num_steps, velocity, dt, map, start_point, scale):
 
 stuck_counter= 0
 
-current_map = generateMap(file_name,thresh,scale_px2m, scale_des,True)
+current_map = generateMap(file_name,bw_thresh,scale_px2m, scale_des,True)
 dilated_map = getDilatedMap(current_map,0.7,scale_des)
 obs, free = generateObsAndFree(dilated_map, scale_des)
 start_point = np.array([23, 2])
