@@ -57,8 +57,8 @@ else:
 # for i in range(2):
 path_idx = pather.makeMeAPath(200,start_idx)
 path_idx2 = pather.makeMeAPath(200,start_idx)
-    # mappy.visualize_path(pather._XY, path_idx)
-# mappy.visualize_waypoints(pather._XY, start_idx)
+# mappy.visualizePath(pather._XY, path_idx)
+# mappy.visualizeWaypoints(pather._XY, start_idx)
 mappy.getCoverage(pather._XY, path_idx)
 # set_trace()
 
