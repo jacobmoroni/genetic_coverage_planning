@@ -5,9 +5,33 @@ import numpy as np
 import cv2
 from tqdm import tqdm
 
+def getRot2D(theta):
+    return np.array([[np.cos(theta), -np.sin(theta)],
+                     [np.sin(theta),  np.cos(theta)]])
+
+def defineFrustumPts(scale, min_view, max_view, view_angle):
+    num_rays = 10.
+    # num_rays = 1.
+    # alpha: width of the ray
+    alpha = view_angle/num_rays
+    ray_angles = np.arange(num_rays)*alpha - view_angle/2.
+    pts = []
+    # define points on the inside of the view
+    for angle in ray_angles:
+        rot = getRot2D(-angle)
+        pts.append(rot.dot([0, min_view/scale]))
+    # define points on the outside of the view
+    for angle in ray_angles:
+        rot = getRot2D(angle)
+        pts.append(rot.dot([0, max_view/scale]))
+
+    return np.array(pts)
+
+
 class Mappy(object):
     def __init__(self, img, scale, hall_width, min_view, max_view, view_angle):
         self._img = img
+        self._num_occluded = np.sum(self._img)
         self._scale = scale
         self._hall_width = hall_width
         self._safety_buffer = hall_width/2#safety_buffer
@@ -15,7 +39,7 @@ class Mappy(object):
         # view area stuff for coverage calcualtion
         self._min_view = min_view
         self._max_view = max_view
-        self._view_angle = view_angle
+        self._view_angle = view_angle/2
         self._grid = np.mgrid[0:self.shape[0]*self._scale:self._scale, 0:self.shape[1]*self._scale:self._scale]
 
         num_dilations = int(self._safety_buffer/self._scale)
@@ -23,6 +47,7 @@ class Mappy(object):
         map_dilated = cv2.dilate(self._img,kernel,iterations = num_dilations)
         self._safety_img = 0.25*self._img + 0.25*map_dilated
         self.all_waypoints = None
+        self._frustum = defineFrustumPts(self._scale, self._min_view, self._max_view, self._view_angle)
 
     def generateNewMap(self, raw_file_name, output_file_name, bw_thresh, img_raw_scale, visualize = False):
         #TODO: Figure out the best way to di this
@@ -156,15 +181,72 @@ class Mappy(object):
         ray_angles = np.arange(num_rays)*alpha - self._view_angle/2.
         # print(ray_angles)
         cover_map = np.copy(self._img)
-        num_occluded = np.sum(cover_map)
+        draw_map = np.copy(cover_map)
 
+        # for ii, wpt in enumerate(tqdm(waypoints, desc="Viewing Waypoints")):
+        #     if wpt == -1 or ii == len(waypoints)-1:
+        #         break
+        #     #
+        #     wpt_loc = self.all_waypoints[wpt]*self._scale
+        #     next_wpt = self.all_waypoints[waypoints[ii+1]]*self._scale
+        #     wpt_theta = np.arctan2(next_wpt[1]-wpt_loc[1], next_wpt[0]-wpt_loc[0])
+        #     # find relative position of all obstacles
+        #     # obstacles = (np.array(np.nonzero(self._img)) * self._scale)
+        #     # displacements = np.array([obstacles[None, 0] - wpt[0, None],
+        #     #                           obstacles[None, 1] - wpt[1, None]])
+        #     # distances = np.linalg.norm(displacements, axis=0)
+        #     # angles = np.arctan2(displacements[1], displacements[0]) - wpt[2]
+        #     # #wrap
+        #     # angles[angles < -np.pi] += 2*np.pi
+        #     # angles[angles >  np.pi] -= 2*np.pi
+        #     # TODO make this acutal measurements to obstacles
+        #     z = np.vstack((self._max_view*np.ones_like(ray_angles[None, :]), ray_angles[None, :]))
+        #     # print(z.shape)
+        #     # trace several rays that simulate the FOV
+        #     rel_grid = self._grid - wpt_loc[:2, np.newaxis, np.newaxis]
+        #     # print(rel_grid.shape
+        #     r_grid = np.linalg.norm(rel_grid, axis=0)
+        #     theta_grid = np.arctan2(rel_grid[1, :, :], rel_grid[0, :, :]) - wpt_theta
+        #     # wrap
+        #     theta_grid[theta_grid < -np.pi] += 2*np.pi
+        #     theta_grid[theta_grid >  np.pi] -= 2*np.pi
+        #     # generate an update mask
+        #     for zi in z.T:
+        #         meas_mask = r_grid < zi[0, np.newaxis, np.newaxis]
+        #         meas_mask = meas_mask & (r_grid > self._min_view)
+        #
+        #         # max_mask = (r_grid < self.z_max)[:, :, np.newaxis]
+        #         # max_mask = np.tile(max_mask, (1, 1, z.shape[1]))
+        #         # print("shape: {}".format(max_mask.shape))
+        #
+        #         theta_mask = np.abs(theta_grid - zi[1, np.newaxis]) < alpha/2.
+        #
+        #
+        #         free_mask = theta_mask & meas_mask
+        #         # print(cover_map.shape)
+        #         # print(free_mask.shape)
+        #         cover_map[free_mask] = 1
+        #         # print(z.shape)
+        #         # print(zi.shape)
+        #         # print(np.sum(theta_mask))
+        #     #
+        # #
+        # coverage = (np.sum(cover_map) - self._num_occluded)/(cover_map.size - self._num_occluded)
+        # print(coverage)
+        # cv2.imshow("Coverage", cover_map)
+        # cv2.waitKey()
+
+        travel_dist = 0.0
         for ii, wpt in enumerate(tqdm(waypoints, desc="Viewing Waypoints")):
             if wpt == -1 or ii == len(waypoints)-1:
                 break
             #
-            wpt_loc = self.all_waypoints[wpt]*self._scale
-            next_wpt = self.all_waypoints[waypoints[ii+1]]*self._scale
+            wpt_loc = self.all_waypoints[wpt]
+            next_wpt = self.all_waypoints[waypoints[ii+1]]
             wpt_theta = np.arctan2(next_wpt[1]-wpt_loc[1], next_wpt[0]-wpt_loc[0])
+            travel_dist += np.norm(next_wpt[1]-wpt_loc[1], next_wpt[0]-wpt_loc[0])
+
+
             # find relative position of all obstacles
             # obstacles = (np.array(np.nonzero(self._img)) * self._scale)
             # displacements = np.array([obstacles[None, 0] - wpt[0, None],
@@ -176,41 +258,28 @@ class Mappy(object):
             # angles[angles >  np.pi] -= 2*np.pi
             # TODO make this acutal measurements to obstacles
             z = np.vstack((self._max_view*np.ones_like(ray_angles[None, :]), ray_angles[None, :]))
-            # print(z.shape)
-            # trace several rays that simulate the FOV
-            rel_grid = self._grid - wpt_loc[:2, np.newaxis, np.newaxis]
-            # print(rel_grid.shape
-            r_grid = np.linalg.norm(rel_grid, axis=0)
-            theta_grid = np.arctan2(rel_grid[1, :, :], rel_grid[0, :, :]) - wpt_theta
-            # wrap
-            theta_grid[theta_grid < -np.pi] += 2*np.pi
-            theta_grid[theta_grid >  np.pi] -= 2*np.pi
-            # generate an update mask
-            for zi in z.T:
-                meas_mask = r_grid < zi[0, np.newaxis, np.newaxis]
-                meas_mask = meas_mask & (r_grid > 0.7)
+            center = (int(wpt_loc[1]), int(wpt_loc[0]))
+            pts = np.array([[-1, 1], [1, 1], [1, -1], [-1, -1]], dtype='int32')
+            # rotate the frustum to the current heading
+            Rot = getRot2D(wpt_theta).T
+            view_mask = np.zeros_like(draw_map)
 
-                # max_mask = (r_grid < self.z_max)[:, :, np.newaxis]
-                # max_mask = np.tile(max_mask, (1, 1, z.shape[1]))
-                # print("shape: {}".format(max_mask.shape))
+            # the collision checking starts getting really slow
+            # cv2.fillPoly(view_mask, [np.around(Rot.dot(self._frustum.T)).astype('int32').T], 1, offset=center)
+            # collisions = np.where(draw_map*view_mask)
+            # draw_map = draw_map + view_mask - draw_map*view_mask
 
-                theta_mask = np.abs(theta_grid - zi[1, np.newaxis]) < alpha/2.
+            cv2.fillPoly(draw_map, [np.around(Rot.dot(self._frustum.T)).astype('int32').T], 1, offset=center)
 
-
-                free_mask = theta_mask & meas_mask
-                # print(cover_map.shape)
-                # print(free_mask.shape)
-                cover_map[free_mask] = 1
-                # print(z.shape)
-                # print(zi.shape)
-                # print(np.sum(theta_mask))
             #
         #
-        coverage = (np.sum(cover_map) - num_occluded)/(cover_map.size - num_occluded)
-        print(coverage)
-        cv2.imshow("Coverage", cover_map)
-        cv2.waitKey()
-        return coverage
+        # coverage = (np.sum(draw_map) - self._num_occluded)/(draw_map.size - self._num_occluded)
+        # print(coverage)
+        # cv2.imshow("Drawn Coverage", draw_map)
+        # cv2.waitKey()
+
+        # minimize negative coverage and minimize travel distance
+        return -coverage, travel_dist
     #
 #
 
