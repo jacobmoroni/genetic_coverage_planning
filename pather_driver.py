@@ -21,9 +21,19 @@ reload(mappy)
 reload(geneticalgorithm)
 from pathmaker import PathMaker
 from mappy import Mappy
-from geneticalgorithm import Organism
+from geneticalgorithm import GeneticalGorithm
+from matplotlib import pyplot as plt
+plt.ion()
 
-use_old_graph = False
+def plotty(population):
+    objs = np.array([thing._obj_val for thing in population._gen_parent])
+
+    plt.scatter(objs[:,0], objs[:,1])
+
+    plt.show()
+#
+
+use_old_graph = True
 old_graph_fname = 'wilk_3_graph.npy'
 old_wpts_fname = 'wilk_3_wpts.npy'
 
@@ -57,12 +67,12 @@ else:
 mappy.all_waypoints = pather.waypoint_locs
 #
 # for i in range(50):
-path_idx = pather.makeMeAPath(200,start_idx)
-    # mappy.visualizePath(pather._XY, path_idx)
-
-path_idx2 = pather.makeMeAPath(200,start_idx)
-# mappy.visualizeWaypoints(pather._XY, start_idx)
-mappy.getCoverage(path_idx)
+# path_idx = pather.makeMeAPath(200,start_idx)
+#     # mappy.visualizePath(pather._XY, path_idx)
+#
+# path_idx2 = pather.makeMeAPath(200,start_idx)
+# # mappy.visualizeWaypoints(pather._XY, start_idx)
+# mappy.getCoverage(path_idx)
 # # set_trace()
 #
 # poppy = Organism(path_idx, mappy, scale, narrowest_hall, max_dna_len, pather)
@@ -70,5 +80,11 @@ mappy.getCoverage(path_idx)
 #
 # poppy.crossover(mommy)
 # poppy.mutation()
+
+population = GeneticalGorithm( mappy, scale, narrowest_hall, max_dna_len, pather )
+
+plotty(population)
+population.runEvolution(5)
+
 
 #

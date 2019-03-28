@@ -171,7 +171,7 @@ class Mappy(object):
     def getCoverage(self, waypoints):
         if self.all_waypoints is None:
             raise ValueError('Map has no waypoints')
-        coverage = np.copy(self._img)
+        # coverage = np.copy(self._img)
         # num_rays = int(self._max_view*self._view_angle/self._scale + 1)/2.
         # print(num_rays)
         num_rays = 10.
@@ -237,14 +237,14 @@ class Mappy(object):
         # cv2.waitKey()
 
         travel_dist = 0.0
-        for ii, wpt in enumerate(tqdm(waypoints, desc="Viewing Waypoints")):
+        for ii, wpt in enumerate(waypoints):
             if wpt == -1 or ii == len(waypoints)-1:
                 break
             #
             wpt_loc = self.all_waypoints[wpt]
             next_wpt = self.all_waypoints[waypoints[ii+1]]
             wpt_theta = np.arctan2(next_wpt[1]-wpt_loc[1], next_wpt[0]-wpt_loc[0])
-            travel_dist += np.norm(next_wpt[1]-wpt_loc[1], next_wpt[0]-wpt_loc[0])
+            travel_dist += np.linalg.norm([next_wpt[1]-wpt_loc[1], next_wpt[0]-wpt_loc[0]])
 
 
             # find relative position of all obstacles
@@ -273,7 +273,7 @@ class Mappy(object):
 
             #
         #
-        # coverage = (np.sum(draw_map) - self._num_occluded)/(draw_map.size - self._num_occluded)
+        coverage = (np.sum(draw_map) - self._num_occluded)/(draw_map.size - self._num_occluded)
         # print(coverage)
         # cv2.imshow("Drawn Coverage", draw_map)
         # cv2.waitKey()
