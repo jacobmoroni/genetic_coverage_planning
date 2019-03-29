@@ -126,6 +126,7 @@ class GeneticalGorithm( ):
 
 class Organism( ):
     def __init__(self, dna, mappy, scale, narrowest_hall, max_dna_len, pather):
+        # TODO: I think we need to add the coverage contraint to pass into the class to make it a rolling constraint
         # [ value ] vs binary
 
         self._xover_probability = 0.7

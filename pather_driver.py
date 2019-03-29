@@ -35,9 +35,10 @@ def plotty(population,pather,mappy):
     fig = plt.figure()
     gs = gridspec.GridSpec(1, 2, width_ratios=[2, 1])
     ax = plt.subplot(gs[0])
-    # ax = fig.add_subplot(1,2,[1,2])
     ax.set_title('Pareto Front')
-
+    plt.ylabel('Flight Time (Cheetos)')
+    plt.xlabel('-Coverage')
+    plt.tight_layout()
     point, = ax.plot(objs[0,0],objs[0,1],'xr')
     pointy = PointSelector(point,objs,mappy,pather,population,fig)
     plt.scatter(objs[:,0], objs[:,1])

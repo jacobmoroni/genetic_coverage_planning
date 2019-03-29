@@ -193,6 +193,14 @@ class Mappy(object):
         gs = gridspec.GridSpec(1, 2, width_ratios=[2, 1])
         ax = plt.subplot(gs[1])
         ax.set_title('Selected Path')
+
+        # Hide grid lines
+        ax.grid(False)
+
+        # Hide axes ticks
+        ax.set_xticks([])
+        ax.set_yticks([])
+        plt.tight_layout()
         plt.imshow(img_color)
         plt.show()
         # cv2.namedWindow('Map With Path')
