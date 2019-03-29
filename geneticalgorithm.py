@@ -159,9 +159,9 @@ class Organism( ):
         # [ value ] vs binary
         # self.num_genes = 50
         # self.dna = []
-        self._xover_probability = 0.5
+        self._xover_probability = 0.7
         # self._xover_param = 0.5
-        self._mutate_probability = 0.5
+        self._mutate_probability = 0.2
         # self._mutate_param = 0.5
         # self._obj_scale
 
@@ -221,7 +221,6 @@ class Organism( ):
     #
 
     def crossover(self, mate):
-        # TODO: remove static probability
         uniform_num = np.random.rand()
         xover_pts = self.matchWaypt(mate._dna, mate._len_dna)
         if uniform_num < self._xover_probability and len(xover_pts) > 0:
@@ -230,14 +229,17 @@ class Organism( ):
             single_idx = np.random.choice( xover_idx )
 
             single_pt = xover_pts[single_idx]
-            dna1 = self._dna[1:single_pt[0]]
-            dna2 = mate._dna[1:single_pt[1]]
+
+            dna1 = self._dna[0:single_pt[0]]
+            dna2 = mate._dna[0:single_pt[1]]
+
             dna1 = np.append( dna1, mate._dna[single_pt[1]:])
             dna2 = np.append( dna2, self._dna[single_pt[0]:])
         else:
             dna1 = self._dna
             dna2 = mate._dna
         #
+
         idx = np.where(dna1 == -1)[0]
         dna1 = np.delete(dna1,idx)
         idx = np.where(dna2 == -1)[0]
@@ -248,6 +250,7 @@ class Organism( ):
 
         lil_timmy = Organism(dna1[:self._max_dna_len+1], self._mappy, self._scale, self._narrowest_hall, self._max_dna_len, self._pather)
         lil_susy = Organism(dna2[:self._max_dna_len+1], self._mappy, self._scale, self._narrowest_hall, self._max_dna_len, self._pather)
+
         return [lil_timmy, lil_susy]
     #
     def mutation(self):
@@ -255,7 +258,7 @@ class Organism( ):
         # TODO: remove static probability
         uniform_num = np.random.rand()
         if uniform_num < self._mutate_probability:
-            idx = np.random.randint(0,self._len_dna)
+            idx = np.random.randint(1,self._len_dna)
             len_tail = self._len_dna - idx
             try:
                 dna_tail = self._pather.makeMeAPath(len_tail, self._dna[idx])
@@ -263,8 +266,8 @@ class Organism( ):
                 set_trace()
             dna_head = self._dna[0:idx]
             self._dna = np.append(dna_head, dna_tail)
+            self.addTelomere()
         #
-        self.addTelomere()
 
     #
     def calcConstrS(self):
@@ -274,11 +277,12 @@ class Organism( ):
     #
     def matchWaypt(self, dna_mate, len_dna_mate):
         # set_trace()
+        keepout_idx = 1
         xover_pts = []
         # broadcast is brd
-        brd_diff_mat = np.abs(self._dna[1:self._len_dna+1,None] - dna_mate[None,1:len_dna_mate+1])
+        brd_diff_mat = np.abs(self._dna[keepout_idx:self._len_dna+1,None] - dna_mate[None,keepout_idx:len_dna_mate+1])
 
-        un_pruned_pts = np.array(np.where(brd_diff_mat == 0)).T
+        un_pruned_pts = np.array(np.where(brd_diff_mat == 0)).T + keepout_idx
 
         xover_tf = np.abs( un_pruned_pts[:,0] - un_pruned_pts[:,1] ) < self._time_thresh
         xover_pts = un_pruned_pts[xover_tf]

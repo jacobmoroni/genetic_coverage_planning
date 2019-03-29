@@ -34,7 +34,7 @@ def plotty(population,pather,mappy):
     ax = fig.add_subplot(111)
     ax.set_title('Pareto Front')
 
-    point, = ax.plot(0,0,'xr')
+    point, = ax.plot(objs[0,0],objs[0,1],'xr')
     pointy = PointSelector(point,objs,mappy,pather,population)
     plt.scatter(objs[:,0], objs[:,1])
     plt.show()
