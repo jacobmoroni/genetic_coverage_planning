@@ -3,16 +3,11 @@ from importlib import reload
 
 import numpy as np
 import copy
-
-# TODO: import classes to compute both objective values
-# TODO: import rackNstack class (operates on both objectives)
-import pathmaker
-# import my_module as mym
-reload(pathmaker)
-# reload(objective)
-# from objective import Objective
-from pathmaker import PathMaker
 from tqdm import tqdm
+
+import pathmaker
+reload(pathmaker)
+from pathmaker import PathMaker
 
 def lowVarSample(X, fitnesses, pressure):
     # pressure should be between 0 and 1
@@ -52,19 +47,12 @@ class GeneticalGorithm( ):
         self._tourney_sz = 4
         self._gamma = 0.5 # roulette exponent >= 0. 0 means zero fitness pressure
 
-
         # list for holding all chromosomes in parent generation
         self._gen_parent = []
         self._gen_parent_fit = []
 
-        # self._gen_pc = []
-        # self._gen_pc_fit = []
-        # self._gen_parent_fit_rel = None
-        # self._gen_child_fit_rel = None
-
         # create list of first generation
         self.firstGeneration(mappy, scale, narrowest_hall, max_dna_len, pather)
-
         #
     #
     def firstGeneration(self, mappy, scale, narrowest_hall, max_dna_len, pather):
@@ -79,8 +67,6 @@ class GeneticalGorithm( ):
         # map is a python built-in
         self._gen_parent_fit = self.rackNstack(self._gen_parent)
         #
-        # self._gen_parent = np.array(self._gen_parent)
-        # self._gen_parent_fit = np.array(self._gen_parent_fit)
     #
     def runEvolution(self, num_generations):
         # list for holding all chromosomes in children generation
@@ -90,11 +76,9 @@ class GeneticalGorithm( ):
             # grab a set of parents that are good to reproduce
             strong_parents = lowVarSample(self._gen_parent, self._gen_parent_fit, self._gamma)
             for mommy, daddy in zip(strong_parents[:self._G_sz//2], strong_parents[self._G_sz//2:]):
-                # do crossover with app the worthy parents
+                # do crossover with all the worthy parents
                 family_kids = mommy.crossover(daddy)
-                # family_kids_fit = map(self.rackNstack, family_kids)#[kid.rackNstack for kid in family_kids]
                 gen_child += family_kids
-                # gen_child_fit += family_kids_fit
             #
             # only the strong will survive this arena
             # it's dog eat dog, parent eat child. Animals.
@@ -102,33 +86,26 @@ class GeneticalGorithm( ):
             #
         #
     #
-
-    #
-
     def arena(self, gladiators):
-        #rack and stack
+        # rack and stack
         gladiators_fit = self.rackNstack(gladiators)
         gladiators, gladiators_fit = sortBy(gladiators, gladiators_fit)
-        #kill the unfit ones
+        # kill the unfit ones
         self._gen_parent = gladiators[:self._G_sz]
         self._gen_parent_fit = gladiators_fit[:self._G_sz]
     #
-    # scoring vs ranking vs [ maximin ]
     def rackNstack(self, gladiators):
         # combines both objectives with maximin into rackNstack
+        # scoring vs ranking vs [ maximin ]
         # penalty vs [ segregation ]
 
-        # TODO: obj1 is coverage --> MINIMIZING the NEGATIVE
+        # obj1 is coverage --> MINIMIZING the NEGATIVE
         # obj2 is flight-time --> MINIMIZING
         # obj1 = -self._rackNstack[0]
-        # obj1 = self._rackNstack[1]
+        # obj2 = self._rackNstack[1]
 
         comp_min = []
         comp_max = []
-
-        # gen_pc_fit = []
-        # gen_pc_fit.extend(self._gen_parent_fit)
-        # gen_pc_fit.extend(self._gen_child_fit)
 
         for ii, gen_fit_1 in enumerate(gladiators):
             comp_min = []
@@ -136,38 +113,24 @@ class GeneticalGorithm( ):
                 if ii == jj:
                     continue
                 else:
-                    comp_min.append( np.min([gen_fit_1._obj_val[0]-gen_fit_2._obj_val[0], gen_fit_1._obj_val[1]-gen_fit_2._obj_val[1]]) )
+                    comp_min.append( np.min([gen_fit_1._obj_val[0]-gen_fit_2._obj_val[0],
+                                             gen_fit_1._obj_val[1]-gen_fit_2._obj_val[1]]) )
                 #
             #
             comp_max.append( np.max(comp_min) )
         #
-        # sort_idx = np.argsort(comp_max)[:self._G_sz]
-        #
-        # # self._gen_parent = np.array(gladiators)[sort_idx]
-        # self._gen_parent_fit = np.array(gen_pc_fit)[sort_idx]
-
         fitnesses = comp_max
         return fitnesses
-    #
-    def pop_sort(self, gen_list, fit_list): # sort population
-        pass
     #
 #
 
 class Organism( ):
     def __init__(self, dna, mappy, scale, narrowest_hall, max_dna_len, pather):
         # [ value ] vs binary
-        # self.num_genes = 50
-        # self.dna = []
-        self._xover_probability = 0.7
-        # self._xover_param = 0.5
-        self._mutate_probability = 0.2
-        # self._mutate_param = 0.5
-        # self._obj_scale
 
-        # self._dna = path
-        # self._dna = []
-        # self._mappy = mym.mappy
+        self._xover_probability = 0.7
+        self._mutate_probability = 0.2
+
         self._mappy = mappy
         self._scale = scale
         self._narrowest_hall = narrowest_hall
@@ -175,51 +138,46 @@ class Organism( ):
         self._max_dna_len = max_dna_len
         self._pather = pather
         self._ft_scale  = 0.0001
+        self._min_dna_len = 75
 
         len_dna = len(dna)
 
         self._len_dna = len_dna
         self._dna = dna
 
-        # if len_dna > self._max_dna_len - 1:
-        #     self._dna = self._dna[0:self._max_dna_len]
-        # elif len_dna < self._max_dna_len - 1:
-        #     self._dna = np.append( self._dna, np.ones(max_dna_len - len_dna - 1) * -1 ).astype(int)
-        # #
-
         self.addTelomere()
 
-        # comput values of both objectives
-        # self._obj_vals = self.calc_obj(map)
-        # self._obj_vals = self.calc_obj()
-
         # compute constraints for designs, check feasibility
+        # incentivize straight paths
+        # start with seeded design
+        # min dna len
         self._constr_1 = 1
         self._constr_feas = []
         self._constr_infeas = []
+        self._cov_constr = -0.3
         # for ii in len( num_constr ):
         #     constr_ii = 1
         #     self.constr_s.append( )
         # #
         # self._constr_vals = calc_constr_s()
 
-        # self.xover_max_t_sep = None
+        # how close the crossover points need
+        # to be to eachother to be considered
         self._time_thresh = 70
 
         # apply mutation
         self.mutation()
 
+        # compute values of both objectives
         self._obj_val = self.calcObj()
-        # self._obj_val_2 = self.calcObj2()
-
-
     #
     def calcObj(self):
         coverage, travel_dist = self._mappy.getCoverage(self._dna)
         travel_dist = travel_dist * self._ft_scale
+        if coverage > self._cov_constr:
+            travel_dist += 0.5
         return [coverage, travel_dist]
     #
-
     def crossover(self, mate):
         uniform_num = np.random.rand()
         xover_pts = self.matchWaypt(mate._dna, mate._len_dna)
@@ -235,18 +193,20 @@ class Organism( ):
 
             dna1 = np.append( dna1, mate._dna[single_pt[1]:])
             dna2 = np.append( dna2, self._dna[single_pt[0]:])
+            for dna in [dna1,dna2]:
+                if len(dna) < self._min_dna_len:
+                    len_tail = self._min_dna_len - len(dna)
+                    dna_tail = self._pather.makeMeAPath(len_tail, dna[-1])
+                #
+            #
         else:
             dna1 = self._dna
             dna2 = mate._dna
         #
-
         idx = np.where(dna1 == -1)[0]
         dna1 = np.delete(dna1,idx)
         idx = np.where(dna2 == -1)[0]
         dna2 = np.delete(dna2,idx)
-
-        # self.addTelomere(dna1)
-        # self.addTelomere(dna2)
 
         lil_timmy = Organism(dna1[:self._max_dna_len+1], self._mappy, self._scale, self._narrowest_hall, self._max_dna_len, self._pather)
         lil_susy = Organism(dna2[:self._max_dna_len+1], self._mappy, self._scale, self._narrowest_hall, self._max_dna_len, self._pather)
@@ -254,29 +214,25 @@ class Organism( ):
         return [lil_timmy, lil_susy]
     #
     def mutation(self):
-        # uniform vs [ dynamic ]
-        # TODO: remove static probability
+        # uniform vs dynamic
         uniform_num = np.random.rand()
         if uniform_num < self._mutate_probability:
             idx = np.random.randint(1,self._len_dna)
             len_tail = self._len_dna - idx
-            try:
-                dna_tail = self._pather.makeMeAPath(len_tail, self._dna[idx])
-            except:
-                set_trace()
+
+            dna_tail = self._pather.makeMeAPath(len_tail, self._dna[idx])
             dna_head = self._dna[0:idx]
+
             self._dna = np.append(dna_head, dna_tail)
             self.addTelomere()
         #
-
     #
-    def calcConstrS(self):
+    def calcConstrs(self):
         # return array of all constraint eq vals
         # maybe check here instead which constraints are feasible
         pass
     #
     def matchWaypt(self, dna_mate, len_dna_mate):
-        # set_trace()
         keepout_idx = 1
         xover_pts = []
         # broadcast is brd
@@ -296,16 +252,6 @@ class Organism( ):
             self._dna = np.append( self._dna, np.ones(self._max_dna_len - self._len_dna) * -1 ).astype(int)
         #
     #
-
 #
-
-# class Generation( ):
-#     def __init__( self ):
-#         pass
-#     #
-#     def calc_rackNstack( self ):
-#         pass
-#     #
-# #
 
 #

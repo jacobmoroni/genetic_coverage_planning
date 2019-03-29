@@ -26,16 +26,20 @@ from mappy import Mappy
 from geneticalgorithm import GeneticalGorithm
 from pointselector import PointSelector
 from matplotlib import pyplot as plt
+from matplotlib import gridspec
+
 # plt.ion()
 
 def plotty(population,pather,mappy):
     objs = np.array([thing._obj_val for thing in population._gen_parent])
     fig = plt.figure()
-    ax = fig.add_subplot(111)
+    gs = gridspec.GridSpec(1, 2, width_ratios=[2, 1])
+    ax = plt.subplot(gs[0])
+    # ax = fig.add_subplot(1,2,[1,2])
     ax.set_title('Pareto Front')
 
     point, = ax.plot(objs[0,0],objs[0,1],'xr')
-    pointy = PointSelector(point,objs,mappy,pather,population)
+    pointy = PointSelector(point,objs,mappy,pather,population,fig)
     plt.scatter(objs[:,0], objs[:,1])
     plt.show()
 #
@@ -57,37 +61,26 @@ bw_thresh = 90
 scale_px2m = 1/0.44*0.0254 #measured estimate for this case
 
 map_scaled = cv2.imread(file_name,cv2.IMREAD_GRAYSCALE)/255
-
+print("Generating map from image file.")
 mappy = Mappy(map_scaled, scale, narrowest_hall, min_view, max_view, view_angle)
 
 pather = PathMaker(mappy, scale, narrowest_hall, safety_buffer)
 
 if use_old_graph:
+    print("Loading waypoints and traversible graph from file.")
     pather.loadTraversableGraph(old_graph_fname)
     pather.loadWptsXY(old_wpts_fname)
 else:
+    print("Generating possible waypoints.")
     pather.smartlyPlaceDots()
+    print("Generating traversible graph.")
     pather.computeTraversableGraph(3.5)
     pather.saveTraversableGraph('wilk_3_graph_new.npy')
     pather.saveWptsXY('wilk_3_wptsXY_new.npy')
 
 mappy.all_waypoints = pather.waypoint_locs
-#
-# for i in range(50):
-# path_idx = pather.makeMeAPath(200,start_idx)
-#     # mappy.visualizePath(pather._XY, path_idx)
-#
-# path_idx2 = pather.makeMeAPath(200,start_idx)
-# # mappy.visualizeWaypoints(pather._XY, start_idx)
-# mappy.getCoverage(path_idx)
-# # set_trace()
-#
-# poppy = Organism(path_idx, mappy, scale, narrowest_hall, max_dna_len, pather)
-# mommy = Organism(path_idx2, mappy, scale, narrowest_hall, max_dna_len, pather)
-#
-# poppy.crossover(mommy)
-# poppy.mutation()
 
+print("Spawning the contestants.")
 population = GeneticalGorithm( mappy, scale, narrowest_hall, max_dna_len, pather )
 
 plotty(population, pather, mappy)

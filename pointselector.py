@@ -16,8 +16,8 @@ from matplotlib import pyplot as plt
 
 
 class PointSelector(object):
-    def __init__(self,points,objs,mappy,pather,population):
-        
+    def __init__(self,points,objs,mappy,pather,population,fig):
+
         self.mappy = mappy
         self.pather = pather
         self.population = population
@@ -25,15 +25,16 @@ class PointSelector(object):
         self._y = 0
         self._points = points
         self._objectives = objs
+        self._fig = fig
         self._cid = points.figure.canvas.mpl_connect('button_press_event', self)
         nearest_point = -1
-   
+    #
     def __call__(self, event):
-        
-        #Records x and y locations of mouse clicks and sends them to start and goal positions
+
+        # Records x and y locations of mouse clicks and sends them to start and goal positions
         cv2.destroyAllWindows()
         if event.inaxes!=self._points.axes: return
-        
+
         self._x = event.xdata
         self._y = event.ydata
 
@@ -43,22 +44,8 @@ class PointSelector(object):
         self._points.set_data(self._objectives[nearest_point,0],self._objectives[nearest_point,1])
         self._points.figure.canvas.draw()
         current_organism = self.population._gen_parent[nearest_point]
-        self.mappy.visualizePath(self.pather._XY,current_organism._dna[0:current_organism._len_dna])
-        # self.show_path(mappy,population[nearest_point])
+        self.mappy.visualizePath(self.pather._XY,current_organism._dna[0:current_organism._len_dna],self._fig)
+
         return [self._x,self._y]
-    # def show_path(nearest_point, mappy, 
-
-def main():
-
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
-    ax.set_title('Select Start and Goal (Close when finished)')
-
-    line, = ax.plot([0,0], [0,0],"xr")  # empty line
-    pointy = PointSelector(line)
-    plt.plot(0,0,'.r')
-    plt.show()
-    print (plotty.x)
-
-if __name__ == '__main__':
-    main()
+    #
+#
