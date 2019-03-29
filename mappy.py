@@ -146,8 +146,10 @@ class Mappy(object):
         img_color = img[...,None]*np.array([1, 1, 1])
         if start_idx is not None:
             cv2.circle(img_color, (waypoints[start_idx,1], waypoints[start_idx,0]), 5, (0,0,1))
-        cv2.cv2.imshow('map with waypoints', img_color)
+        cv2.namedWindow('Map With Waypoints')
+        cv2.imshow('Map With Waypoints', img_color)
         cv2.waitKey()
+        cv2.destroyWindow('Map With Waypoints')
 
     def visualizePath(self, waypoints, path_idx):
         # make this draw lines instead of points
@@ -162,9 +164,10 @@ class Mappy(object):
 
         # pac_dots[waypoints[:,0], waypoints[:,1]] = (0,1,0)
         # self.pac_dots = self.pac_dots*(1-self._mappy)
-        cv2.imshow('map with path', img_color)
-        # cv2.imshow('map with all path', img)
+        cv2.namedWindow('Map With Path')
+        cv2.imshow('Map With Path', img_color)
         cv2.waitKey()
+        cv2.destroyWindow('Map With Path')
 
     # def getCoverage(self, organism):
     #     waypoints = organism.dna
