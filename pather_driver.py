@@ -16,20 +16,27 @@ import cv2
 import pathmaker
 import mappy
 import geneticalgorithm
+import pointselector
 reload(pathmaker)
 reload(mappy)
 reload(geneticalgorithm)
+reload(pointselector)
 from pathmaker import PathMaker
 from mappy import Mappy
 from geneticalgorithm import GeneticalGorithm
+from pointselector import PointSelector
 from matplotlib import pyplot as plt
-plt.ion()
+# plt.ion()
 
-def plotty(population):
+def plotty(population,pather,mappy):
     objs = np.array([thing._obj_val for thing in population._gen_parent])
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    ax.set_title('Pareto Front')
 
+    point, = ax.plot(0,0,'xr')
+    pointy = PointSelector(point,objs,mappy,pather,population)
     plt.scatter(objs[:,0], objs[:,1])
-
     plt.show()
 #
 
@@ -83,7 +90,7 @@ mappy.all_waypoints = pather.waypoint_locs
 
 population = GeneticalGorithm( mappy, scale, narrowest_hall, max_dna_len, pather )
 
-plotty(population)
+plotty(population, pather, mappy)
 population.runEvolution(5)
 
 
