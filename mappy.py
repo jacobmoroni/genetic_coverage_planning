@@ -40,7 +40,7 @@ def deg_wrap_360( angle ):
     return angle
 #
 def rad_wrap_pi( angle ):
-    angle -= 2*np.pi * np.floor((angle + np.pi) * inv_2pi)
+    angle -= 2*np.pi * np.floor((angle + np.pi) /(2*np.pi))
     return angle
 #
 def rad_wrap_2pi( angle ):
@@ -49,7 +49,7 @@ def rad_wrap_2pi( angle ):
 #
 
 class Mappy(object):
-    def __init__(self, img, scale, hall_width, min_view, max_view, view_angle):
+    def __init__(self, img, scale, hall_width, min_view, max_view, view_angle, rho):
         self._img = img
         self._num_occluded = np.sum(self._img)
         self._scale = scale
@@ -68,6 +68,9 @@ class Mappy(object):
         self._safety_img = 0.25*self._img + 0.25*map_dilated
         self.all_waypoints = None
         self._frustum = defineFrustumPts(self._scale, self._min_view, self._max_view, self._view_angle)
+
+        # gain on turning penalty for paths
+        self._rho = rho
     #
     def generateNewMap(self, raw_file_name, output_file_name, bw_thresh, img_raw_scale, visualize = False):
         # TODO: Figure out the best way to do this
@@ -222,8 +225,9 @@ class Mappy(object):
         # print(ray_angles)
         cover_map = np.copy(self._img)
         draw_map = np.copy(cover_map)
+        prev_theta = 0
 
-        travel_dist = 0.0
+        travel_cost = 0.0
         for ii, wpt in enumerate(waypoints):
             if wpt == -1 or ii == len(waypoints)-1:
                 break
@@ -231,7 +235,8 @@ class Mappy(object):
             wpt_loc = self.all_waypoints[wpt]
             next_wpt = self.all_waypoints[waypoints[ii+1]]
             wpt_theta = np.arctan2(next_wpt[1]-wpt_loc[1], next_wpt[0]-wpt_loc[0])
-            travel_dist += np.linalg.norm([next_wpt[1]-wpt_loc[1], next_wpt[0]-wpt_loc[0]])
+            delta_theta = rad_wrap_pi(wpt_theta - prev_theta)
+            travel_cost += np.linalg.norm([next_wpt[1]-wpt_loc[1], next_wpt[0]-wpt_loc[0]]) + self._rho*abs(delta_theta)
 
             # find relative position of all obstacles
             # obstacles = (np.array(np.nonzero(self._img)) * self._scale)
@@ -266,6 +271,6 @@ class Mappy(object):
         # cv2.waitKey()
 
         # minimize negative coverage and minimize travel distance
-        return -coverage, travel_dist
+        return -coverage, travel_cost
     #
 #
