@@ -176,7 +176,7 @@ class Organism( ):
         coverage, travel_dist = self._mappy.getCoverage(self._dna)
         travel_dist = travel_dist * self._ft_scale
         if coverage > self._cov_constr:
-            travel_dist += 0.5
+            travel_dist += 10000000000000000.0
         return [coverage, travel_dist]
     #
     def crossover(self, mate):

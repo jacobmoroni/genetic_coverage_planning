@@ -60,10 +60,11 @@ max_dna_len = 250
 start_idx = 207
 bw_thresh = 90
 scale_px2m = 1/0.44*0.0254 #measured estimate for this case
+rho = 5000000.
 
 map_scaled = cv2.imread(file_name,cv2.IMREAD_GRAYSCALE)/255
 print("Generating map from image file.")
-mappy = Mappy(map_scaled, scale, narrowest_hall, min_view, max_view, view_angle)
+mappy = Mappy(map_scaled, scale, narrowest_hall, min_view, max_view, view_angle, rho)
 
 pather = PathMaker(mappy, scale, narrowest_hall, safety_buffer)
 
