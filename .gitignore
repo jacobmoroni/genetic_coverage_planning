@@ -3,7 +3,7 @@
 *.pyc
 .ipynb_checkpoints/
 __pycache__/
-
+*.pickle
 
 # matlab
 *.asv
