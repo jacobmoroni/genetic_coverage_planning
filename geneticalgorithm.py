@@ -5,52 +5,28 @@ import numpy as np
 import copy
 from tqdm import tqdm
 
+import gori_tools as got
 import pathmaker
+reload(got)
 reload(pathmaker)
 from pathmaker import PathMaker
 
-def lowVarSample(X, fitnesses, pressure):
-    # pressure should be between 0 and 1
-    log_w = -np.array(fitnesses)
-    log_w = log_w - np.max(log_w)
-    base = pressure + 1
-    w = base**log_w
-    w = w/np.sum(w)
-    Xbar = []
-    M = len(X)
-    r = np.random.uniform(0, 1/M)
-    c = w[0]
-    i = 0
-    last_i = i
-    for m in range(M):
-        u = r + m/M
-        while u > c:
-            i += 1
-            c = c + w[i]
-        new_x = copy.deepcopy(X[i])
-        Xbar.append(new_x)
-        last_i = i
-    return Xbar
-
-def sortBy(stuff, stuff_values):
-    order = np.argsort(stuff_values)
-    stuff = list(np.array(stuff)[order])
-    stuff_values = list(np.array(stuff_values)[order])
-    return stuff, stuff_values
-
 
 class GeneticalGorithm( ):
-    def __init__( self, mappy, scale, narrowest_hall, max_dna_len, pather ):
+    def __init__( self, mappy, scale, narrowest_hall, max_dna_len, pather):
         # setup params
         self._G_sz = 100 # has to be an EVEN number !!!!!
         # self._G_num = 10
         self._tourney_sz = 4
         self._gamma = 0.5 # roulette exponent >= 0. 0 means zero fitness pressure
-
+        self._gen_num = 0
         # list for holding all chromosomes in parent generation
         self._gen_parent = []
         self._gen_parent_fit = []
 
+        self._cov_constr_0 = -0.3
+        self._cov_constr_f = -0.7
+        self._cov_aging = 20 #how many generations it takes to get to max const
         # create list of first generation
         self.firstGeneration(mappy, scale, narrowest_hall, max_dna_len, pather)
         #
@@ -74,7 +50,7 @@ class GeneticalGorithm( ):
             gen_child = []
             gen_child_fit = []
             # grab a set of parents that are good to reproduce
-            strong_parents = lowVarSample(self._gen_parent, self._gen_parent_fit, self._gamma)
+            strong_parents = got.lowVarSample(self._gen_parent, self._gen_parent_fit, self._gamma)
             for mommy, daddy in zip(strong_parents[:self._G_sz//2], strong_parents[self._G_sz//2:]):
                 # do crossover with all the worthy parents
                 family_kids = mommy.crossover(daddy)
@@ -85,11 +61,12 @@ class GeneticalGorithm( ):
             self.arena(self._gen_parent + gen_child)
             #
         #
+        self._gen_num += 1
     #
     def arena(self, gladiators):
         # rack and stack
         gladiators_fit = self.rackNstack(gladiators)
-        gladiators, gladiators_fit = sortBy(gladiators, gladiators_fit)
+        gladiators, gladiators_fit = got.sortBy(gladiators, gladiators_fit)
         # kill the unfit ones
         self._gen_parent = gladiators[:self._G_sz]
         self._gen_parent_fit = gladiators_fit[:self._G_sz]
@@ -106,6 +83,13 @@ class GeneticalGorithm( ):
 
         comp_min = []
         comp_max = []
+        alpha = min(1,(self._gen_num/self._cov_aging))
+        coverage_constr = (1-alpha)*self._cov_constr_0 + alpha*self._cov_constr_f
+        for ii, glad in enumerate(gladiators):
+            if glad._obj_val[0] > coverage_constr:
+                gladiators[ii]._obj_val_sc[0] = glad._obj_val[0]
+                gladiators[ii]._obj_val_sc[1] = glad._obj_val[1] + 1000
+        #
 
         for ii, gen_fit_1 in enumerate(gladiators):
             comp_min = []
@@ -113,8 +97,8 @@ class GeneticalGorithm( ):
                 if ii == jj:
                     continue
                 else:
-                    comp_min.append( np.min([gen_fit_1._obj_val[0]-gen_fit_2._obj_val[0],
-                                             gen_fit_1._obj_val[1]-gen_fit_2._obj_val[1]]) )
+                    comp_min.append( np.min([gen_fit_1._obj_val_sc[0]-gen_fit_2._obj_val_sc[0],
+                                             gen_fit_1._obj_val_sc[1]-gen_fit_2._obj_val_sc[1]]) )
                 #
             #
             comp_max.append( np.max(comp_min) )
@@ -155,7 +139,8 @@ class Organism( ):
         self._constr_1 = 1
         self._constr_feas = []
         self._constr_infeas = []
-        self._cov_constr = -0.3
+
+
         # for ii in len( num_constr ):
         #     constr_ii = 1
         #     self.constr_s.append( )
@@ -171,12 +156,11 @@ class Organism( ):
 
         # compute values of both objectives
         self._obj_val = self.calcObj()
+        self._obj_val_sc = [None,None]
     #
     def calcObj(self):
         coverage, travel_dist = self._mappy.getCoverage(self._dna)
         travel_dist = travel_dist * self._ft_scale
-        if coverage > self._cov_constr:
-            travel_dist += 10000000000000000.0
         return [coverage, travel_dist]
     #
     def crossover(self, mate):

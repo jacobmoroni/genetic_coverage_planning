@@ -3,8 +3,11 @@ dir_remove = []
 for p in sys.path:
     if p.find('python2') !=-1:
         dir_remove.append(p)
+    #
+#
 for p in dir_remove:
     sys.path.remove(p)
+#
 
 from IPython.core.debugger import set_trace
 from importlib import reload
@@ -14,6 +17,8 @@ import cv2
 from matplotlib import pyplot as plt
 # plt.ion()
 
+import gori_tools as got
+reload(got)
 
 class PointSelector(object):
     def __init__(self,points,objs,mappy,pather,population,fig):

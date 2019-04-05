@@ -2,9 +2,13 @@ from IPython.core.debugger import set_trace
 from importlib import reload
 
 import numpy as np
+import scipy.stats
 import cv2
 import matplotlib.pyplot as plt
 from tqdm import tqdm
+
+import gori_tools as got
+reload(got)
 
 class PathMaker(object):
     def __init__(self, mappy, scale, hall_width, safety_buffer):
@@ -136,17 +140,36 @@ class PathMaker(object):
     def loadWptsXY(self,file_name):
         self._XY = np.load(file_name)
     #
+    def assignWeights(self, current_heading, current_idx, choices):
+        displacements = np.array([self._XY[choices,0] - self._XY[current_idx,0],
+                                  self._XY[choices,1] - self._XY[current_idx,1]])
+        #
+        angles = np.arctan2(displacements[1], displacements[0]) - current_heading
+        angles = got.rad_wrap_pi(angles)
+        w = scipy.stats.norm.logpdf(angles, scale=1)
+        w -= np.max(w)
+        w = np.exp(w)
+        w = w / np.sum(w)
+        return w
+    #
     def makeMeAPath(self,path_length,start_idx):
         current_idx = start_idx
+        current_heading = np.random.rand()*2*np.pi - np.pi;
         path_idx = np.array([start_idx])
         while len(path_idx)<path_length:
             choices = (np.where(self._graph[current_idx]))[0]
             choices_comb = np.setdiff1d(choices,path_idx[-self._path_memory:])
             if len(choices_comb) > 0:
-                new_idx = np.random.choice(choices_comb)
+                w = self.assignWeights(current_heading, current_idx, choices_comb)
+                new_idx = np.random.choice(choices_comb, p=w)
+                current_heading = np.arctan2(self._XY[new_idx,1] - self._XY[current_idx,1],
+                                             self._XY[new_idx,0] - self._XY[current_idx,0])
             else:
                 # set_trace()
-                new_idx = np.random.choice(choices)
+                w = self.assignWeights(current_heading, current_idx, choices)
+                new_idx = np.random.choice(choices, p=w)
+                current_heading = np.arctan2(self._XY[new_idx,1] - self._XY[current_idx,1],
+                                             self._XY[new_idx,0] - self._XY[current_idx,0])
             #
             path_idx = np.append(path_idx,new_idx)
             current_idx = new_idx

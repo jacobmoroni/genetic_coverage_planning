@@ -7,46 +7,8 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
 
-def getRot2D(theta):
-    return np.array([[np.cos(theta), -np.sin(theta)],
-                     [np.sin(theta),  np.cos(theta)]])
-#
-def defineFrustumPts(scale, min_view, max_view, view_angle):
-    num_rays = 10.
-    # num_rays = 1.
-    # alpha: width of the ray
-    alpha = view_angle/num_rays
-    ray_angles = np.arange(num_rays)*alpha - view_angle/2.
-    pts = []
-    # define points on the inside of the view
-    for angle in ray_angles:
-        rot = getRot2D(-angle)
-        pts.append(rot.dot([0, min_view/scale]))
-    #
-    # define points on the outside of the view
-    for angle in ray_angles:
-        rot = getRot2D(angle)
-        pts.append(rot.dot([0, max_view/scale]))
-    #
-    return np.array(pts)
-#
-
-def deg_wrap_180( angle ):
-    angle -= 360.0 * np.floor((angle + 180.) * inv_360)
-    return angle
-#
-def deg_wrap_360( angle ):
-    angle -= 360.0 * np.floor(angle * inv_360)
-    return angle
-#
-def rad_wrap_pi( angle ):
-    angle -= 2*np.pi * np.floor((angle + np.pi) /(2*np.pi))
-    return angle
-#
-def rad_wrap_2pi( angle ):
-    angle -= 2*np.pi * np.floor(angle * inv_2pi)
-    return angle
-#
+import gori_tools as got
+reload(got)
 
 class Mappy(object):
     def __init__(self, img, scale, hall_width, min_view, max_view, view_angle, rho):
@@ -67,7 +29,7 @@ class Mappy(object):
         map_dilated = cv2.dilate(self._img,kernel,iterations = num_dilations)
         self._safety_img = 0.25*self._img + 0.25*map_dilated
         self.all_waypoints = None
-        self._frustum = defineFrustumPts(self._scale, self._min_view, self._max_view, self._view_angle)
+        self._frustum = got.defineFrustumPts(self._scale, self._min_view, self._max_view, self._view_angle)
 
         # gain on turning penalty for paths
         self._rho = rho
@@ -81,7 +43,7 @@ class Mappy(object):
         map_bw = cv2.threshold(map_raw, bw_thresh, 255, cv2.THRESH_BINARY)[1]
         map_bw = cv2.bitwise_not(map_bw)
         if visualize:
-            cv2.imshow ('threshold_bw',map_bw)
+            cv2.imshow('threshold_bw',map_bw)
         #
         # try to clean up noise in the map
         kernel = np.ones((5,5),np.uint8)
@@ -253,7 +215,7 @@ class Mappy(object):
             center = (int(wpt_loc[1]), int(wpt_loc[0]))
             pts = np.array([[-1, 1], [1, 1], [1, -1], [-1, -1]], dtype='int32')
             # rotate the frustum to the current heading
-            Rot = getRot2D(wpt_theta).T
+            Rot = got.getRot2D(wpt_theta).T
             view_mask = np.zeros_like(draw_map)
 
             # the collision checking starts getting really slow
