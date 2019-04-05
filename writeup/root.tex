@@ -6,7 +6,7 @@
 
 %\documentclass[a4paper, 10pt, conference]{ieeeconf}      % Use this line for a4 paper
 
-\IEEEoverridecommandlockouts                              % This command is only needed if 
+\IEEEoverridecommandlockouts                              % This command is only needed if
                                                           % you want to use the \thanks command
 
 \overrideIEEEmargins                                      % Needed to meet printer requirements.
@@ -42,13 +42,13 @@ Optimal Coverage with Genetic Path Planning
 }
 
 
-\author{Craig C. Bidstrup$^{1}$, Jared J. Moore, Cameron K. Peterson, and Randal W. Beard$^{2}$% <-this % stops a space
+\author{Jacob M. Olson, Craig C. Bidstrup$^{1}$, Brady K Anderson,Which Professors?$^{2}$% <-this % stops a space
 \thanks{This research was supported through the Center for Unmanned Aircraft Systems (C-UAS), a National Science Foundation-sponsored industry/university
 cooperative research center (I/UCRC) under NSF Award No. IIP-1650547
 along with significant contributions from C-UAS industry members.}% <-this % stops a space
 \thanks{$^{1}$The corresponding author can be contacted at
         {\tt\small craig.bidstrup at byu.edu}.}%
-\thanks{$^{2}$All authors are with the Department of Electrical and Computer Engineering,
+\thanks{$^{2}$All authors are with the Department of Mechanical Engineering or Electrical and Computer Engineering,
         Brigham Young University, Provo, UT, 84602, USA.}%
 %\thanks{$^{3}$C. Peterson is with the Faculty of Electrical and Computer Engineering,
 %		Brigham Young University, Provo, UT, 84602, USA.
@@ -57,6 +57,7 @@ along with significant contributions from C-UAS industry members.}% <-this % sto
 %		Brigham Young University, Provo, UT, 84602, USA.
 %        {\tt\small beard at byu.edu}}%
 }
+
 
 
 \begin{document}
@@ -71,13 +72,94 @@ along with significant contributions from C-UAS industry members.}% <-this % sto
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{abstract}
 
-Many multiple target tracking algorithms operate in the local frame of the sensor and have difficulty with track reallocation when targets move in and out of the sensor field of view. This poses a problem when an unmanned aerial vehicle (UAV) is tracking multiple ground targets on a road network larger than its field of view. We propose a Rao-Blackwellized Particle Filter (RBPF) to maintain individual target tracks and to perform probabilistic data association when the targets are constrained to a road network. This is particularly useful when a target leaves then re-enters the UAV's field of view. The RBPF is structured as a particle filter of particle filters. The top level filter handles data association and each of its particles maintains a bank of particle filters to handle target tracking. The tracking particle filters incorporate both positive and negative information when a measurement is received. We then implement a receding horizon controller to improve the filter certainty of multiple target locations. The controller prioritizes searching for targets based on the entropy of each target's estimate.
+When generating 3D maps with unmanned arial vehicles (UAVs), it is important to the mapping algorithms to have good coverage of the environment and have multiple loop closures throghout the flight path. Because multirotor UAVs are limited in flight time, the flight paths must not be too long. Coming up with a good flight path of a new environment to be mapped can be difficult to do well and becasue of how free-form a flight path can be, it is also tricky to generate optimal paths to get good coverage with minimal flight time.
+to solve this problem, we propose using a genetic algorithm designed to maximize total area coverage while minimizing flight time. Because of the more randomized searching that genetic algorithms have, it is more capable of solving complex free-form problems like path planning.
 
 \end{abstract}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{INTRODUCTION}
+
+Talk about lit review and what we will be contibuting to the space
+
+The remainder of the paper is organized as follows: Section \ref{setup} describes the method for simplifying the design space to create a reasonable problem for the genetic algorithm to solve. Section \ref{approach} describes the approach and architecture used to generate optimimal paths for first, a single UAV, then the method is extended to multi-agent path planning. Results showing and evaluating the generated paths are presented in Section \ref{results}. Finally, conclusions are presented in Section \ref{conclusions}.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{OPTIMIZATION SETUP}\label{setup}
+
+With optimization, especially genetic algorithms, it is important to have a problem that is high enough fidelity to model a problem close enough to the real world that it is useful, but simplified enough that it is able to make progress and learn between generation so that it is able to run.
+
+\subsection{Problem Statement}
+
+The problem being solved by this genetic algorithm is generating paths through a simple floor plan to be able to generate a 3D map with a UAV when the planned flight paths are flown. To do this, we start with a simple floor plan of the area that we want to map and a known scale of the map, then with as little required human interaction as possible, the goal is to generate a flight paths for the desired ammount of agents to map the building as well as possible with short enough flight times that it will be feasible with real hardware.
+
+\subsection{Discretization}
+
+The first step of setting up the optimization is making sure that the problem can be solved. because of the very open-ended nature of path planning, we needed to find a way to discretize and simplify the space to make this a solvable problem.
+
+\subsubsection{Map Generation}
+
+To do this, we started with the simple 2D floor map that we are starting with. 2D floor maps are very accessible for most buildings, so it is a reasonable place to start. the only part of the genetic algorithm that must be manually done by a human before starting the optimization is finding a floor map and masking it with areas that you want to map and areas that you do not want to map. Fig. \ref{fig:map_gen} illustrates what this mask would look like. The white space is flyable area, and the black space is unflyable space such as walls or inaccessible rooms.
+
+\begin{figure}
+\centering
+\includegraphics[width=0.8\linewidth]{figures/map_bw.png}
+\caption{The initial two dimensional floor map of the area to be mapped and the altered floor map reflecting areas that are to be mapped and areas that can be ignored}
+\label{fig:map_gen}
+\end{figure}
+
+Once this map is generated, it is used to begin the algorithm along with the scale from pixels to meters and the width of the narrowest hallway (in meters).
+
+The map generator then takes the masked map and scales it down so that each pixel represents the minimum resolution desired in the optimization. In our case, we scaled it to $0.15 m^{2}$ per pixel. This value could be adjusted to either increase the fidelity of the planner, or decrease it to make the optimization run faster.
+
+\subsubsection{Waypoints}
+
+Once the map is scaled to the desired size, to further discretize and simplify the design space of the optimization, We placed waypoints on the map and contrained the flight path to only fly through these waypoints. the first step of generating the waypoint is to lay down a grid of waypoints spaced apart by one half the width of the narrowest flyable hallway on the map to ensure that there are waypoints in every hallway and in every room so that the UAV can get everywhere it needs to to map the environment. After placing the grid of waypoints, all waypoints in unflyable space are removed.
+
+After removing waypoints that were in unflyable space, the waypoints are further pruned and adjusted to better represent the flyable space, the first step is to calculate a safety buffer around all unflyable space where the UAV will be able to fly without colliding with walls. Any waypoint that falls in this safety buffer is nudged out of it. Then waypoints are pruned one last time to remove redundant waypoints. This is done by checking the distance between waypoints. Any waypoints that are closer to eachother than the initial grid separation (one half the width of the narrowest hallway) are adjusted and pruned. If a waypoint is too close to only one other waypoint it is moved, half the distance to the other waypoint and then the other one is removed. An example of this is point A in Fig. \ref{fig:waypoints}. If a waypoint is too close to multiple other waypoints, it stays where it is and the other waypoints are removed. An example of this is point B in Fig. \ref{fig:waypoints}. This prevents over crowding of waypoints in halways and corners to make it simpler to generate flight paths through narrow hallways and near walls in rooms. Fig. \ref{fig:waypoints} shows how this step would work.
+
+\begin{figure}
+\centering
+\includegraphics[width=0.8\linewidth]{figures/waypoint2.png}
+\caption{The initial waypoint grid with only waypoints on unflyable space removed on the left, The modified waypoint grid with safety buffer and anti-crowding on the right.}
+\label{fig:waypoints}
+\end{figure}
+
+\subsection{Objective Functions}
+\subsubsection{Maximize Coverage}
+\subsubsection{Minimize Flight Time}
+using minimum waypoints and penalizing turning
+\subsection{Traversable Graph}
+octants then prune away obstacles then generate paths and avoid backtracking
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{APPROACH}\label{approach}
+\subsection{Single Agent Architecture}
+\subsubsection{Low-Variance Sampling}
+\subsubsection{Chromosome}
+\subsubsection{Crossover}
+\subsubsection{Mutation}
+\subsubsection{Constraints}
+\subsubsection{Minimax}
+\subsubsection{Elitism}
+\subsection{Multi-Agent Architecture}
+\subsubsection{Low-Variance Sampling}
+\subsubsection{Chromosome}
+\subsubsection{Crossover}
+\subsubsection{Mutation}
+\subsubsection{Constraints}
+\subsubsection{Minimax}
+\subsubsection{Elitism}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{RESULTS}\label{results}
+\subsection{Single Agent}
+\subsubsection{Pareto Front}
+\subsubsection{Paths Generated}
+\subsection{Multiple Agents}
+\subsubsection{Pareto Front}
+\subsubsection{Paths Generated}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{CONCLUSIONS}\label{conclusions}
 
 Multiple target tracking has a wide array of applications ranging from air traffic control \cite{Li1993} to following shoppers in a store \cite{Liu2007}. Many approaches exist to track moving objects, vehicles, pedestrians, etc. Algorithms of particular interest include Multiple Hypothesis Tracking (MHT) \cite{Reid1979}, Probability Hypothesis Density (PHD) filters \cite{Clark2007}, Recursive RANSAC (R-RANSAC) \cite{Niedfeldt2014}, and their variants. Most applications of these algorithms constrain the area of interest to the field of view of whatever sensor is employed. Targets that move out of the field of view are usually forgotten and considered a new target when seen again.
 
@@ -89,23 +171,11 @@ We describe a method for incorporating road map information as well as a negativ
 
 The unmanned aerial vehicle (UAV) motion is driven using a receding horizon controller utilizing the road network constraint and the estimator, which provides probability density information about where the target is expected to be. Numerical simulations demonstrate that the controller improves target estimate certainty compared to a random search pattern.
 
-The remainder of the paper is organized as follows: Section \ref{target_tracking} describes the method for tracking a single target. Section \ref{data_association} extends the estimator to multiple targets with unknown data association. A receding horizon controller leveraging the estimator output is presented in Section \ref{predictive_path_planning}. Results comparing the controller to a random search pattern are presented in Section \ref{results}. Finally, conclusions are presented in Section \ref{conclusions}.
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{TARGET TRACKING}\label{target_tracking}
-
 First, consider the case of tracking a single vehicle constrained to a road network. The solution provides a building block for the complete architecture of tracking multiple vehicles with unknown data correspondence.
 
 \subsection{Particle Filter}
 
 The agent describes its belief of the target locations using a particle filter (PF). Also known as Sequential Monte Carlo, the PF is a nonparametric implementation of the Bayes filter \cite{Arulampalam2002}. In contrast to a Kalman filter, the PF easily describes multimodal distributions, and it cleanly handles nonlinear motion and measurement models. These features are especially helpful in this scenario, where a target vehicle could be on any one of a number of roads after passing through an intersection. Fig. \ref{fig:multi-modal} illustrates this scenario where the agent has not seen the target for some time, and multiple good hypotheses exist.
-
-\begin{figure}
-\centering
-\includegraphics[width=0.8\linewidth]{figures/multi-modal.pdf}
-\caption{The particle filter is able to maintain a finite number of hypotheses, even after the vehicle has traveled some distance since being seen. Particles are plotted as transparent dots to indicate density. The blue diamond shows true target position, the star shows the agent position, and the dashed circle delineates the agent's field of view $\mathbb{F}$.}
-\label{fig:multi-modal}
-\end{figure}
 
 Let $x$ denote the state of the target. We can encode our initial belief of the target state as a probability density function (pdf) and draw our initial set of particles $\mathcal{X}_0$ from this distribution,
 \begin{equation}%\nonumber
@@ -149,7 +219,7 @@ In practice, these two techniques greatly reduce the chance that good particles 
 
 \subsection{Road Constraint}
 
-Any time a target is outside the agent's field of view $\mathbb{F}$, its state can only be estimated predictively. If the target could move unconstrained on the ground plane, the estimate would quickly disperse and become unusable. Constraining the target to a road network allows the agent to accurately predict the possible places the target could go, even when it hasn't been seen for some time (see Fig. \ref{fig:multi-modal}).
+Any time a target is outside the agent's field of view $\mathbb{F}$, its state can only be estimated predictively. If the target could move unconstrained on the ground plane, the estimate would quickly disperse and become unusable. Constraining the target to a road network allows the agent to accurately predict the possible places the target could go, even when it hasn't been seen for some time. // (see Fig. \ref{fig:multi-modal}).
 
 We model this road network constraint as a directed graph,
 \begin{equation}%\nonumber
@@ -188,7 +258,7 @@ where $\tau_k$ is the target's true location at time step $k$ and $\eta \sim N(0
 Sensor imperfection is modelled as a probability of false alarm $P_{\text{FA}}$, and the measurement likelihood model becomes a mixture of a Gaussian distribution and a uniform distribution
 \begin{align} \label{eq:measurement_model}
     p(y_k \mid x^i_k) &= (1 - P_{\text{FA}})\frac{1}{2\pi \sigma_\tau}\exp \left(-\frac{1}{2 \sigma_\tau} \norm{ G(x^i_k) - y_k }^2\right) \nonumber \\
-    &+ \frac{P_{\text{FA}}}{A_R}, 
+    &+ \frac{P_{\text{FA}}}{A_R},
 \end{align}
 where $G(x^i_k)$ maps a location in the graph to Cartesian space and $A_R$ is the 2D area spanned by the road network.
 
@@ -203,16 +273,13 @@ The agent gathers useful information, even when all it can see is empty roadway.
 
 The negative measurement model is then a mixture of two uniform distributions,
 \begin{equation}%\nonumber
-    p(z_k \mid x^i_k) = 
+    p(z_k \mid x^i_k) =
     \begin{cases}
         \frac{P_{\text{null}}}{A_{\mathbb{F}}}, \quad & G(x^i_k) \in \mathbb{F} \\
         \frac{1 - P_{\text{null}}}{A_R - A_{\mathbb{F}}}, & \text{Otherwise}
     \end{cases}
 \end{equation}
 where $A_{\mathbb{F}}$ is the area of the agent's field of view. When using a camera fixed with respect to the UAV body frame, $\mathbb{F}$ and consequently $A_{\mathbb{F}}$, become a function of the UAV altitude and attitude.
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{DATA ASSOCIATION}\label{data_association}
 
 Section \ref{target_tracking} describes tracking a single target in the presence of clutter and missed detections. Tracking multiple vehicles poses its own set of challenges.
 
@@ -257,12 +324,10 @@ where Eq. (\ref{eq:measurement_model}) is used as the summand. This approach can
 
 The RBPF allows the agent to properly associate measurements of targets, even when they leave and re-enter its field of view. However, these estimation techniques alone are not sufficient to maintain a good estimate of where all the targets are at any given time. The information from the estimator must be used to feed a path planning algorithm. The next section describes our approach to tracking and following multiple targets.
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Predictive Path Planning}\label{predictive_path_planning}
 When tracking multiple targets, the agent should not simply find and follow one of them. It must spend time keeping an eye on each target. We propose a path planning algorithm to maximize the information gained on all targets as the UAV flies above the road network. Djiktra's algorithm provides a good path planning framework, which works in scalable environments by accounting for particle movement over time.
 
 \subsection{Dijkstra's Algorithm}
-Dijkstra's algorithm finds the shortest path between two locations in a graph \cite{skiena1998algorithm}. The algorithm works by building a spanning tree of the road network, from which an agent is then able to identify the shortest path to any desired location. This paper uses a modified version to search instead for the path of desired length that will maximize the information gained during flight. A na\"ive approach to this is to take the number of particles on an edge and divide by the length of the edge: 
+Dijkstra's algorithm finds the shortest path between two locations in a graph \cite{skiena1998algorithm}. The algorithm works by building a spanning tree of the road network, from which an agent is then able to identify the shortest path to any desired location. This paper uses a modified version to search instead for the path of desired length that will maximize the information gained during flight. A na\"ive approach to this is to take the number of particles on an edge and divide by the length of the edge:
 \begin{equation}\label{eq:simple_val}
 V^{e} = \frac{1}{||e||}\sum_{j=1}^M \sum_{i=1}^{N}\delta_{e^{j,i},e},
 \end{equation}
@@ -372,7 +437,7 @@ The computational cost of this algorithm is $O(MNd^L)$, where $M$ is the number 
 \end{algorithm}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{SIMULATION RESULTS}\label{results}
+%\section{SIMULATION RESULTS}\label{results}
 
 In this section, the simulation uses the 3x3 road network in Fig. \ref{fig:larger_roads} with two targets, each travelling at a nominal 10 m/s. The agent flies at 40 m/s. In the top level of the estimator, 10 particles estimate data association histories. Each tracking PF has 500 particles, with one tracking filter per target per top level particle (total 20 tracking filters). The target weighting sigmoid in Eq. (\ref{eq:sigmoid}) uses gain $k=10$.
 
@@ -399,7 +464,7 @@ The simulation was run 1000 times using the controller from Section \ref{predict
 \label{fig:results}
 \end{figure}
 
-\section{CONCLUSIONS}\label{conclusions}
+%\section{CONCLUSIONS}\label{conclusions}
 
 By employing a Rao-Blackwellized Particle Filter, we have shown that data association can be performed effectively, even when the target leaves and re-enters the sensor's field of view. Further, we have shown that a receding horizon controller significantly improves tracking performance and target location certainty versus a na\"{i}ve search pattern.
 
