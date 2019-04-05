@@ -4,14 +4,18 @@ dir_remove = []
 for p in sys.path:
     if p.find('python2') !=-1:
         dir_remove.append(p)
+    #
+#
 for p in dir_remove:
     sys.path.remove(p)
-
+#
 from IPython.core.debugger import set_trace
 from importlib import reload
 
 import numpy as np
 import cv2
+import pickle
+# https://pythonprogramming.net/python-pickle-module-save-objects-serialization/
 
 import pathmaker
 import mappy
@@ -28,7 +32,7 @@ from pointselector import PointSelector
 from matplotlib import pyplot as plt
 from matplotlib import gridspec
 
-# plt.ion()
+plt.ion()
 
 def plotty(population,pather,mappy):
     objs = np.array([thing._obj_val_sc for thing in population._gen_parent])
@@ -85,8 +89,18 @@ mappy.all_waypoints = pather.waypoint_locs
 print("Spawning the contestants.")
 population = GeneticalGorithm( mappy, scale, narrowest_hall, max_dna_len, pather )
 
-plotty(population, pather, mappy)
-population.runEvolution(5)
+pickle_out = open('pop_gen_n1.pickle','wb')
+pickle.dump(population, pickle_out)
+pickle_out.close()
+
+for ii in range(40):
+# plotty(population, pather, mappy)
+    population.runEvolution(50)
+
+    pickle_out = open(f'pop_gen_{ii}.pickle','wb')
+    pickle.dump(population, pickle_out)
+    pickle_out.close()
+#
 
 
 #

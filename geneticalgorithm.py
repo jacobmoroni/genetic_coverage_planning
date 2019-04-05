@@ -47,6 +47,8 @@ class GeneticalGorithm( ):
         self._tourney_sz = 4
         self._gamma = 0.5 # roulette exponent >= 0. 0 means zero fitness pressure
 
+        self._sigma_sc = 1.95
+
         # list for holding all chromosomes in parent generation
         self._gen_parent = []
         self._gen_parent_fit = []
@@ -104,6 +106,43 @@ class GeneticalGorithm( ):
         # obj1 = -self._rackNstack[0]
         # obj2 = self._rackNstack[1]
 
+        gladiators_ft = []
+        # for cov_n_ft in gladiators._obj_val:
+        #     gladiators_ft.append(cov_n_ft[1])
+        # #
+        for glads in gladiators: # ._obj_val:
+            gladiators_ft.append(glads._obj_val[1])
+        #
+        # gl_ft = gladiators_ft
+
+        # set_trace()
+
+        ft_mean = np.mean(gladiators_ft)
+        ft_std = np.std(gladiators_ft)
+        ft_med = np.median(gladiators_ft)
+
+        # set_trace()
+
+        if abs(ft_med - ft_mean) > 200000:
+            chopped_low = [x for x in gladiators_ft if (x > ft_mean - self._sigma_sc * ft_std)]
+            gladiators_ft_chopped = [x for x in chopped_low if (x < ft_mean + self._sigma_sc * ft_std)]
+        else:
+            gladiators_ft_chopped = gladiators_ft
+        #
+
+        max_ft = np.amax(gladiators_ft_chopped)
+        min_ft = np.amin(gladiators_ft_chopped)
+        # range_ft = max_ft - min_ft
+
+        # set_trace()
+
+        for ii, glads in enumerate(gladiators): # ._obj_val:
+            gladiators[ii]._obj_val_sc[0] = - min_ft + glads._obj_val[0] * ( max_ft - min_ft )
+            gladiators[ii]._obj_val_sc[1] = glads._obj_val[1]
+            #
+        #
+
+        # ==============================
         comp_min = []
         comp_max = []
 
@@ -113,8 +152,8 @@ class GeneticalGorithm( ):
                 if ii == jj:
                     continue
                 else:
-                    comp_min.append( np.min([gen_fit_1._obj_val[0]-gen_fit_2._obj_val[0],
-                                             gen_fit_1._obj_val[1]-gen_fit_2._obj_val[1]]) )
+                    comp_min.append( np.min([gen_fit_1._obj_val_sc[0]-gen_fit_2._obj_val_sc[0],
+                                             gen_fit_1._obj_val_sc[1]-gen_fit_2._obj_val_sc[1]]) )
                 #
             #
             comp_max.append( np.max(comp_min) )
@@ -138,7 +177,8 @@ class Organism( ):
         self._safety_buffer = narrowest_hall * 0.5
         self._max_dna_len = max_dna_len
         self._pather = pather
-        self._ft_scale  = 0.0001
+        self._ft_scale  = 1.
+        self._cov_scale  = 1. # 300000
         self._min_dna_len = 75
 
         len_dna = len(dna)
@@ -157,7 +197,7 @@ class Organism( ):
         self._constr_infeas = []
         self._cov_constr = -0.3
         # for ii in len( num_constr ):
-        #     constr_ii = 1
+        #     constr_ii = 1_ft_scale
         #     self.constr_s.append( )
         # #
         # self._constr_vals = calc_constr_s()
@@ -171,12 +211,15 @@ class Organism( ):
 
         # compute values of both objectives
         self._obj_val = self.calcObj()
+        self._obj_val_sc = [None,None]
     #
     def calcObj(self):
         coverage, travel_dist = self._mappy.getCoverage(self._dna)
         travel_dist = travel_dist * self._ft_scale
+        # max_trav_dist = max(travel)
+        # coverage = coverage * self._cov_scale
         if coverage > self._cov_constr:
-            travel_dist += 10000000000000000.0
+            travel_dist += 1000000000.0
         return [coverage, travel_dist]
     #
     def crossover(self, mate):
