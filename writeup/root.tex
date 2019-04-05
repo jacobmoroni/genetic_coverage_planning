@@ -127,10 +127,20 @@ After removing waypoints that were in unflyable space, the waypoints are further
 \end{figure}
 
 \subsection{Objective Functions}
+
+The goal of this optimization is to generate paths that get good coverage of the environment so that the UAVs can generate good 3D maps. Since this problem is constrained to flight paths of UAVs it is also important to not generate paths that are too long, which would not be possible to fly in a single flight with a UAV. To compensate for this, we decided to create a genetic algorithm with two competing objectives.
+
 \subsubsection{Maximize Coverage}
+
+The first objective is to maximize coverage of the environment. To compute the coverage we used the parameters for the RGB-D camera that we will use when mapping the environment. We used the parmaeters minimum depth, maximum depth, and horizontal field of view to create a field of view frustum. To simplify the problem, we assumed that the UAV would only fly forward. We then used the frustum at each waypoint on the path and set the pixels inside the frustum to "viewed." After doing that for every waypoint, we divided the total number of viewed pixels by the total number of pixels in flyable space. The value of the coverage was used (percent seen) as the first objective function.
+
 \subsubsection{Minimize Flight Time}
-using minimum waypoints and penalizing turning
+
+The second objective function was to minimize flight time. For this, we assumed constant velocity and computed the total distance flown in each path. we also modified this to penalize turning by adding a cost proportional to the amount the uav turns between each waypoint. This way, paths with less waypoints and less turns are considered more fit according to the objective function.
+
 \subsection{Traversable Graph}
+
+To save computation when generating new paths or modifying paths, we precomputed the reachable waypoints from each waypoint. For any given waypoint we wanted to constrain movement only to adjacent waypoints that were not obscured by obstacles. To do this, we created a matrix with each row representing a waypoint and each column representing every other waypoint, we populated the matrix with ones where the other waypoint is traversable from the current waypoint and zero where it is not. We split up the space around each waypoint into octants, we then found the nearest waypoint in each octant and filled the graph with those possibilities. We then pruned the graph to remove any traversing that is obscured by obstacles.
 octants then prune away obstacles then generate paths and avoid backtracking
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{APPROACH}\label{approach}
