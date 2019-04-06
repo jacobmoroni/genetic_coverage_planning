@@ -25,8 +25,8 @@ class GeneticalGorithm( ):
         self._gen_parent_fit = []
 
         self._cov_constr_0 = -0.3
-        self._cov_constr_f = -0.7
-        self._cov_aging = 20 #how many generations it takes to get to max const
+        self._cov_constr_f = -0.8
+        self._cov_aging = 30 #how many generations it takes to get to max const
         # create list of first generation
         self.firstGeneration(mappy, scale, narrowest_hall, max_dna_len, pather)
         #
@@ -36,7 +36,7 @@ class GeneticalGorithm( ):
         path_length = 200
         start_idx = 207
         # pool this for loop with multiprocess
-        for ii in range(self._G_sz):
+        for ii in tqdm(range(self._G_sz), desc="Adeves (aka. Adam and Eve'ing)"):
             rand_path = pather.makeMeAPath(path_length,start_idx)
             self._gen_parent.append( Organism(rand_path, mappy, scale, narrowest_hall, max_dna_len, pather) )
         #
@@ -59,9 +59,9 @@ class GeneticalGorithm( ):
             # only the strong will survive this arena
             # it's dog eat dog, parent eat child. Animals.
             self.arena(self._gen_parent + gen_child)
+            self._gen_num += 1
             #
         #
-        self._gen_num += 1
     #
     def arena(self, gladiators):
         # rack and stack
@@ -88,7 +88,10 @@ class GeneticalGorithm( ):
         for ii, glad in enumerate(gladiators):
             if glad._obj_val[0] > coverage_constr:
                 gladiators[ii]._obj_val_sc[0] = glad._obj_val[0]
-                gladiators[ii]._obj_val_sc[1] = glad._obj_val[1] + 1000
+                gladiators[ii]._obj_val_sc[1] = glad._obj_val[1] + 1000.0
+            else:
+                gladiators[ii]._obj_val_sc[0] = glad._obj_val[0]
+                gladiators[ii]._obj_val_sc[1] = glad._obj_val[1]
         #
 
         for ii, gen_fit_1 in enumerate(gladiators):
@@ -114,7 +117,8 @@ class Organism( ):
         # [ value ] vs binary
 
         self._xover_probability = 0.7
-        self._mutate_probability = 0.2
+        self._mutate_probability = 0.3
+        self._muterpolate_probability = 0.3
 
         self._mappy = mappy
         self._scale = scale
@@ -124,6 +128,9 @@ class Organism( ):
         self._pather = pather
         self._ft_scale  = 0.0001
         self._min_dna_len = 75
+        self._num_muterpolations = 20
+        self._srch_dist = 5
+        self._P_muterpolate_each = 0.8
 
         len_dna = len(dna)
 
@@ -152,7 +159,15 @@ class Organism( ):
         self._time_thresh = 70
 
         # apply mutation
-        self.mutation()
+        do_it = np.random.rand()
+        if do_it < self._mutate_probability:
+            self.mutation()
+        #
+
+        do_it = np.random.rand()
+        if do_it < self._muterpolate_probability:
+            self.muterpolate()
+        #
 
         # compute values of both objectives
         self._obj_val = self.calcObj()
@@ -166,6 +181,7 @@ class Organism( ):
     def crossover(self, mate):
         uniform_num = np.random.rand()
         xover_pts = self.matchWaypt(mate._dna, mate._len_dna)
+        # trav_pts = self.travWaypt(mate._dna, mate._len_dna)
         if uniform_num < self._xover_probability and len(xover_pts) > 0:
 
             xover_idx = np.arange( len(xover_pts) )
@@ -188,10 +204,13 @@ class Organism( ):
             dna1 = self._dna
             dna2 = mate._dna
         #
-        idx = np.where(dna1 == -1)[0]
-        dna1 = np.delete(dna1,idx)
-        idx = np.where(dna2 == -1)[0]
-        dna2 = np.delete(dna2,idx)
+        # idx = np.where(dna1 == -1)[0]
+        # dna1 = np.delete(dna1,idx)
+        # idx = np.where(dna2 == -1)[0]
+        # dna2 = np.delete(dna2,idx)
+
+        dna1 = dna1[dna1 != -1]
+        dna2 = dna2[dna2 != -1]
 
         lil_timmy = Organism(dna1[:self._max_dna_len+1], self._mappy, self._scale, self._narrowest_hall, self._max_dna_len, self._pather)
         lil_susy = Organism(dna2[:self._max_dna_len+1], self._mappy, self._scale, self._narrowest_hall, self._max_dna_len, self._pather)
@@ -200,17 +219,45 @@ class Organism( ):
     #
     def mutation(self):
         # uniform vs dynamic
-        uniform_num = np.random.rand()
-        if uniform_num < self._mutate_probability:
-            idx = np.random.randint(1,self._len_dna)
-            len_tail = self._len_dna - idx
+        idx = np.random.randint(1,self._len_dna)
+        len_tail = self._len_dna - idx
+        len_tail = len_tail + np.random.randint(self._max_dna_len-self._len_dna)
 
-            dna_tail = self._pather.makeMeAPath(len_tail, self._dna[idx])
-            dna_head = self._dna[0:idx]
+        dna_tail = self._pather.makeMeAPath(len_tail, self._dna[idx])
+        dna_head = self._dna[0:idx]
 
-            self._dna = np.append(dna_head, dna_tail)
-            self.addTelomere()
+        self._dna = np.append(dna_head, dna_tail)
+        self.addTelomere()
+    #
+    def muterpolate(self):
+
+        mut_points = np.random.choice(np.arange(0, self._len_dna-(self._srch_dist+3), 1), self._num_muterpolations)
+        for idx1 in mut_points:
+            for idx2 in range(idx1+self._srch_dist+1, idx1+1, -1):
+                do_it = np.random.rand()
+                if do_it < self._P_muterpolate_each:
+                    # check to see if we can get there directly
+                    pt1 = self._dna[idx1]
+                    if idx2 == 250:
+                        set_trace()
+                    pt2 = self._dna[idx2]
+                    if self._pather._graph[pt1,pt2]:
+                        np.delete(self._dna, np.arange(idx1+1, idx2-1, 1))
+                        break
+                    else:
+                        # check the mutual traversible space
+                        options = np.where(self._pather._graph[pt1]*self._pather._graph[pt2])[0]
+                        if len(options) > 0:
+                            step = np.random.choice(options)
+                            self._dna[idx1+1] = step
+                            np.delete(self._dna, np.arange(idx1+2, idx2-1, 1))
+                            break
+                        #
+                    #
+                #
+            #
         #
+        self.addTelomere()
     #
     def calcConstrs(self):
         # return array of all constraint eq vals
@@ -229,6 +276,9 @@ class Organism( ):
         xover_pts = un_pruned_pts[xover_tf]
 
         return xover_pts
+    #
+    def travWaypt(self, dna_mate, len_dna_mate):
+        pass
     #
     def addTelomere(self):
         if self._len_dna > self._max_dna_len:

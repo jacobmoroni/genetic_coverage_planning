@@ -117,4 +117,12 @@ def sortBy(stuff, stuff_values):
     return stuff, stuff_values
 #
 
+# ======================================
+# ======================================
+
+def giveMeOptions(graph, pt1, pt2):
+    options = np.where(graph[pt1]*graph[pt2])
+    return options
+#
+
 #

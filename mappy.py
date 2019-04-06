@@ -197,7 +197,7 @@ class Mappy(object):
             wpt_loc = self.all_waypoints[wpt]
             next_wpt = self.all_waypoints[waypoints[ii+1]]
             wpt_theta = np.arctan2(next_wpt[1]-wpt_loc[1], next_wpt[0]-wpt_loc[0])
-            delta_theta = rad_wrap_pi(wpt_theta - prev_theta)
+            delta_theta = got.rad_wrap_pi(wpt_theta - prev_theta)
             travel_cost += np.linalg.norm([next_wpt[1]-wpt_loc[1], next_wpt[0]-wpt_loc[0]]) + self._rho*abs(delta_theta)
 
             # find relative position of all obstacles
