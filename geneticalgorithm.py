@@ -221,7 +221,7 @@ class Organism( ):
         # uniform vs dynamic
         idx = np.random.randint(1,self._len_dna)
         len_tail = self._len_dna - idx
-        len_tail = len_tail + np.random.randint(self._max_dna_len-self._len_dna)
+        len_tail += np.random.randint(self._max_dna_len-self._len_dna)
 
         dna_tail = self._pather.makeMeAPath(len_tail, self._dna[idx])
         dna_head = self._dna[0:idx]
