@@ -140,12 +140,14 @@ The first objective is to maximize coverage of the environment. To compute the c
 
 \subsubsection{Minimize Flight Time}
 
-The second objective function was to minimize flight time. For this, we assumed constant velocity and computed the total distance flown in each path. we also modified this to penalize turning by adding a cost proportional to the amount the uav turns between each waypoint. This way, paths with less waypoints and less turns are considered more fit according to the objective function.
+The second objective function was to minimize flight time. To acheive this, we assumed constant velocity and computed the total distance flown in each path. we also modified this to penalize turning by adding a cost proportional to the amount the uav turns between each waypoint. This way, paths with less waypoints and less turns are considered more fit according to the objective function.
 
 \subsection{Traversable Graph}
 
-To save computation when generating new paths or modifying paths, we precomputed the reachable waypoints from each waypoint. For any given waypoint we wanted to constrain movement only to adjacent waypoints that were not obscured by obstacles. To do this, we created a matrix with each row representing a waypoint and each column representing every other waypoint, we populated the matrix with ones where the other waypoint is traversable from the current waypoint and zero where it is not. We split up the space around each waypoint into octants, we then found the nearest waypoint in each octant and filled the graph with those possibilities. We then pruned the graph to remove any traversing that is obscured by obstacles.
-octants then prune away obstacles then generate paths and avoid backtracking
+To save computation when generating new paths or modifying paths, we precomputed the reachable waypoints from each waypoint. For any given waypoint we wanted to constrain movement only to adjacent waypoints that were not obscured by obstacles. To do this, we created a traversablity graph which was matrix with each row representing a waypoint and each column representing every other waypoint, we populated the matrix with ones where the other waypoint is traversable from the current waypoint and zero where it is not. We split up the space around each waypoint into octants, we then found the nearest waypoint in each octant and populated the graph with those possibilities. To prevent flying into obstacles, we pruned the graph to remove any traversing that is obscured by obstacles with a simple line intersection algorithm.
+
+We used this traversablity graph to generate paths for the agents. we passed in the desired path length and the starting location. Then it randomly choses the next waypoint from the traversabilty graph, the probablility is a normal distribution favoring moving forward to prevent too much meandering. also to prevent backtracking, we also encoded a short term memory of length n into the paths so that unless there is no other available action, it will not return to a waypoint it has been to within the last n timesteps
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{APPROACH}\label{approach}
 \subsection{Single Agent Architecture}
