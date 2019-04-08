@@ -34,6 +34,10 @@
 \usepackage{algorithmic}
 \usepackage{commath}
 
+\usepackage{xcolor}
+\newcommand{\todo}[1]{{\color{blue}[TODO: #1]}}
+\newcommand{\response}[1]{{\color{green}[RESPONSE: #1]}}
+
 \DeclareMathOperator*{\argmax}{arg\,max}
 \DeclareMathOperator*{\argmin}{arg\,min}
 
@@ -146,12 +150,23 @@ octants then prune away obstacles then generate paths and avoid backtracking
 \section{APPROACH}\label{approach}
 \subsection{Single Agent Architecture}
 \subsubsection{Low-Variance Sampling}
+
+Low-variance sampling is the mechanism used to sort and sample parents in a way that gives organisms with better designs (determined by a maximin fitness) a higher probability of being selected as a parent.
+
 \subsubsection{Chromosome}
+
+The chromosome defining each member in a generation has a maximum of 250 genes. Each gene represents one waypoint in the traversable graph. The first generation of parents is spawned by generating a random path through the 2d map. The first step to create this first generation is to seed the same initial waypoint to each of the 100 organisms in the generation's population. This models the behavior that no matter what else, the doorway to enter the building is always in the same spot on the local 2D hallway map. Thus, whatever random path may be considered most optimal, it must always start at the entrance. Next, each consecutive waypoint is randomly selected by using the current waypoint as an input to the traversable graph, which produces a random next point from its local neighbors. The first generation all receive a maximum length chromosome of 250 waypoints. This length is allowed to vary in crossover \todo{does this happen in mutation now, as well?}, from the max of 250 waypoints to a minimum of 75 waypoints. Once the chromosome is defined, the coverage and flight time objective values are computed for that organism, or design.
+
 \subsubsection{Crossover}
+
+The first generation is treated slightly different in preparation for crossover. In order to get the first set of children, the fitness value for each parent is computed using a maximin comparison with all other members of the first generation. In contrast, all other generations are
+
 \subsubsection{Mutation}
 \subsubsection{Constraints}
 \subsubsection{Minimax}
 \subsubsection{Elitism}
+
+
 \subsection{Multi-Agent Architecture}
 \subsubsection{Low-Variance Sampling}
 \subsubsection{Chromosome}
