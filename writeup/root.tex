@@ -77,7 +77,7 @@ along with significant contributions from C-UAS industry members.}% <-this % sto
 \begin{abstract}
 
 When generating 3D maps with unmanned arial vehicles (UAVs), it is important to the mapping algorithms to have good coverage of the environment and have multiple loop closures throghout the flight path. Because multirotor UAVs are limited in flight time, the flight paths must not be too long. Coming up with a good flight path of a new environment to be mapped can be difficult to do well and becasue of how free-form a flight path can be, it is also tricky to generate optimal paths to get good coverage with minimal flight time.
-to solve this problem, we propose using a genetic algorithm designed to maximize total area coverage while minimizing flight time. Because of the more randomized searching that genetic algorithms have, it is more capable of solving complex free-form problems like path planning.
+To solve this problem, we propose using a genetic algorithm designed to maximize total area coverage while minimizing flight time. Because of the more randomized searching that genetic algorithms have, it is more capable of solving complex free-form problems like path planning.
 
 \end{abstract}
 
@@ -85,58 +85,78 @@ to solve this problem, we propose using a genetic algorithm designed to maximize
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{INTRODUCTION}
 
-Talk about lit review and what we will be contibuting to the space
+%Talk about lit review and what we will be contributing to the space
 
-The remainder of the paper is organized as follows: Section \ref{setup} describes the method for simplifying the design space to create a reasonable problem for the genetic algorithm to solve. Section \ref{approach} describes the approach and architecture used to generate optimimal paths for first, a single UAV, then the method is extended to multi-agent path planning. Results showing and evaluating the generated paths are presented in Section \ref{results}. Finally, conclusions are presented in Section \ref{conclusions}.
+%add multi agent to this
+Autonomously generating an internal 3D map of a building requires intelligent control of the mapping vehicle. This ranges from manually planning a flight path with simple obstacle avoidance to full stack exploration and path planning algorithms.
+
+Generating a flight path is a nontrivial task especially when multiple objectives are considered. For example, the algorithm may want to maximize observed coverage of the space while minimizing flight time. This becomes tedious with each new space and more difficult as the complexity of the space increases with more rooms and inter-connecting hallways. When planning paths to achieve good coverage of the area rather than obstacle avoidance or traversability, it becomes much more complex. To plan effective flight paths in more complex flight spaces, using algorithms to plan the paths becomes a necessity.
+
+The complexity of the design space renders many simple optimization routines improper for this problem. We chose to use a genetic algorithm because they better handle the design complexity of this type of problem. Further, by the structure of the problem, derivatives were not available for each design variable. Thus, a derivative-free approach was required.
+
+We first discretized and simplified the problem as much as possible to shrink the design space before applying a genetic algorithm. We found our genetic algorithm was able to effectively plan paths in an arbitrary environment and satisfy the constraints of the problem.
+
+The remainder of the paper is organized as follows: Section \ref{setup} describes the method for simplifying the design space to create a reasonable problem for the genetic algorithm to solve. Section \ref{approach} describes the approach and architecture used to generate optimal paths for a single UAV.
+%, then the method is extended to multi-agent path planning.
+Results showing and evaluating the generated paths are presented in Section \ref{results}. Finally, conclusions are presented in Section \ref{conclusions}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{OPTIMIZATION SETUP}\label{setup}
 
-With optimization, especially genetic algorithms, it is important to have a problem that is high enough fidelity to model a problem close enough to the real world that it is useful, but simplified enough that it is able to make progress and learn between generation so that it is able to run.
+
+Modeling a problem for optimization requires a balance between fidelity and simplicity. Model accuracy is especially important because any inaccuracies in the model can lead to solutions that are not truly optimal in the physical system. However, if the design space is too large, or ill formed, optimization algorithms can fail to converge especially when derivatives are not available or there are multiple local optima.
 
 \subsection{Problem Statement}
 
-The problem being solved by this genetic algorithm is generating paths through a simple floor plan to be able to generate a 3D map with a UAV when the planned flight paths are flown. To do this, we start with a simple floor plan of the area that we want to map and a known scale of the map, then with as little required human interaction as possible, the goal is to generate a flight paths for the desired ammount of agents to map the building as well as possible with short enough flight times that it will be feasible with real hardware.
+The goal of our optimization is to generate a path through a simple floor plan with the intent of building a 3D map using a UAV and an RGB-D (color and depth) camera. We start with a simple 2D floor plan of the area of interest and a known scale of the map. With as little human interaction as possible, the objective is to generate a flight path for the UAV to map the building, maximizing coverage while minimizing flight time so that the path is feasible with real hardware.
 
 \subsection{Discretization}
 
-The first step of setting up the optimization is making sure that the problem can be solved. because of the very open-ended nature of path planning, we needed to find a way to discretize and simplify the space to make this a solvable problem.
+The open-ended nature of path planning makes it a difficult problem for optimization. To simplify the design space we discretize it as much as possible.
 
 \subsubsection{Map Generation}
 
-To do this, we started with the simple 2D floor map that we are starting with. 2D floor maps are very accessible for most buildings, so it is a reasonable place to start. the only part of the genetic algorithm that must be manually done by a human before starting the optimization is finding a floor map and masking it with areas that you want to map and areas that you do not want to map. Fig. \ref{fig:map_gen} illustrates what this mask would look like. The white space is flyable area, and the black space is unflyable space such as walls or inaccessible rooms.
+The first step to discretizing the design space is to simplify the 2D floor plan. The only part of discretization that must be done manually is differentiating between areas to be explored (explorable) and inaccessible or uninteresting areas (occluded) on the 2D map. Fig. \ref{fig:map_gen} illustrates how this differentiation works. The white space represents the explorable area and black space is the occluded area such as walls or inaccessible rooms.
 
 \begin{figure}
 \centering
 \includegraphics[width=0.8\linewidth]{figures/map_bw.png}
-\caption{The initial two dimensional floor map of the area to be mapped and the altered floor map reflecting areas that are to be mapped and areas that can be ignored}
+\caption{The initial 2D floor map of the area of interest and the segmented floor map reflecting explorable and occluded spaces}
 \label{fig:map_gen}
 \end{figure}
 
-Once this map is generated, it is used to begin the algorithm along with the scale from pixels to meters and the width of the narrowest hallway (in meters).
+Once this map is segmented, the user passes it into the map generator along with the scale from pixels to meters and the width of the narrowest hallway.
 
-The map generator then takes the masked map and scales it down so that each pixel represents the minimum resolution desired in the optimization. In our case, we scaled it to $0.15 m^{2}$ per pixel. This value could be adjusted to either increase the fidelity of the planner, or decrease it to make the optimization run faster.
+The map generator then takes the obstacle map and scales it down so that each pixel represents the minimum resolution desired in the optimization. This value could be adjusted to balance run time and fidelity. Once the map is properly scaled it is passed to the waypoint generator.
 
 \subsubsection{Waypoints}
 
-Once the map is scaled to the desired size, to further discretize and simplify the design space of the optimization, We placed waypoints on the map and contrained the flight path to only fly through these waypoints. the first step of generating the waypoint is to lay down a grid of waypoints spaced apart by one half the width of the narrowest flyable hallway on the map to ensure that there are waypoints in every hallway and in every room so that the UAV can get everywhere it needs to to map the environment. After placing the grid of waypoints, all waypoints in unflyable space are removed.
+To further discretize and simplify the design space of the optimization, we place waypoints on the map and constrain the flight path to only fly through these waypoints. First, a grid is overlaid onto the map with a resolution of one half the width of the narrowest flyable hallway. This ensures that there are waypoints in every hallway and room so that the space is fully traversable. Next, all waypoints overlapping occluded space are removed.
 
-After removing waypoints that were in unflyable space, the waypoints are further pruned and adjusted to better represent the flyable space, the first step is to calculate a safety buffer around all unflyable space where the UAV will be able to fly without colliding with walls. Any waypoint that falls in this safety buffer is nudged out of it. Then waypoints are pruned one last time to remove redundant waypoints. This is done by checking the distance between waypoints. Any waypoints that are closer to eachother than the initial grid separation (one half the width of the narrowest hallway) are adjusted and pruned. If a waypoint is too close to only one other waypoint it is moved, half the distance to the other waypoint and then the other one is removed. An example of this is point A in Fig. \ref{fig:waypoints}. If a waypoint is too close to multiple other waypoints, it stays where it is and the other waypoints are removed. An example of this is point B in Fig. \ref{fig:waypoints}. This prevents over crowding of waypoints in halways and corners to make it simpler to generate flight paths through narrow hallways and near walls in rooms. Fig. \ref{fig:waypoints} shows how this step would work.
+After removing occluded waypoints, the remaining waypoints are further pruned and adjusted to better cover the space. To remove waypoints that would cause the UAV to collide with obstacles, we generate a safety buffer around all occluded space at least half the width of the UAV. Any waypoint that falls within this safety buffer is nudged away from the wall. Then waypoints are pruned one last time to remove redundancy. The distance between adjacent waypoints is checked and any that are closer than the initial grid resolution are replaced with a single waypoint at the centroid of the cluster. This prevents over crowding of waypoints in hallways and corners to make it simpler to generate flight paths through narrow hallways and near walls in rooms. Fig. \ref{fig:waypoints} shows an example of this waypoint pruning process. Point A is an example of two waypoints being replaced by a single one and Point B is an example of three waypoints being replaced by a single one.
 
 \begin{figure}
 \centering
 \includegraphics[width=0.8\linewidth]{figures/waypoint2.png}
-\caption{The initial waypoint grid with only waypoints on unflyable space removed on the left, The modified waypoint grid with safety buffer and anti-crowding on the right.}
+\caption{The initial waypoint grid with only occluded waypoints removed on the left, The modified waypoint grid with safety buffer and anti-crowding on the right.}
 \label{fig:waypoints}
 \end{figure}
 
 \subsection{Objective Functions}
 
-The goal of this optimization is to generate paths that get good coverage of the environment so that the UAVs can generate good 3D maps. Since this problem is constrained to flight paths of UAVs it is also important to not generate paths that are too long, which would not be possible to fly in a single flight with a UAV. To compensate for this, we decided to create a genetic algorithm with two competing objectives.
+We split the optimization into two competing objectives. First, to maximize coverage of the given map, and second, to minimize flight time.
 
 \subsubsection{Maximize Coverage}
 
-The first objective is to maximize coverage of the environment. To compute the coverage we used the parameters for the RGB-D camera that we will use when mapping the environment. We used the parmaeters minimum depth, maximum depth, and horizontal field of view to create a field of view frustum. To simplify the problem, we assumed that the UAV would only fly forward. We then used the frustum at each waypoint on the path and set the pixels inside the frustum to "viewed." After doing that for every waypoint, we divided the total number of viewed pixels by the total number of pixels in flyable space. The value of the coverage was used (percent seen) as the first objective function.
+The first objective is to maximize coverage of the environment.  To simplify the problem, we assumed that the UAV would only fly forward. Using the minimum and maximum viewable depths and horizontal field of view  we create the camera viewable area. At each waypoint, with its orientation, we set the currently viewable area as explored. \todo{this is where we got to} After doing that for every waypoint, we calcualted the percent of the flyable space in the map that we had seen in that path and used that value as the first objective function. \todo{add coverage figure here}
+
+\begin{figure}
+\centering
+\includegraphics[width=0.8\linewidth]{figures/coverage_map2.png}
+\caption{An example of a path and its corresponding coverage. The green line is the path flown, light grey represents obstacles, white represents explored area, and black and dark grey represent unexplored area}
+\label{fig:coverage}
+\end{figure}
+
 
 \subsubsection{Minimize Flight Time}
 
@@ -144,39 +164,48 @@ The second objective function was to minimize flight time. To acheive this, we a
 
 \subsection{Traversable Graph}
 
-To save computation when generating new paths or modifying paths, we precomputed the reachable waypoints from each waypoint. For any given waypoint we wanted to constrain movement only to adjacent waypoints that were not obscured by obstacles. To do this, we created a traversablity graph which was matrix with each row representing a waypoint and each column representing every other waypoint, we populated the matrix with ones where the other waypoint is traversable from the current waypoint and zero where it is not. We split up the space around each waypoint into octants, we then found the nearest waypoint in each octant and populated the graph with those possibilities. To prevent flying into obstacles, we pruned the graph to remove any traversing that is obscured by obstacles with a simple line intersection algorithm.
+To save computation when generating new paths or modifying paths, we precomputed the traversablility graph which is a graph reachable waypoints from each waypoint. For any given waypoint we wanted to constrain movement only to adjacent waypoints that were not obscured by obstacles. To do this, we created a traversablity graph which was matrix with each row representing a waypoint and each column representing every other waypoint, we populated the matrix with ones where the other waypoint is traversable from the current waypoint and zero where it is not. We split up the space around each waypoint into octants, we then found the nearest waypoint in each octant and populated the graph with those possibilities. To prevent flying into obstacles, we pruned the graph to remove any traversing that is obscured by obstacles with a simple line intersection algorithm.
 
 We used this traversablity graph to generate paths for the agents. we passed in the desired path length and the starting location. Then it randomly choses the next waypoint from the traversabilty graph, the probablility is a normal distribution favoring moving forward to prevent too much meandering. also to prevent backtracking, we also encoded a short term memory of length n into the paths so that unless there is no other available action, it will not return to a waypoint it has been to within the last n timesteps
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{APPROACH}\label{approach}
 \subsection{Single Agent Architecture}
+
+\subsubsection{Chromosome}
+\todo{ask Craig if we need to talk about padding with -1}
+The chromosome defining each member organism in a generation has a minimum, initial, and maximum number of genes. Each gene represents one waypoint location in the waypoint grid as seen in \ref{fig:waypoints}. The first generation of parents is spawned by generating a random path through the 2d map. The first step to create this path is to seed the same initial waypoint to each organism in the generation's population. This models the behavior that no matter the optimal path may be, the doorway to enter the building is always in the same spot on the local 2D hallway map. Thus, whatever random path may be considered most optimal, it must always start at the entrance. Next, each consecutive gene, or waypoint, is generated by using the current waypoint as an input to the traversable graph. The traversable graph selects at random a waypoint from the collection of the current waypoint's neighbors. The first generation all start with the same initial number of waypoints, however, the chromosome length is allowed to vary in crossover and mutation between the min and max number of genes defined. Once the chromosome is defined, both the coverage and flight time objective values are computed for that organism.
+
+\subsubsection{Crossover}
+
+Given a set of parents, crossover creates two children as members of the next generation. Using a crossover probability parameter in conjunction with a uniform number generator, we only allow crossover to occur if the random number is below the crossover parameter set by the designer. If crossover is not to occur, the children are clones of the parents. Otherwise, a search is done along the length of both chromosomes, to determine where, if any, both paths cross through the same waypoint. With the list of all common points, one is chosen randomly from the list, and the tails of the chromosomes are switched, from that point onward. For example, say the father organism passes through waypoint 287 at gene 153, and the mother organism passes through the same waypoint at gene 129. Then the father's chromosome would be chopped off at gene 154, and augmented with the mother's genes starting at 130 to the end. Likewise, the mothers gene 130 onward would be replaced by the father's genes 154 onward. If at any point a chromosome becomes longer than the max allowable length, it is truncated to the max length. In contrast, if the chromosome becomes shorter than the minimum allowable length, the last gene in the chromosome is passed to the traversable graph, and enough new genes are generated to reach the minimum chromosome length.
+
+\subsubsection{Mutation}
+
+After a new chromosome is generated, either by cloning or crossover, it is passed through two different probabilities of mutation. The first type of mutation randomly selects both a random gene in the chromosome and a random length between the current and maximum chromosome length. That gene is passed to the traversable graph, and a new path is generated from that gene onward, up to the randomly generated length.
+
+The second mutation is intended to straighten and shorten the paths. A random segment (random in position, static in length) of the chromosome is selected. This segment is searched for points that are within a defined hamming distance on the 2d map.
+
+\subsubsection{Constraints}
+
+\subsubsection{Minimax}
+
+\subsubsection{Elitism}
+
 \subsubsection{Low-Variance Sampling}
 
 Low-variance sampling is the mechanism used to sort and sample parents in a way that gives organisms with better designs (determined by a maximin fitness) a higher probability of being selected as a parent.
 
-\subsubsection{Chromosome}
 
-The chromosome defining each member in a generation has a maximum of 250 genes. Each gene represents one waypoint in the traversable graph. The first generation of parents is spawned by generating a random path through the 2d map. The first step to create this first generation is to seed the same initial waypoint to each of the 100 organisms in the generation's population. This models the behavior that no matter what else, the doorway to enter the building is always in the same spot on the local 2D hallway map. Thus, whatever random path may be considered most optimal, it must always start at the entrance. Next, each consecutive waypoint is randomly selected by using the current waypoint as an input to the traversable graph, which produces a random next point from its local neighbors. The first generation all receive a maximum length chromosome of 250 waypoints. This length is allowed to vary in crossover \todo{does this happen in mutation now, as well?}, from the max of 250 waypoints to a minimum of 75 waypoints. Once the chromosome is defined, the coverage and flight time objective values are computed for that organism, or design.
+%\subsection{Multi-Agent Architecture}
+%\subsubsection{Chromosome}
+%\subsubsection{Crossover}
+%\subsubsection{Mutation}
+%\subsubsection{Constraints}
+%\subsubsection{Minimax}
+%\subsubsection{Elitism}
+%\subsubsection{Low-Variance Sampling}
 
-\subsubsection{Crossover}
-
-The first generation is treated slightly different in preparation for crossover. In order to get the first set of children, the fitness value for each parent is computed using a maximin comparison with all other members of the first generation. In contrast, all other generations are
-
-\subsubsection{Mutation}
-\subsubsection{Constraints}
-\subsubsection{Minimax}
-\subsubsection{Elitism}
-
-
-\subsection{Multi-Agent Architecture}
-\subsubsection{Low-Variance Sampling}
-\subsubsection{Chromosome}
-\subsubsection{Crossover}
-\subsubsection{Mutation}
-\subsubsection{Constraints}
-\subsubsection{Minimax}
-\subsubsection{Elitism}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{RESULTS}\label{results}
 \subsection{Single Agent}

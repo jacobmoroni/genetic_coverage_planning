@@ -173,6 +173,37 @@ class Mappy(object):
         # cv2.waitKey()
         # cv2.destroyWindow('Map With Path')
     #
+    def visualizePathWithCoverage(self, waypoints, path_idx, fig, coverage_map):
+        # make this draw lines instead of points
+        img = self._safety_img.copy()
+        cov_img = coverage_map
+        # img = coverage_map
+        # set_trace()
+        img[img==0] += cov_img[img==0]
+        img[img<0.3] += cov_img[img<0.3]
+        img = np.clip(img,0,1.0)
+        img_color = img[...,None]*np.array([1, 1, 1])
+        path = waypoints[path_idx]
+        path = np.fliplr(path)
+        path = list(map(tuple,path))
+        for ii in range(len(path)-1):
+            cv2.line(img_color, path[ii],path[ii+1], (0,1,0),1)
+        #
+        # ax = fig.add_subplot(1,3,3)
+        gs = gridspec.GridSpec(1, 2, width_ratios=[2, 1])
+        ax = plt.subplot(gs[1])
+        ax.set_title('Selected Path')
+
+        # Hide grid lines
+        ax.grid(False)
+
+        # Hide axes ticks
+        ax.set_xticks([])
+        ax.set_yticks([])
+        plt.tight_layout()
+        plt.imshow(img_color)
+        plt.show()
+    #
     def getCoverage(self, waypoints):
         if self.all_waypoints is None:
             raise ValueError('Map has no waypoints')
@@ -228,11 +259,12 @@ class Mappy(object):
             #
         #
         coverage = (np.sum(draw_map) - self._num_occluded)/(draw_map.size - self._num_occluded)
+
         # print(coverage)
         # cv2.imshow("Drawn Coverage", draw_map)
         # cv2.waitKey()
 
         # minimize negative coverage and minimize travel distance
-        return -coverage, travel_cost
+        return -coverage, travel_cost, draw_map
     #
 #

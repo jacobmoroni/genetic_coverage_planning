@@ -174,7 +174,7 @@ class Organism( ):
         self._obj_val_sc = [None,None]
     #
     def calcObj(self):
-        coverage, travel_dist = self._mappy.getCoverage(self._dna)
+        coverage, travel_dist, self._coverage_map = self._mappy.getCoverage(self._dna)
         travel_dist = travel_dist * self._ft_scale
         return [coverage, travel_dist]
     #
@@ -221,8 +221,11 @@ class Organism( ):
         # uniform vs dynamic
         idx = np.random.randint(1,self._len_dna)
         len_tail = self._len_dna - idx
-        len_tail += np.random.randint(self._max_dna_len-self._len_dna)
-
+        try:
+            if (self._len_dna+1)<self._max_dna_len:
+                len_tail += np.random.randint(self._max_dna_len-self._len_dna)
+        except:
+            set_trace()
         dna_tail = self._pather.makeMeAPath(len_tail, self._dna[idx])
         dna_head = self._dna[0:idx]
 
