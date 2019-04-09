@@ -46,12 +46,12 @@ Optimal Coverage with Genetic Path Planning
 }
 
 
-\author{Jacob M. Olson, Craig C. Bidstrup$^{1}$, Brady K Anderson,Which Professors?$^{2}$% <-this % stops a space
+\author{Jacob M. Olson$^{1}$, Craig C. Bidstrup, Brady K Anderson,Which Professors?$^{2}$% <-this % stops a space
 \thanks{This research was supported through the Center for Unmanned Aircraft Systems (C-UAS), a National Science Foundation-sponsored industry/university
 cooperative research center (I/UCRC) under NSF Award No. IIP-1650547
 along with significant contributions from C-UAS industry members.}% <-this % stops a space
 \thanks{$^{1}$The corresponding author can be contacted at
-        {\tt\small craig.bidstrup at byu.edu}.}%
+        {\tt\small  at byu.edu}.}%
 \thanks{$^{2}$All authors are with the Department of Mechanical Engineering or Electrical and Computer Engineering,
         Brigham Young University, Provo, UT, 84602, USA.}%
 %\thanks{$^{3}$C. Peterson is with the Faculty of Electrical and Computer Engineering,
@@ -188,18 +188,21 @@ The second mutation is intended to straighten and shorten the paths. A random se
 
 \subsubsection{Constraints}
 
+Coverage constraint
+difficulty incorporating with multiple objectives
+constraint on objective, makes sense, but what to do if constraint not related to either objective
+
 \subsubsection{Minimax and Elitism}
-When a full set of children have been created to fill a new generation, The fitness of the parents and children is computed by using the minimax scheme. In brief, the minimax scheme encourages a spread of designs across the Pareto front between the two objective values. It does this by subtracting each of the objective values of all the organisms from each other, in turn, and minimizing the difference of both objectives to each other. It then computes the max of all of those minimums as the fitness value. \todo{Eq XX shows this process mathematically}
+When a full set of children have been created to fill a new generation, The fitness of the parents and children is computed by using the minimax fitness function. In brief, the minimax scheme encourages a spread of designs across the Pareto front between competing objective values, with a target of minimizing the objectives. It does this by subtracting each of the objective values of all the organisms from each other, in turn, and minimizing the difference of both objectives to each other. It then computes the max of all of those minimums as the fitness value. Following the notation in \cite{Parkinson2019}, if $f_k^i = value$ is the computed $k^{th}$ objective value for organism $i$, the minimax fitness for organism $i$ is computed by,
+\begin{equation}%\nonumber
+    fitness = \max_{i \neq j}\left(\min_{k}\left(f_k^i - f_k^j\right)\right).
+\end{equation}
 
-\todo{\beginequation ...}
-
-Once all the parents and children, spanning two generations, have fitness values computed with respect to each other, the best half, comprising of the most negative fitness values, is selected as the new parent generation.
-
-%\subsubsection{Elitism}
+Once all the parents and children, spanning two generations, have fitness values computed with respect to each other, the best half, comprising of the most negative fitness values, is selected as the next generation.
 
 \subsubsection{Low-Variance Sampling}
 
-Low-variance sampling is the mechanism used to sort and sample parents in a way that gives organisms with better designs (determined by a maximin fitness) a higher probability of being selected as a parent for the crossover process.
+We use a Roulette-style sampling method to pick parents in a way that gives organisms with better designs (determined by a maximin fitness) a higher probability of being selected as a parent for the crossover process. We employ a low-variance sampling technique as described in \cite{Thrun2006}. This method normalizes the population's fitnesses and treats them as a set of probabilities. A naive approach randomly samples $N$ times from the pool of parents according to their respective probabilities, where $N$ is the size of a generation. In order to reduce the possibility of a parent being sampled disproportionately to its probability, we draw as single uniform random number $r$ between 0 and $\tfrac{1}{N}$. The probabilities are then stacked up and compared to $r$. Whichever organism corresponds to the bin that $r$ falls into gets sampled and $\tfrac{1}{N}$ is added to $r$ and again compared to the stack of probabilities. This process is repeated $N$ times. 
 
 
 %\subsection{Multi-Agent Architecture}
