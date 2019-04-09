@@ -184,17 +184,22 @@ Given a set of parents, crossover creates two children as members of the next ge
 
 After a new chromosome is generated, either by cloning or crossover, it is passed through two different probabilities of mutation. The first type of mutation randomly selects both a random gene in the chromosome and a random length between the current and maximum chromosome length. That gene is passed to the traversable graph, and a new path is generated from that gene onward, up to the randomly generated length.
 
-The second mutation is intended to straighten and shorten the paths. A random segment (random in position, static in length) of the chromosome is selected. This segment is searched for points that are within a defined hamming distance on the 2d map.
+The second mutation is intended to straighten and shorten the paths. A random segment (random in position, static in length) of the chromosome is selected. The hamming distance from the first waypoint in the segment to all other waypoints, starting with the last point, is computed. If a point is found to be within two waypoints of the first point in the segment, all waypoints in the segment between those two are replaced with the shorter, two waypoint path. The segment is left as is if no points are within the hamming distance.
 
 \subsubsection{Constraints}
 
-\subsubsection{Minimax}
+\subsubsection{Minimax and Elitism}
+When a full set of children have been created to fill a new generation, The fitness of the parents and children is computed by using the minimax scheme. In brief, the minimax scheme encourages a spread of designs across the Pareto front between the two objective values. It does this by subtracting each of the objective values of all the organisms from each other, in turn, and minimizing the difference of both objectives to each other. It then computes the max of all of those minimums as the fitness value. \todo{Eq XX shows this process mathematically}
 
-\subsubsection{Elitism}
+\todo{\beginequation ...}
+
+Once all the parents and children, spanning two generations, have fitness values computed with respect to each other, the best half, comprising of the most negative fitness values, is selected as the new parent generation.
+
+%\subsubsection{Elitism}
 
 \subsubsection{Low-Variance Sampling}
 
-Low-variance sampling is the mechanism used to sort and sample parents in a way that gives organisms with better designs (determined by a maximin fitness) a higher probability of being selected as a parent.
+Low-variance sampling is the mechanism used to sort and sample parents in a way that gives organisms with better designs (determined by a maximin fitness) a higher probability of being selected as a parent for the crossover process.
 
 
 %\subsection{Multi-Agent Architecture}
