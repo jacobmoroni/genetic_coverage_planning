@@ -18,6 +18,7 @@ from pointselector import PointSelector
 
 def plotty(population,pather,mappy):
     objs = np.array([thing._obj_val for thing in population._gen_parent])
+    # objs = saveParetoHist( population )
     fig = plt.figure()
     gs = gridspec.GridSpec(1, 2, width_ratios=[2, 1])
     ax = plt.subplot(gs[0])
@@ -124,5 +125,14 @@ def giveMeOptions(graph, pt1, pt2):
     options = np.where(graph[pt1]*graph[pt2])
     return options
 #
+
+# ======================================
+# ======================================
+
+def getObjValsList( population ):
+    objs = [thing._obj_val for thing in population._gen_parent]
+    return objs
+#
+
 
 #
