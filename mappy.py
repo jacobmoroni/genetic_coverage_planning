@@ -204,7 +204,7 @@ class Mappy(object):
         plt.imshow(img_color)
         plt.show()
     #
-    def getCoverage(self, waypoints):
+    def getCoverage(self, waypoints, return_map=False):
         if self.all_waypoints is None:
             raise ValueError('Map has no waypoints')
         # coverage = np.copy(self._img)
@@ -265,6 +265,9 @@ class Mappy(object):
         # cv2.waitKey()
 
         # minimize negative coverage and minimize travel distance
-        return -coverage, travel_cost, draw_map
+        if return_map:
+            return -coverage, travel_cost, draw_map
+        else:
+            return -coverage, travel_cost
     #
 #

@@ -178,7 +178,7 @@ class Organism( ):
         self._obj_val_sc = [None,None]
     #
     def calcObj(self):
-        coverage, travel_dist, self._coverage_map = self._mappy.getCoverage(self._dna)
+        coverage, travel_dist = self._mappy.getCoverage(self._dna)
         travel_dist = travel_dist * self._ft_scale
         return [coverage, travel_dist]
     #

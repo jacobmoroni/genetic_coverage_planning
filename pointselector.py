@@ -50,7 +50,8 @@ class PointSelector(object):
         self._points.figure.canvas.draw()
         current_organism = self.population._gen_parent[nearest_point]
         # self.mappy.visualizePath(self.pather._XY,current_organism._dna[0:current_organism._len_dna],self._fig)
-        self.mappy.visualizePathWithCoverage(self.pather._XY,current_organism._dna[0:current_organism._len_dna],self._fig,current_organism._coverage_map)
+        coverage, travel_dist, coverage_map = self.mappy.getCoverage(current_organism._dna,return_map=True)
+        self.mappy.visualizePathWithCoverage(self.pather._XY,current_organism._dna[0:current_organism._len_dna],self._fig,coverage_map)
 
         return [self._x,self._y]
     #

@@ -6,6 +6,8 @@ import cv2
 import copy
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
+import matplotlib.animation as animation
+
 from tqdm import tqdm
 import pointselector
 reload(pointselector)
@@ -31,7 +33,30 @@ def plotty(population,pather,mappy):
     plt.scatter(objs[:,0], objs[:,1])
     plt.show()
 #
-
+def update_pareto(gen_num, data, population):
+    population.set_data(data[..., gen_num])
+    plt.xlim(-1,max(data[0,:,gen_num])+0.05)
+    plt.plot([-1,-0.8],[0.38,0.38],color = 'w',linewidth=4.0)
+    text = "generation number: "+str(gen_num)
+    plt.text(-1,0.38,text, fontsize=14)
+    return population,
+#
+def plotParetoHist(pareto_hist):
+    pareto_hist = np.array(pareto_hist)
+    fig1= plt.figure()
+    num_gen = pareto_hist.shape[0]
+    data = np.transpose(pareto_hist, (2,1,0))
+    l, = plt.plot([], [], 'r.')
+    plt.xlim(-1, -0.3)
+    plt.ylim(0.1, 0.4)
+    plt.xlabel('-Coverage')
+    plt.ylabel('Flight Time')
+    plt.title('Pareto History')
+    pareto_animation = animation.FuncAnimation(fig1, update_pareto, num_gen,fargs=(data, l), interval=50, blit=False)
+    plt.show()
+    pareto_animation.save('pareto_animation.mp4')
+    #
+#
 # ======================================
 # ======================================
 
