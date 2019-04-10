@@ -76,8 +76,13 @@ mappy.all_waypoints = pather.waypoint_locs
 print("Spawning the contestants.")
 population = GeneticalGorithm( mappy, scale, narrowest_hall, max_dna_len, pather )
 
-got.plotty(population, pather, mappy)
-population.runEvolution(5)
+pareto_hist = []
+# pareto_hist.extend( got.getObjValsList(population) )
+pareto_hist += [got.getObjValsList(population)]
 
+got.plotty(population, pather, mappy)
+# for ii in range(2):
+pareto_hist += population.runEvolution(100)
+#
 
 #

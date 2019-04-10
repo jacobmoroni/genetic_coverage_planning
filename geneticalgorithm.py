@@ -46,6 +46,7 @@ class GeneticalGorithm( ):
     #
     def runEvolution(self, num_generations):
         # list for holding all chromosomes in children generation
+        pareto_1_gen = []
         for ii in tqdm(range(num_generations), desc="Evolving"):
             gen_child = []
             gen_child_fit = []
@@ -60,8 +61,11 @@ class GeneticalGorithm( ):
             # it's dog eat dog, parent eat child. Animals.
             self.arena(self._gen_parent + gen_child)
             self._gen_num += 1
+
+            pareto_1_gen += [got.getObjValsList(self)]
             #
         #
+        return pareto_1_gen
     #
     def arena(self, gladiators):
         # rack and stack
