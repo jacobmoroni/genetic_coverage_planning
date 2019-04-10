@@ -122,6 +122,8 @@ class Mappy(object):
             else:
                 return True
             #
+        else:
+            return True
         #
     #
     def visualize(self):
@@ -129,7 +131,7 @@ class Mappy(object):
         cv2.imshow('Map With Buffer',self._safety_img)
         cv2.waitKey()
         cv2.destroyWindow('Map With Buffer')
-
+    #
     def visualizeWaypoints(self, waypoints, start_idx=None):
         pac_dots = np.zeros_like(self._img)
         pac_dots[waypoints[:,0], waypoints[:,1]] = 1
@@ -143,7 +145,7 @@ class Mappy(object):
         cv2.imshow('Map With Waypoints', img_color)
         cv2.waitKey()
         cv2.destroyWindow('Map With Waypoints')
-
+    #
     def visualizePath(self, waypoints, path_idx, fig):
         # make this draw lines instead of points
         img = self._safety_img
@@ -269,5 +271,6 @@ class Mappy(object):
             return -coverage, travel_cost, draw_map
         else:
             return -coverage, travel_cost
+        #
     #
 #

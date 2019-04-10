@@ -96,6 +96,7 @@ class GeneticalGorithm( ):
             else:
                 gladiators[ii]._obj_val_sc[0] = glad._obj_val[0]
                 gladiators[ii]._obj_val_sc[1] = glad._obj_val[1]
+            #
         #
 
         for ii, gen_fit_1 in enumerate(gladiators):
