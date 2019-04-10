@@ -144,6 +144,7 @@ After removing occluded waypoints, the remaining waypoints are further pruned an
 
 \subsection{Objective Functions}
 
+
 We split the optimization into two competing objectives. First, to maximize coverage of the given map, and second, to minimize flight time.
 
 \subsubsection{Maximize Coverage}
@@ -202,7 +203,7 @@ Once all the parents and children, spanning two generations, have fitness values
 
 \subsubsection{Low-Variance Sampling}
 
-We use a Roulette-style sampling method to pick parents in a way that gives organisms with better designs (determined by a maximin fitness) a higher probability of being selected as a parent for the crossover process. We employ a low-variance sampling technique as described in \cite{Thrun2006}. This method normalizes the population's fitnesses and treats them as a set of probabilities. A naive approach randomly samples $N$ times from the pool of parents according to their respective probabilities, where $N$ is the size of a generation. In order to reduce the possibility of a parent being sampled disproportionately to its probability, we draw as single uniform random number $r$ between 0 and $\tfrac{1}{N}$. The probabilities are then stacked up and compared to $r$. Whichever organism corresponds to the bin that $r$ falls into gets sampled and $\tfrac{1}{N}$ is added to $r$ and again compared to the stack of probabilities. This process is repeated $N$ times. 
+We use a Roulette-style sampling method to pick parents in a way that gives organisms with better designs (determined by a maximin fitness) a higher probability of being selected as a parent for the crossover process. We employ a low-variance sampling technique as described in \cite{Thrun2006}. This method normalizes the population's fitnesses and treats them as a set of probabilities. A naive approach randomly samples $N$ times from the pool of parents according to their respective probabilities, where $N$ is the size of a generation. In order to reduce the possibility of a parent being sampled disproportionately to its probability, we draw as single uniform random number $r$ between 0 and $\tfrac{1}{N}$. The probabilities are then stacked up and compared to $r$. Whichever organism corresponds to the bin that $r$ falls into gets sampled and $\tfrac{1}{N}$ is added to $r$ and again compared to the stack of probabilities. This process is repeated $N$ times.
 
 
 %\subsection{Multi-Agent Architecture}

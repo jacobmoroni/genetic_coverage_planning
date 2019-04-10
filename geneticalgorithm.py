@@ -219,7 +219,7 @@ class Organism( ):
     #
     def mutation(self):
         # uniform vs dynamic
-        idx = np.random.randint(1,self._len_dna)
+        idx = np.random.randint(1,self._len_dna-1)
         len_tail = self._len_dna - idx
         try:
             if (self._len_dna+1)<self._max_dna_len:
