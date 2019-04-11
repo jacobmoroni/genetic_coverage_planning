@@ -104,7 +104,7 @@ Results showing and evaluating the generated paths are presented in Section \ref
 \section{OPTIMIZATION SETUP}\label{setup}
 
 
-Modeling a problem for optimization requires a balance between fidelity and simplicity. Model accuracy is especially important because any inaccuracies in the model can lead to solutions that are not truly optimal in the physical system. However, if the design space is too large, or ill formed, optimization algorithms can fail to converge especially when derivatives are not available or there are multiple local optima.
+Modeling a problem for optimization requires a balance between fidelity and tractability. Model accuracy is especially important because any inaccuracies in the model can lead to solutions that are not truly optimal in the physical system. However, if the design space is too large, or ill formed, optimization algorithms can fail to converge especially when derivatives are not available or there are multiple local optima.
 
 \subsection{Problem Statement}
 
@@ -182,31 +182,57 @@ The chromosome defining each member organism in a generation has a minimum, init
 
 \subsubsection{Crossover}
 
-Given a set of parents, crossover creates two children. Crossover occurs with a defined probability. If crossover is not to occur, the children are clones of the parents. Otherwise, a search is done along the length of both chromosomes to determine where, if at all, both paths cross through the same waypoint. Next, one of the common waypoints is randomly chosen, and the tails of the chromosomes are swapped. \todo{show fig for crossover} If at any point a chromosome becomes longer than the maximum allowable length, it is truncated to the maximum length. In contrast, if the chromosome becomes shorter than the minimum allowable length, the chromosome is lengthened with a random feasible path up to the minimum chromosome length.
+Given a set of two parents, crossover creates two children. Crossover occurs with a defined probability. If crossover does not occur, the children are clones of the parents. Otherwise, a search is done along the length of both chromosomes to determine where, if at all, both paths cross through the same waypoint. Next, one of the common waypoints is randomly chosen, and the tails of the chromosomes are swapped. See Fig. \ref{fig:crossover} for an example. If at any point a chromosome becomes longer than the maximum allowable length, it is truncated to the maximum length. In contrast, if the chromosome becomes shorter than the minimum allowable length, the chromosome is lengthened with a random feasible path up to the minimum chromosome length.
+
+\begin{figure}
+\centering
+\includegraphics[width=0.8\linewidth]{figures/crossover.png}
+\caption{An example of the crossover mechanism. First, common waypoints are found (marked in blue and red). Next, one of the common waypoints is chosen at random (red). Finally, the tails of the two paths are swapped, as shown on the right.}
+\label{fig:crossover}
+\end{figure}
 
 \subsubsection{Mutation}
 
-After a new chromosome is generated, either by cloning or crossover, it is subjected to two different types of mutation, each with a defined probability of occurring. The first type of mutation randomly selects both a random gene in the chromosome and a random length between the current and maximum chromosome length. That gene is passed to the traversable graph, and a new path is generated from that gene onward, up to the randomly generated length.
+After a new chromosome is generated, either by cloning or crossover, it is subjected to two different types of mutation, each with a defined probability of occurring. The first type of mutation randomly selects both a random gene in the chromosome and a random length between the current and maximum chromosome length. Using the traversable graph, a new path is randomly generated from that gene onward, up to the randomly chosen length. See Fig. \ref{fig:mutation} for an example of this style of mutation.
 
-The second mutation is intended to straighten and shorten the paths. A random segment (random in position, static in length) of the chromosome is selected. The hamming distance from the first waypoint in the segment to all other waypoints, starting with the last point, is computed. If a point is found to be within two waypoints of the first point in the segment, all waypoints in the segment between those two are replaced with the shorter, two waypoint path. However, this is only completed within a defined sub-probability of mutation, which is typically much higher than the overall mutation probability. The segment is left as is if no points are within the hamming distance. This type of mutation is attempted at a specified number of times on the same chromosome, in the case that there are many spots along the strand that are jagged.
+\begin{figure}
+\centering
+\includegraphics[width=0.8\linewidth]{figures/mutation.png}
+\caption{An example of the Mutation B mechanism. A random waypoint in the path is chosen (marked in red) and the tail is replaced with a random path of a random length.}
+\label{fig:mutation}
+\end{figure}
+
+The second mutation is intended to straighten and shorten the paths. A random segment (random in position, static in length) of the chromosome is selected. The hamming distance from the first waypoint in the segment to all other waypoints in the segment, starting with the last point, is computed. If a point is found to be within two waypoints of the first point in the segment, all waypoints in the segment between those two are replaced with a shortcut, as illustrated in Fig. \ref{fig:muterpolation}. However, this is only completed according to a defined sub-probability of mutation, which is typically much higher than the overall mutation probability. The segment is left as is if no points are within a hamming distance of two. This type of mutation is applied to the chromosome a specified number of times with the intent of finding multiple useful shortcuts in the path.
+
+\begin{figure}
+\centering
+\includegraphics[width=0.8\linewidth]{figures/muterpolation.png}
+\caption{An example of the Mutation B mechanism. Multiple random points are chosen (marked in red). From each point, the path is searched up to a certain length to find places where shortcuts or alternate paths can be taken (shown as blue segments).}
+\label{fig:muterpolation}
+\end{figure}
 
 \subsubsection{Constraints}
 
-Coverage constraint
-difficulty incorporating with multiple objectives
-constraint on objective, makes sense, but what to do if constraint not related to either objective
+Most of the constraints of the system are modeled into the discretization, traversability graph, and upper and lower bounds of the chromosome length. however constraining the minimum coverage could not be applied directly to the model.
+
+The coverage constraint was applied by adding to the cost to make it worse than the worst feasible design. Since we are using two objectives we implemented this constraint by adding a large cost to the flight time objective to guarantee that all organisms violating the constraint will be dominated by other designs (according to the maximin fitness).
+
+Rather than start with a high constraint that would eliminate many of the original designs, we initialized the constraint with a low value. Over several generations we increase the constraint slowly to push the designs into the desired region of objective space. This also inadvertently increases the average flight time, but as the system continues to evolve, more efficient flight paths are found even with the new, strict coverage constraint.
+
+As described in \cite{Parkinson2019}, constraints are applied to the fitness value. Because we have two objectives, and our non-modeled constraint directly relates to only one of the objectives, we implement this constraint on the objective value prior to computing the fitness value for the organism.
 
 \subsubsection{Minimax and Elitism}
-When a full set of children have been created to fill a new generation, The fitness of the parents and children is computed by using the minimax fitness function. In brief, the minimax scheme encourages a spread of designs across the Pareto front between competing objective values, with a target of minimizing the objectives. It does this by subtracting each of the objective values of all the organisms from each other, in turn, and minimizing the difference of both objectives to each other. It then computes the max of all of those minimums as the fitness value. Following the notation in \cite{Parkinson2019}, if $f_k^i = value$ is the computed $k^{th}$ objective value for organism $i$, the minimax fitness for organism $i$ is computed by,
+
+After all of a generation's children have been created, The fitness of the parents and children is computed by using the minimax fitness function. In brief, the minimax scheme encourages a spread of designs across the Pareto front between competing objective values, with a target of minimizing the objectives. It does this by calculating the distance between each of the objective values of all the organisms, and finds the minimum difference of both objectives to each other. It then computes the maximum of all of those minima as the fitness value. Following the notation in \cite{Parkinson2019}, if $f_k^i$ is the computed $k^{\mathrm{th}}$ objective value for organism $i$, the minimax fitness for organism $i$ is computed by,
 \begin{equation}%\nonumber
     fitness = \max_{i \neq j}\left(\min_{k}\left(f_k^i - f_k^j\right)\right).
 \end{equation}
 
-Once all the parents and children, spanning two generations, have fitness values computed with respect to each other, the best half, comprising of the most negative fitness values, is selected as the next generation.
+Once all parents and children have fitness values computed with respect to each other, the best $N$, comprising of the most negative fitness values, is selected as the next generation, where $N$ is the size of a generation.
 
 \subsubsection{Low-Variance Sampling}
 
-We use a Roulette-style sampling method to pick parents in a way that gives organisms with better designs (determined by a maximin fitness) a higher probability of being selected as a parent for the crossover process. We employ a low-variance sampling technique as described in \cite{Thrun2006}. This method normalizes the population's fitnesses and treats them as a set of probabilities. A naive approach randomly samples $N$ times from the pool of parents according to their respective probabilities, where $N$ is the size of a generation. In order to reduce the possibility of a parent being sampled disproportionately to its probability, we draw as single uniform random number $r$ between 0 and $\tfrac{1}{N}$. The probabilities are then stacked up and compared to $r$. Whichever organism corresponds to the bin that $r$ falls into gets sampled and $\tfrac{1}{N}$ is added to $r$ and again compared to the stack of probabilities. This process is repeated $N$ times.
+We use a Roulette-style sampling method to pick parents in a way that gives organisms with better designs (determined by the maximin fitness) a higher probability of being selected as a parent for the crossover process. We employ a low-variance sampling technique as described in \cite{Thrun2006}. This method normalizes the population's fitnesses and treats them as a set of probabilities. A naive approach randomly samples $N$ times from the pool of parents according to their respective probabilities. In order to reduce the possibility of a parent being sampled disproportionately to its probability, we draw as single uniform random number $r$ between 0 and $\tfrac{1}{N}$. The probabilities are then stacked up and compared to $r$. Whichever organism corresponds to the bin that $r$ falls into gets sampled and $\tfrac{1}{N}$ is added to $r$ and again compared to the stack of probabilities. This process is repeated $N$ times.
 
 
 %\subsection{Multi-Agent Architecture}
@@ -221,30 +247,37 @@ We use a Roulette-style sampling method to pick parents in a way that gives orga
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{RESULTS}\label{results}
 
-The designer is required to set many parameters for the genetic algorithm to work as derived in \cite{Parkinson2019}. The parameters we used, along with parameters specific to our implementation, are specified in \todo{table of params}
+The designer is required to set many parameters for the genetic algorithm to work as derived in \cite{Parkinson2019}. The parameters we used, along with parameters specific to our implementation, are outlined in Table \ref{tab:parameters}.
 
-\todo{
-generation size = 100 organisms
-crossover probability = 0.7
-mutation probability = 0.3
-muterpolate probability = 0.3
-number of muterpolations = 20
-muterpolation search distance = 5 waypoints
-sub-muterpolation probability = 0.8
-objective scaling factor: flight time = 0.0001
-objective scaling factor: coverage = 1.0
-
-min chromosome length = 75 waypoints
-max chromosome length = 250 waypoints
-max gene dist. for crossover points = 70 waypoints
-pixel scale = 0.15 meters/pixel
-}
+\begin{table}[]
+  \caption{Parameters used to obtain described results}
+\begin{tabular}{l|l}
+\hline
+\multicolumn{1}{|l|}{Parameter}                 & \multicolumn{1}{l|}{Value} \\ \hline
+Generation Size (Organisms)                     & 100                        \\
+Crossover Probability                           & 0.7                        \\
+Mutation A Probability                          & 0.3                        \\
+Mutation B Probability                          & 0.3                        \\
+Number of Mutation B Instances                  & 20                         \\
+Mutation B Acceptance Probability               & 0.8                        \\
+Objective Scaling Factor : Flight Time          & 0.0001                     \\
+Objective Scaling Factor : Coverage             & -1.0                       \\
+Minimum Chromosome Length (Waypoints)           & 75                         \\
+Maximum Chromosome Length (Waypoints)           & 250                        \\
+Pixel Scale (meters/pixel)                      & 0.15                       \\
+Minimum Coverage Constraint Start               & 0.3                        \\
+Minimum Coverage Constraint End                 & 0.8                        \\
+Minimum Coverage Constraint Aging (Generations) & 60                         \\
+\end{tabular}
+\label{tab:parameters}
+\end{table}
 
 %\subsection{Single Agent}
 %\subsubsection{Pareto Front}
 %\subsubsection{Paths Generated}
-\subsection{Pareto Front}
+\subsection{Fitness}
 
+Fig. \ref{fig:pareto_cheetos} shows how the objective values of the organisms evolved from generation to generation. Fig. \ref{fig:objectives} shows how the average 
 \todo{ \ref{fig:pareto} multiple figures, first, middle, last } show the progression of the Pareto front across multiple generations. Behold the glory.
 
 \subsection{Paths Generated}
