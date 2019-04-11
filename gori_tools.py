@@ -25,12 +25,12 @@ def plotty(population,pather,mappy):
     gs = gridspec.GridSpec(1, 2, width_ratios=[2, 1])
     ax = plt.subplot(gs[0])
     ax.set_title('Pareto Front')
-    plt.ylabel('Flight Time (Cheetos)')
+    plt.ylabel('Flight Time')
     plt.xlabel('-Coverage')
     plt.tight_layout()
     point, = ax.plot(objs[0,0],objs[0,1],'xr')
     pointy = PointSelector(point,objs,mappy,pather,population,fig)
-    plt.scatter(objs[:,0], objs[:,1])
+    plt.plot(objs[:,0], objs[:,1],'.b')
     plt.show()
 #
 def update_pareto(gen_num, data, population):
@@ -54,7 +54,8 @@ def plotParetoHist(pareto_hist):
     plt.title('Pareto History')
     pareto_animation = animation.FuncAnimation(fig1, update_pareto, num_gen,fargs=(data, l), interval=50, blit=False)
     plt.show()
-    pareto_animation.save('pareto_animation.mp4')
+    #this save file is kind of a bug, but it lets you get the images before it finishes at high quality
+    # pareto_animation.save('pareto_history/frames.mp4',writer = 'writer',codec = 'mp4')
     #
 #
 # ======================================
