@@ -46,12 +46,10 @@ Optimal Coverage with Genetic Path Planning
 }
 
 
-\author{Jacob M. Olson$^{1}$, Craig C. Bidstrup, Brady K Anderson,Which Professors?$^{2}$% <-this % stops a space
-\thanks{This research was supported through the Center for Unmanned Aircraft Systems (C-UAS), a National Science Foundation-sponsored industry/university
-cooperative research center (I/UCRC) under NSF Award No. IIP-1650547
-along with significant contributions from C-UAS industry members.}% <-this % stops a space
+\author{Jacob M. Olson$^{1}$, Craig C. Bidstrup, Brady K Anderson$^{2}$% <-this % stops a space
+%\thanks{This research was supported through the Center for Unmanned Aircraft Systems (C-UAS), a National Science Foundation-sponsored industry/university cooperative research center (I/UCRC) under NSF Award No. IIP-1650547 along with significant contributions from C-UAS industry members.}% <-this % stops a space
 \thanks{$^{1}$The corresponding author can be contacted at
-        {\tt\small  at byu.edu}.}%
+        {\tt\small jacobmoroniolson at byu.edu}.}%
 \thanks{$^{2}$All authors are with the Department of Mechanical Engineering or Electrical and Computer Engineering,
         Brigham Young University, Provo, UT, 84602, USA.}%
 %\thanks{$^{3}$C. Peterson is with the Faculty of Electrical and Computer Engineering,
@@ -76,8 +74,7 @@ along with significant contributions from C-UAS industry members.}% <-this % sto
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{abstract}
 
-When generating 3D maps with unmanned arial vehicles (UAVs), it is important to the mapping algorithms to have good coverage of the environment and have multiple loop closures throghout the flight path. Because multirotor UAVs are limited in flight time, the flight paths must not be too long. Coming up with a good flight path of a new environment to be mapped can be difficult to do well and becasue of how free-form a flight path can be, it is also tricky to generate optimal paths to get good coverage with minimal flight time.
-To solve this problem, we propose using a genetic algorithm designed to maximize total area coverage while minimizing flight time. Because of the more randomized searching that genetic algorithms have, it is more capable of solving complex free-form problems like path planning.
+When generating 3D maps with unmanned aerial vehicles (UAVs), it is important for the mapping algorithms to have good coverage of the environment. Because multirotor UAVs are limited in flight time, the flight paths must be limited in length. Coming up with a good flight path to map a new environment can be difficult and tedious because of the free-form nature of a flight path. To solve this problem, we propose using a genetic algorithm designed to maximize total area coverage while minimizing flight time. The natural ability genetic algorithms have to rapidly explore a design space is advantageous when solving complex free-form problems like path planning.
 
 \end{abstract}
 
@@ -211,6 +208,8 @@ The second mutation is intended to straighten and shorten the paths. A random se
 \label{fig:muterpolation}
 \end{figure}
 
+
+
 \subsubsection{Constraints}
 
 Most of the constraints of the system are modeled into the discretization, traversability graph, and upper and lower bounds of the chromosome length. however constraining the minimum coverage could not be applied directly to the model.
@@ -277,8 +276,25 @@ Minimum Coverage Constraint Aging (Generations) & 60                         \\
 %\subsubsection{Paths Generated}
 \subsection{Fitness}
 
-Fig. \ref{fig:pareto_cheetos} shows how the objective values of the organisms evolved from generation to generation. Fig. \ref{fig:objectives} shows how the average 
-\todo{ \ref{fig:pareto} multiple figures, first, middle, last } show the progression of the Pareto front across multiple generations. Behold the glory.
+\begin{figure*}
+\centering
+\includegraphics[width=1.0\linewidth]{figures/pareto_history2.png}
+\caption{History of the Pareto front across several generations}
+\label{fig:pareto_cheetos}
+
+\todo{BRADY}
+
+
+\end{figure*}
+
+Fig. \ref{fig:pareto_cheetos} shows how the objective values of the organisms evolved from generation to generation. Four different snapshots are shown: the first, randomly generated set of parents, the state of the generation at about a third and two-thirds of the way through the selected number of generations, and last, the final result of the progression of 1000 generations. Fig. \ref{fig:objectives} shows how the average negative coverage and average flight time progresses over the course of the 600 generations that evolved. The coverage flattens out temporarily, but then continues to drop after 400 generations. The interesting result displayed is in the flight time history. After about 30 generations, the flight time starts to rise again. This is due to the dynamic constraint that invalidates all organisms with coverages below the defined threshold at the defined generation number. Once the coverage constraint settles to a constant value, the organisms with very good coverage dominate the generation population and the algorithm successfully lowers the flight time again to represent a useful Pareto front.
+
+\begin{figure}
+\centering
+\includegraphics[width=0.8\linewidth]{figures/fitness.png}
+\caption{A plot of the average objective values over 600 generations. Note how the average flight time initially decreases then sharply increases again, as the rolling constraint on coverage is applied. As the generations are then allowed to evolve, the flight time settles back down below the previous minimum.}
+\label{fig:objectives}
+\end{figure}
 
 \subsection{Paths Generated}
 
@@ -292,7 +308,7 @@ We made awesome paths. See \todo{ \ref{fig:sickPath} }. Engage sunglasses to wit
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{CONCLUSIONS}\label{conclusions}
 
-
+We were able to successfully generate paths with reasonably good coverage that do not appear to meander too much for a single UAV. Future work on this project will include adding loop closure detection into the model to significantly increase the quality of generated 3D maps. We also plan to extend this to work with multiple UAVs flying simultaneously. We expect the need to use the paths generated with a lower level path planner that can dynamically change waypoints according to obstacles and other unmapped disparities. Finally we plan to test the paths generated both in high fidelity simulation as well as in hardware.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

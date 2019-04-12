@@ -58,6 +58,35 @@ def plotParetoHist(pareto_hist):
     # pareto_animation.save('pareto_history/frames.mp4',writer = 'writer',codec = 'mp4')
     #
 #
+def plotFitness(pareto_hist):
+    pareto_hist = np.array(pareto_hist)
+    fig2= plt.figure()
+    cov = []
+    ft = []
+    for gen in pareto_hist:
+        cov.append(np.mean(gen[:,0]))
+        ft.append(np.mean(gen[:,1]))
+    num_gens = pareto_hist.shape[0]
+    t = range(num_gens)
+    data1 = cov
+    data2 = ft
+
+    fig, ax1 = plt.subplots()
+
+    color = 'black'
+    ax1.set_xlabel('Generations')
+    ax1.set_ylabel('-Coverage', color=color)
+    ax1.plot(t, data1, color=color, label="Coverage")
+    ax1.tick_params(axis='y', labelcolor=color)
+
+    ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
+
+    color = 'blue'
+    ax2.set_ylabel('Flight Time', color=color)  # we already handled the x-label with ax1
+    ax2.plot(t, data2, color=color, label="Flight Time")
+    ax2.tick_params(axis='y', labelcolor=color)
+    fig.tight_layout()  # otherwise the right y-label is slightly clipped
+    plt.show()
 # ======================================
 # ======================================
 
