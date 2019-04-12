@@ -36,7 +36,6 @@ def plotty(population,pather,mappy):
 def update_pareto(gen_num, data, population):
     population.set_data(data[..., gen_num])
     plt.xlim(-1,max(data[0,:,gen_num])+0.05)
-    # plt.plot([-1,-0.8],[0.38,0.38],color = 'r',linewidth=10.0)
     # text = "generation number: "+str(gen_num)
     # plt.text(-1,0.38,text, fontsize=14)
     return population,

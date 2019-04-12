@@ -36,10 +36,10 @@ from pointselector import PointSelector
 
 
 use_old_graph = True
-old_graph_fname = 'wilk_3_graph.npy'
-old_wpts_fname = 'wilk_3_wpts.npy'
+old_graph_fname = '../data/wilk_3_graph.npy'
+old_wpts_fname = '../data/wilk_3_wpts.npy'
 
-file_name = "map_scaled.png"
+file_name = "../data/map_scaled.png"
 scale = 0.15
 narrowest_hall = 1.75
 safety_buffer = 0.7
@@ -68,8 +68,8 @@ else:
     pather.smartlyPlaceDots()
     print("Generating traversible graph.")
     pather.computeTraversableGraph(3.5)
-    pather.saveTraversableGraph('wilk_3_graph_new.npy')
-    pather.saveWptsXY('wilk_3_wptsXY_new.npy')
+    pather.saveTraversableGraph('../data/wilk_3_graph_new.npy')
+    pather.saveWptsXY('../data/wilk_3_wptsXY_new.npy')
 #
 mappy.all_waypoints = pather.waypoint_locs
 
