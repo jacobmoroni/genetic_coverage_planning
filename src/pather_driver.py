@@ -14,6 +14,7 @@ from importlib import reload
 
 import numpy as np
 import cv2
+import os
 
 from matplotlib import pyplot as plt
 from matplotlib import gridspec
@@ -34,12 +35,13 @@ from mappy import Mappy
 from geneticalgorithm import GeneticalGorithm
 from pointselector import PointSelector
 
+cwd = os.getcwd()
 
 use_old_graph = True
-old_graph_fname = '../data/wilk_3_graph.npy'
-old_wpts_fname = '../data/wilk_3_wpts.npy'
+old_graph_fname = cwd + '/data/wilk_3_graph.npy'
+old_wpts_fname = cwd + '/data/wilk_3_wpts.npy'
 
-file_name = "../data/map_scaled.png"
+file_name = cwd + "/data/map_scaled.png"
 scale = 0.15
 narrowest_hall = 1.75
 safety_buffer = 0.7
@@ -68,8 +70,8 @@ else:
     pather.smartlyPlaceDots()
     print("Generating traversible graph.")
     pather.computeTraversableGraph(3.5)
-    pather.saveTraversableGraph('../data/wilk_3_graph_new.npy')
-    pather.saveWptsXY('../data/wilk_3_wptsXY_new.npy')
+    pather.saveTraversableGraph(cwd + 'data/wilk_3_graph_new.npy')
+    pather.saveWptsXY(cwd + '/data/wilk_3_wptsXY_new.npy')
 #
 mappy.all_waypoints = pather.waypoint_locs
 
