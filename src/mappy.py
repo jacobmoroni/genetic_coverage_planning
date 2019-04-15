@@ -35,7 +35,7 @@ class Mappy(object):
         self._rho = rho
     #
     def generateNewMap(self, raw_file_name, output_file_name, bw_thresh, img_raw_scale, visualize = False):
-        # TODO: Figure out the best way to do this
+        # TODO: Figure out the best way to do this this may need to be changed to get it to work with a new map
         map_raw = cv2.imread(raw_file_name,cv2.IMREAD_GRAYSCALE)
         if visualize:
             cv2.imshow('raw',map_raw)
@@ -170,10 +170,6 @@ class Mappy(object):
         plt.tight_layout()
         plt.imshow(img_color)
         plt.show()
-        # cv2.namedWindow('Map With Path')
-        # cv2.imshow('Map With Path', img_color)
-        # cv2.waitKey()
-        # cv2.destroyWindow('Map With Path')
     #
     def visualizePathWithCoverage(self, waypoints, path_idx, fig, coverage_map):
         # make this draw lines instead of points
