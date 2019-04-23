@@ -176,7 +176,7 @@ class Mappy(object):
         img = self._safety_img.copy()
         cov_img = coverage_map
         # img = coverage_map
-        # set_trace()
+
         img[img==0] += cov_img[img==0]
         img[img<0.3] += cov_img[img<0.3]
         img = np.clip(img,0,1.0)
@@ -217,7 +217,12 @@ class Mappy(object):
         cover_map = np.copy(self._img)
         draw_map = np.copy(cover_map)
         prev_theta = 0
+        obstacles = (np.array(np.nonzero(self._img)) * self._scale)
+        buffer_mask = np.logical_and(self._safety_img<0.3,self._safety_img>0)
 
+        # displacements = np.array([obstacles[None, 0] - self.all_waypoints[:,0, None],
+        #                           obstacles[None, 1] - self.all_waypoints[:,1, None]])
+        empty_buff_score = sum(draw_map[buffer_mask])
         travel_cost = 0.0
         for ii, wpt in enumerate(waypoints):
             if wpt == -1 or ii == len(waypoints)-1:
@@ -230,12 +235,16 @@ class Mappy(object):
             travel_cost += np.linalg.norm([next_wpt[1]-wpt_loc[1], next_wpt[0]-wpt_loc[0]]) + self._rho*abs(delta_theta)
 
             # find relative position of all obstacles
-            # obstacles = (np.array(np.nonzero(self._img)) * self._scale)
-            # displacements = np.array([obstacles[None, 0] - wpt[0, None],
-            #                           obstacles[None, 1] - wpt[1, None]])
+
+            # displacements = np.array([obstacles[0] - wpt_loc[0]*self._scale,
+            #                           obstacles[1] - wpt_loc[1]*self._scale])
+            # displacements = displacements[:,np.logical_and(displacements[0] < self._max_view,
+            #                                displacements[0] > -self._max_view)]
+            # displacements = displacements[:,np.logical_and(displacements[1] < self._max_view,
+            #                                displacements[1] > -self._max_view)]
             # distances = np.linalg.norm(displacements, axis=0)
-            # angles = np.arctan2(displacements[1], displacements[0]) - wpt[2]
-            # #wrap
+            # angles = np.arctan2(displacements[1], displacements[0]) - wpt_theta
+            # # #wrap
             # angles[angles < -np.pi] += 2*np.pi
             # angles[angles >  np.pi] -= 2*np.pi
 
@@ -256,7 +265,13 @@ class Mappy(object):
 
             #
         #
-        coverage = (np.sum(draw_map) - self._num_occluded)/(draw_map.size - self._num_occluded)
+        #this line returns coverage of total pixel seen
+        # coverage = (np.sum(draw_map) - self._num_occluded)/(draw_map.size - self._num_occluded)
+
+        #this line returns coverage of buffer seen (more important for mapping)
+        coverage = np.sum(draw_map[buffer_mask])/draw_map[buffer_mask].size
+
+        # TODO: Find a way to blend the 2 coverage types to favor buffer over total. but still incentivize total
 
         # print(coverage)
         # cv2.imshow("Drawn Coverage", draw_map)

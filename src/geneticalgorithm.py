@@ -26,7 +26,7 @@ class GeneticalGorithm( ):
 
         self._cov_constr_0 = -0.3
         self._cov_constr_f = -0.8
-        self._cov_aging = 30 #how many generations it takes to get to max const
+        self._cov_aging = 60 #how many generations it takes to get to max const
         # create list of first generation
         self.firstGeneration(mappy, scale, narrowest_hall, max_dna_len, pather)
         #
