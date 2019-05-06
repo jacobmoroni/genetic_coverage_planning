@@ -16,6 +16,7 @@ class GeneticalGorithm( ):
     def __init__( self, mappy, scale, narrowest_hall, max_dna_len, pather):
         # setup params
         self._G_sz = 100 # has to be an EVEN number !!!!!
+        self._starting_path_len = 200
         # self._G_num = 10
         self._tourney_sz = 4
         self._gamma = 0.5 # roulette exponent >= 0. 0 means zero fitness pressure
@@ -33,11 +34,12 @@ class GeneticalGorithm( ):
     #
     def firstGeneration(self, mappy, scale, narrowest_hall, max_dna_len, pather):
         # create random set of chromosomes
-        path_length = 200
+        # path_len = 100
         start_idx = 207
         # pool this for loop with multiprocess
         for ii in tqdm(range(self._G_sz), desc="Adeves (aka. Adam and Eve'ing)"):
-            rand_path = pather.makeMeAPath(path_length,start_idx)
+
+            rand_path = pather.makeMeAPath(self._starting_path_len,start_idx)
             self._gen_parent.append( Organism(rand_path, mappy, scale, narrowest_hall, max_dna_len, pather) )
         #
         # map is a python built-in
@@ -143,7 +145,6 @@ class Organism( ):
         self._len_dna = len_dna
         self._dna = dna
 
-        self.addTelomere()
 
         # compute constraints for designs, check feasibility
         # incentivize straight paths
@@ -153,12 +154,6 @@ class Organism( ):
         self._constr_feas = []
         self._constr_infeas = []
 
-
-        # for ii in len( num_constr ):
-        #     constr_ii = 1
-        #     self.constr_s.append( )
-        # #
-        # self._constr_vals = calc_constr_s()
 
         # how close the crossover points need
         # to be to eachother to be considered
@@ -178,9 +173,12 @@ class Organism( ):
         # compute values of both objectives
         self._obj_val = self.calcObj()
         self._obj_val_sc = [None,None]
+        self._len_dna = len(self._dna)
+        self.addTelomere()
+
     #
     def calcObj(self):
-        coverage, travel_dist = self._mappy.getCoverage(self._dna)
+        coverage, travel_dist = self._mappy.getCoverageWithWalls(self._dna)
         loop_closures = self._mappy.getLoopClosures(self._dna)
         travel_dist = travel_dist * self._ft_scale
         if loop_closures < self._min_loop_closures:
@@ -239,7 +237,7 @@ class Organism( ):
         dna_head = self._dna[0:idx]
 
         self._dna = np.append(dna_head, dna_tail)
-        self.addTelomere()
+        # self.addTelomere()
     #
     def muterpolate(self):
 
@@ -269,7 +267,7 @@ class Organism( ):
                 #
             #
         #
-        self.addTelomere()
+        # self.addTelomere()
     #
     def calcConstrs(self):
         # return array of all constraint eq vals

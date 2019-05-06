@@ -152,29 +152,25 @@ class PathMaker(object):
         w = w / np.sum(w)
         return w
     #
-    def makeMeAPath(self,path_length,start_idx):
+    def makeMeAPath(self, path_len, start_idx):
         current_idx = start_idx
         current_heading = np.random.rand()*2*np.pi - np.pi;
         path_idx = np.array([start_idx])
-        while len(path_idx)<path_length:
+        cur_path_len = 1
+        for i in range(path_len):
             choices = (np.where(self._graph[current_idx]))[0]
             choices_comb = np.setdiff1d(choices,path_idx[-self._path_memory:])
             if len(choices_comb) > 0:
                 w = self.assignWeights(current_heading, current_idx, choices_comb)
                 new_idx = np.random.choice(choices_comb, p=w)
-                current_heading = np.arctan2(self._XY[new_idx,1] - self._XY[current_idx,1],
-                                             self._XY[new_idx,0] - self._XY[current_idx,0])
             else:
-                # set_trace()
                 w = self.assignWeights(current_heading, current_idx, choices)
                 new_idx = np.random.choice(choices, p=w)
-                current_heading = np.arctan2(self._XY[new_idx,1] - self._XY[current_idx,1],
-                                             self._XY[new_idx,0] - self._XY[current_idx,0])
-            #
+
             path_idx = np.append(path_idx,new_idx)
             current_idx = new_idx
-            # print (current_idx)
-        #
+            cur_path_len += 1
+
         return path_idx.astype(int)
 
     @property

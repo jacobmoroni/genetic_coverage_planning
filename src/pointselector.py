@@ -45,12 +45,12 @@ class PointSelector(object):
 
         obj_diff = self._objectives - np.array([self._x,self._y])
         nearest_point = np.argmin(np.linalg.norm(obj_diff,axis=1))
-
+        print (nearest_point)
         self._points.set_data(self._objectives[nearest_point,0],self._objectives[nearest_point,1])
         self._points.figure.canvas.draw()
         current_organism = self.population._gen_parent[nearest_point]
         # self.mappy.visualizePath(self.pather._XY,current_organism._dna[0:current_organism._len_dna],self._fig)
-        coverage, travel_dist, coverage_map = self.mappy.getCoverage(current_organism._dna,return_map=True)
+        coverage, travel_dist, coverage_map = self.mappy.getCoverageWithWalls(current_organism._dna,return_map=True)
         loop_closures = self.mappy.getLoopClosures(current_organism._dna, return_loop_close=True)
         self.mappy.visualizePathWithCoverage(self.pather._XY,current_organism._dna[0:current_organism._len_dna],self._fig,coverage_map,loop_closures)
 
