@@ -136,6 +136,7 @@ class Organism( ):
         self._num_muterpolations = 20
         self._srch_dist = 5
         self._P_muterpolate_each = 0.8
+        self._min_loop_closures = 4
 
         len_dna = len(dna)
 
@@ -180,7 +181,10 @@ class Organism( ):
     #
     def calcObj(self):
         coverage, travel_dist = self._mappy.getCoverage(self._dna)
+        loop_closures = self._mappy.getLoopClosures(self._dna)
         travel_dist = travel_dist * self._ft_scale
+        if loop_closures < self._min_loop_closures:
+            coverage = 0
         return [coverage, travel_dist]
     #
     def crossover(self, mate):

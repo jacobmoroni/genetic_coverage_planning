@@ -171,7 +171,7 @@ class Mappy(object):
         plt.imshow(img_color)
         plt.show()
     #
-    def visualizePathWithCoverage(self, waypoints, path_idx, fig, coverage_map):
+    def visualizePathWithCoverage(self, waypoints, path_idx, fig, coverage_map, loop_closures):
         # make this draw lines instead of points
         img = self._safety_img.copy()
         cov_img = coverage_map
@@ -186,6 +186,9 @@ class Mappy(object):
         path = list(map(tuple,path))
         for ii in range(len(path)-1):
             cv2.line(img_color, path[ii],path[ii+1], (0,1,0),1)
+        #
+        for lc in loop_closures:
+            cv2.line(img_color, tuple(np.flip(waypoints[lc[0]])), tuple(np.flip(waypoints[lc[1]])), (1,0,0),1)
         #
         # ax = fig.add_subplot(1,3,3)
         gs = gridspec.GridSpec(1, 2, width_ratios=[2, 1])
@@ -282,6 +285,47 @@ class Mappy(object):
             return -coverage, travel_cost, draw_map
         else:
             return -coverage, travel_cost
+
+        #
+    #
+    def getLoopClosures(self, waypoints, return_loop_close = False):
+        sep_thresh = 40
+        num_loop_close = 0
+
+        waypoints = waypoints[waypoints!=-1]
+        wpt_sequence = np.array([waypoints,np.roll(waypoints,-1)]).T
+        wpt_sequence = wpt_sequence[0:-1]
+
+        #find where path passes through the same waypoints at different times
+        unq, unq_idx, unq_cnt = np.unique(wpt_sequence, axis=0, return_inverse=True, return_counts=True)
+        cnt_mask = unq_cnt > 1
+        dup_ids = unq[cnt_mask]
+        cnt_idx, = np.nonzero(cnt_mask)
+        idx_mask = np.in1d(unq_idx, cnt_idx)
+        idx_idx, = np.nonzero(idx_mask)
+        srt_idx = np.argsort(unq_idx[idx_mask])
+        dup_idx = np.split(idx_idx[srt_idx], np.cumsum(unq_cnt[cnt_mask])[:-1])
+
+        #only count as loop closure if they are separated by at least sep_thresh
+        if len(dup_ids > 0):
+            for dup in dup_idx:
+                if abs(dup[0]-dup[1] > sep_thresh):
+                    num_loop_close +=1
+                #
+                else:
+                    pass
+                #
+            #
+        #
+        if return_loop_close == False:
+            return num_loop_close
+        #
+        else:
+            lc = []
+            for dup in dup_idx:
+                lc.append(wpt_sequence[dup[0]])
+            #
+            return lc
         #
     #
 #
