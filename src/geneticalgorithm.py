@@ -15,7 +15,7 @@ from pathmaker import PathMaker
 class GeneticalGorithm( ):
     def __init__( self, mappy, scale, narrowest_hall, max_dna_len, pather):
         # setup params
-        self._G_sz = 100 # has to be an EVEN number !!!!!
+        self._G_sz = 200 # has to be an EVEN number !!!!!
         self._starting_path_len = 200
         # self._G_num = 10
         self._tourney_sz = 4
@@ -178,7 +178,7 @@ class Organism( ):
 
     #
     def calcObj(self):
-        coverage, travel_dist = self._mappy.getCoverageWithWalls(self._dna)
+        coverage, travel_dist = self._mappy.getCoverage(self._dna)
         loop_closures = self._mappy.getLoopClosures(self._dna)
         travel_dist = travel_dist * self._ft_scale
         if loop_closures < self._min_loop_closures:

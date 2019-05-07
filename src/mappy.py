@@ -173,7 +173,7 @@ class Mappy(object):
         plt.imshow(img_color)
         plt.show()
     #
-    def visualizePathWithCoverage(self, waypoints, path_idx, fig, coverage_map, loop_closures):
+    def visualizePathWithCoverage(self, waypoints, path_idx, fig, coverage_map, loop_closures, coverage, travel_dist, nearest_point):
         # make this draw lines instead of points
         img = self._safety_img.copy()
         cov_img = coverage_map
@@ -205,237 +205,98 @@ class Mappy(object):
         ax.set_yticks([])
         plt.tight_layout()
         plt.imshow(img_color)
+        label = "Path #: " + str(nearest_point) + "\n Coverage: " + str(round(-coverage*100,2)) + "%\n Travel Distance: " + str(round(travel_dist*self._scale,2)) + "m"
+        plt.xlabel(label)
         plt.show()
     #
-    def getCoverageTest(self, waypoints, return_map=False):
-        #this function was made to debug coverage, it plots coverage one step at a time to see the progress
-        if self.all_waypoints is None:
-            raise ValueError('Map has no waypoints')
-        # coverage = np.copy(self._img)
-        num_rays = self._num_rays
 
-        # alpha: width of the ray
-        alpha = self._view_angle/num_rays
-        ray_angles = np.arange(num_rays)*alpha - self._view_angle/2.0
-
-        cover_map = np.copy(self._img)
-        draw_map = np.copy(cover_map)
-        prev_theta = 0
-        obstacles = (np.array(np.nonzero(self._img)) * self._scale)
-        buffer_mask = np.logical_and(self._safety_img<0.3,self._safety_img>0)
-
-        # displacements = np.array([obstacles[None, 0] - self.all_waypoints[:,0, None],
-        #                           obstacles[None, 1] - self.all_waypoints[:,1, None]])
-
-        travel_cost = 0.0
-        for ii, wpt in enumerate(waypoints):
-            if wpt == -1 or ii == len(waypoints)-1:
-                break
-            #
-            wpt_loc = self.all_waypoints[wpt]
-            next_wpt = self.all_waypoints[waypoints[ii+1]]
-            wpt_theta = np.arctan2(next_wpt[1]-wpt_loc[1], next_wpt[0]-wpt_loc[0])
-            delta_theta = got.rad_wrap_pi(wpt_theta - prev_theta)
-            travel_cost += np.linalg.norm([next_wpt[1]-wpt_loc[1], next_wpt[0]-wpt_loc[0]]) + self._rho*abs(delta_theta)
-
-            # find relative position of all obstacles
-            displacements = np.array([obstacles[0] - wpt_loc[0]*self._scale,
-                                      obstacles[1] - wpt_loc[1]*self._scale])
-
-            distances = np.linalg.norm(displacements, axis=0)
-            dist_thresh = distances<self._max_view
-            distances = distances[dist_thresh]
-            displacements = displacements[:,dist_thresh]
-            #
-            angles = np.arctan2(displacements[1], displacements[0]) - wpt_theta
-            # #wrap
-            angles[angles < -np.pi] += 2*np.pi
-            angles[angles >  np.pi] -= 2*np.pi
-            #
-            in_bounds = np.array(np.where(np.logical_and(angles<(self._view_angle/2),angles>-(self._view_angle/2))))
-            angles = angles[in_bounds]
-            distances = distances[in_bounds]
-            dangles = np.digitize(angles,ray_angles)
-            z = np.vstack((self._max_view/self._scale*np.ones_like(ray_angles[None, :]), ray_angles[None, :]))
-            for ii in range(int(num_rays)):
-                try:
-                    z[0,ii] = min(distances[dangles==ii+1])/self._scale
-                except:
-                    pass
-            center = (int(wpt_loc[1]), int(wpt_loc[0]))
-            pts = np.array([np.sin(z[1])*z[0],np.cos(z[1])*z[0]])
-            pts = np.hstack((pts,np.array([[np.sin(z[1,-1])*self._min_view],
-                                     [np.cos(z[1,-1])*self._min_view]]),
-                           np.array([[np.sin(z[1,0])*self._min_view],
-                                     [np.cos(z[1,0])*self._min_view]])))
-
-            # rotate the frustum to the current heading
-            Rot = got.getRot2D(wpt_theta).T
-            frustum = np.around(Rot.dot(pts)).astype('int32').T
-            cv2.fillPoly(draw_map, [np.around(Rot.dot(pts)).astype('int32').T], 1, offset=center)
-            cv2.imshow("this",draw_map)
-            cv2.waitKey(0)
-        #this line returns coverage of total pixels seen
-        # coverage = (np.sum(draw_map) - self._num_occluded)/(draw_map.size - self._num_occluded)
-
-        #this line returns coverage of buffer seen (more important for mapping)
-        coverage = np.sum(draw_map[buffer_mask])/draw_map[buffer_mask].size
-
-        # TODO: blend the 2 coverage types to favor buffer over total. but still incentivize total
-        # minimize negative coverage and minimize travel distance
-        if return_map:
-            return -coverage, travel_cost, draw_map
-        else:
-            return -coverage, travel_cost
-
-        #
-    #
     def computeFrustums(self, graph):
-        frustum_graph = np.zeros((graph.shape[0],graph.shape[1],2,self._num_rays+2))
-        set_trace()
-        for ii,wp in enumerate(graph):
-            for jj,node in enumerate(wp):
-                if node == 1:
-                    pass
-
-    def getCoverageWithWalls(self, waypoints, return_map=False):
-
-        if self.all_waypoints is None:
-            raise ValueError('Map has no waypoints')
-        num_rays = 10.
-
-        # alpha: width of the ray
-        alpha = self._view_angle/num_rays
-        ray_angles = np.arange(num_rays)*alpha - self._view_angle/2.0
-
-        cover_map = np.copy(self._img)
-        draw_map = np.copy(cover_map)
-        prev_theta = 0
+        frustum_graph = np.zeros((graph.shape[0],graph.shape[1],self._num_rays+2,2))
+        traverse_angles = np.zeros_like(graph)
+        traverse_dists = np.zeros_like(graph)
         obstacles = (np.array(np.nonzero(self._img)) * self._scale)
-        buffer_mask = np.logical_and(self._safety_img<0.3,self._safety_img>0)
+        alpha = self._view_angle/self._num_rays
+        ray_angles = np.arange(self._num_rays)*alpha - self._view_angle/2.0
+        for from_wpt,wp in tqdm(enumerate(graph), desc="Precomputing Frustums"):
+            for to_wpt,node in enumerate(wp):
+                if node == 1:
+                    wpt_loc = self.all_waypoints[from_wpt]
+                    next_wpt = self.all_waypoints[to_wpt]
+                    wpt_theta = np.arctan2(next_wpt[1]-wpt_loc[1], next_wpt[0]-wpt_loc[0])
+                    travel_cost = np.linalg.norm([next_wpt[1]-wpt_loc[1], next_wpt[0]-wpt_loc[0]])
 
-        # displacements = np.array([obstacles[None, 0] - self.all_waypoints[:,0, None],
-        #                           obstacles[None, 1] - self.all_waypoints[:,1, None]])
+                    # find relative position of all obstacles
+                    displacements = np.array([obstacles[0] - wpt_loc[0]*self._scale,
+                                              obstacles[1] - wpt_loc[1]*self._scale])
 
-        travel_cost = 0.0
-        for ii, wpt in enumerate(waypoints):
-            if wpt == -1 or ii == len(waypoints)-1:
-                break
-            #
-            wpt_loc = self.all_waypoints[wpt]
-            next_wpt = self.all_waypoints[waypoints[ii+1]]
-            wpt_theta = np.arctan2(next_wpt[1]-wpt_loc[1], next_wpt[0]-wpt_loc[0])
-            delta_theta = got.rad_wrap_pi(wpt_theta - prev_theta)
-            travel_cost += np.linalg.norm([next_wpt[1]-wpt_loc[1], next_wpt[0]-wpt_loc[0]]) + self._rho*abs(delta_theta)
+                    distances = np.linalg.norm(displacements, axis=0)
+                    dist_thresh = distances<self._max_view
+                    distances = distances[dist_thresh]
+                    displacements = displacements[:,dist_thresh]
+                    #
+                    angles = np.arctan2(displacements[1], displacements[0]) - wpt_theta
+                    # #wrap
+                    angles[angles < -np.pi] += 2*np.pi
+                    angles[angles >  np.pi] -= 2*np.pi
+                    #
+                    in_bounds = np.array(np.where(np.logical_and(angles<(self._view_angle/2),angles>-(self._view_angle/2))))
+                    angles = angles[in_bounds]
+                    distances = distances[in_bounds]
+                    dangles = np.digitize(angles,ray_angles)
+                    z = np.vstack((self._max_view/self._scale*np.ones_like(ray_angles[None, :]), ray_angles[None, :]))
+                    for ii in range(int(self._num_rays)):
+                        try:
+                            z[0,ii] = min(distances[dangles==ii+1])/self._scale
+                        except:
+                            pass
 
-            # find relative position of all obstacles
-            #TODO: Precompute frustums using traversability grid, then access that information here to speed up evolutions
-            displacements = np.array([obstacles[0] - wpt_loc[0]*self._scale,
-                                      obstacles[1] - wpt_loc[1]*self._scale])
+                    center = (int(wpt_loc[1]), int(wpt_loc[0]))
+                    pts = np.array([np.sin(z[1])*z[0],np.cos(z[1])*z[0]])
+                    pts = np.hstack((pts,np.array([[np.sin(z[1,-1])*self._min_view],
+                                             [np.cos(z[1,-1])*self._min_view]]),
+                                   np.array([[np.sin(z[1,0])*self._min_view],
+                                             [np.cos(z[1,0])*self._min_view]])))
+                    Rot = got.getRot2D(wpt_theta).T
+                    frustum = np.around(Rot.dot(pts)).astype('int32').T
 
-            distances = np.linalg.norm(displacements, axis=0)
-            dist_thresh = distances<self._max_view
-            distances = distances[dist_thresh]
-            displacements = displacements[:,dist_thresh]
-            #
-            angles = np.arctan2(displacements[1], displacements[0]) - wpt_theta
-            # #wrap
-            angles[angles < -np.pi] += 2*np.pi
-            angles[angles >  np.pi] -= 2*np.pi
-            #
-            in_bounds = np.array(np.where(np.logical_and(angles<(self._view_angle/2),angles>-(self._view_angle/2))))
-            angles = angles[in_bounds]
-            distances = distances[in_bounds]
-            dangles = np.digitize(angles,ray_angles)
-            z = np.vstack((self._max_view/self._scale*np.ones_like(ray_angles[None, :]), ray_angles[None, :]))
-            for ii in range(int(num_rays)):
-                try:
-                    z[0,ii] = min(distances[dangles==ii+1])/self._scale
-                except:
-                    pass
+                    frustum_graph[from_wpt,to_wpt] = frustum
+                    traverse_angles[from_wpt,to_wpt] = wpt_theta
+                    traverse_dists[from_wpt,to_wpt] = travel_cost
 
-            center = (int(wpt_loc[1]), int(wpt_loc[0]))
-            pts = np.array([np.sin(z[1])*z[0],np.cos(z[1])*z[0]])
-            pts = np.hstack((pts,np.array([[np.sin(z[1,-1])*self._min_view],
-                                     [np.cos(z[1,-1])*self._min_view]]),
-                           np.array([[np.sin(z[1,0])*self._min_view],
-                                     [np.cos(z[1,0])*self._min_view]])))
-
-
-            # rotate the frustum to the current heading
-            Rot = got.getRot2D(wpt_theta).T
-
-            frustum = np.around(Rot.dot(pts)).astype('int32').T
-
-            cv2.fillPoly(draw_map, [np.around(Rot.dot(pts)).astype('int32').T], 1, offset=center)
-
-        #this line returns coverage of total pixel seen
-        # coverage = (np.sum(draw_map) - self._num_occluded)/(draw_map.size - self._num_occluded)
-
-        #this line returns coverage of buffer seen (more important for mapping)
-        coverage = np.sum(draw_map[buffer_mask])/draw_map[buffer_mask].size
-
-        # TODO: blend the 2 coverage types to favor buffer over total. but still incentivize total
-
-        # minimize negative coverage and minimize travel distance
-        if return_map:
-            return -coverage, travel_cost, draw_map
-        else:
-            return -coverage, travel_cost
-
-        #
-    #
+        self._traverse_frustum = frustum_graph.astype(np.int32)
+        self._traverse_angles = traverse_angles
+        self._traverse_dists = traverse_dists
 
     def getCoverage(self, waypoints, return_map=False):
+
         if self.all_waypoints is None:
             raise ValueError('Map has no waypoints')
-        # coverage = np.copy(self._img)
-        # num_rays = int(self._max_view*self._view_angle/self._scale + 1)/2.
-        # print(num_rays)
-        num_rays = 10.
-        # num_rays = 1.
-        # alpha: width of the ray
-        alpha = self._view_angle/num_rays
-        ray_angles = np.arange(num_rays)*alpha - self._view_angle/2.
-        # print(ray_angles)
+
         cover_map = np.copy(self._img)
         draw_map = np.copy(cover_map)
         prev_theta = 0
-        obstacles = (np.array(np.nonzero(self._img)) * self._scale)
         buffer_mask = np.logical_and(self._safety_img<0.3,self._safety_img>0)
 
-        # displacements = np.array([obstacles[None, 0] - self.all_waypoints[:,0, None],
-        #                           obstacles[None, 1] - self.all_waypoints[:,1, None]])
-
         travel_cost = 0.0
-        for ii, wpt in enumerate(waypoints):
-            if wpt == -1 or ii == len(waypoints)-1:
+        for idx, wpt in enumerate(waypoints):
+            if wpt == -1 or idx == len(waypoints)-1:
                 break
             #
             wpt_loc = self.all_waypoints[wpt]
-            next_wpt = self.all_waypoints[waypoints[ii+1]]
-            wpt_theta = np.arctan2(next_wpt[1]-wpt_loc[1], next_wpt[0]-wpt_loc[0])
+            wpt_theta = self._traverse_angles[wpt,waypoints[idx+1]]
             delta_theta = got.rad_wrap_pi(wpt_theta - prev_theta)
-            travel_cost += np.linalg.norm([next_wpt[1]-wpt_loc[1], next_wpt[0]-wpt_loc[0]]) + self._rho*abs(delta_theta)
-
-            z = np.vstack((self._max_view*np.ones_like(ray_angles[None, :]), ray_angles[None, :]))
+            travel_cost += self._traverse_dists[wpt,waypoints[idx+1]] + self._rho*abs(delta_theta)
             center = (int(wpt_loc[1]), int(wpt_loc[0]))
-            pts = np.array([[-1, 1], [1, 1], [1, -1], [-1, -1]], dtype='int32')
-            # rotate the frustum to the current heading
-            Rot = got.getRot2D(wpt_theta).T
-            view_mask = np.zeros_like(draw_map)
+            frustum = self._traverse_frustum[wpt,waypoints[idx+1]]
+            cv2.fillPoly(draw_map, [frustum], 1, offset=center)
 
-            cv2.fillPoly(draw_map, [np.around(Rot.dot(self._frustum.T)).astype('int32').T], 1, offset=center)
-
-            #
-        #
         #this line returns coverage of total pixel seen
         # coverage = (np.sum(draw_map) - self._num_occluded)/(draw_map.size - self._num_occluded)
 
         #this line returns coverage of buffer seen (more important for mapping)
         coverage = np.sum(draw_map[buffer_mask])/draw_map[buffer_mask].size
 
-        # TODO: Find a way to blend the 2 coverage types to favor buffer over total. but still incentivize total
+        # TODO: blend the 2 coverage types to favor buffer over total. but still incentivize total
 
         # minimize negative coverage and minimize travel distance
         if return_map:
@@ -445,6 +306,7 @@ class Mappy(object):
 
         #
     #
+
     def getLoopClosures(self, waypoints, return_loop_close = False):
         sep_thresh = 40
         num_loop_close = 0
