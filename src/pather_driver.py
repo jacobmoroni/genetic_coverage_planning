@@ -73,6 +73,7 @@ else:
     pather.smartlyPlaceDots()
     print("Generating traversible graph.")
     pather.computeTraversableGraph(3.5)
+    mappy.computeFrutums(pather._graph)
     pather.saveTraversableGraph(cwd + 'data/wilk_3_graph_new.npy')
     pather.saveWptsXY(cwd + '/data/wilk_3_wptsXY_new.npy')
 #

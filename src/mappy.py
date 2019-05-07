@@ -18,7 +18,9 @@ class Mappy(object):
         self._hall_width = hall_width
         self._safety_buffer = hall_width/2
         self.shape = self._img.shape
+
         # view area stuff for coverage calcualtion
+        self._num_rays = 15
         self._min_view = min_view
         self._max_view = max_view
         self._view_angle = view_angle
@@ -210,7 +212,7 @@ class Mappy(object):
         if self.all_waypoints is None:
             raise ValueError('Map has no waypoints')
         # coverage = np.copy(self._img)
-        num_rays = 10.
+        num_rays = self._num_rays
 
         # alpha: width of the ray
         alpha = self._view_angle/num_rays
@@ -288,6 +290,13 @@ class Mappy(object):
 
         #
     #
+    def computeFrustums(self, graph):
+        frustum_graph = np.zeros((graph.shape[0],graph.shape[1],2,self._num_rays+2))
+        set_trace()
+        for ii,wp in enumerate(graph):
+            for jj,node in enumerate(wp):
+                if node == 1:
+                    pass
 
     def getCoverageWithWalls(self, waypoints, return_map=False):
 
@@ -367,7 +376,7 @@ class Mappy(object):
         coverage = np.sum(draw_map[buffer_mask])/draw_map[buffer_mask].size
 
         # TODO: blend the 2 coverage types to favor buffer over total. but still incentivize total
-        
+
         # minimize negative coverage and minimize travel distance
         if return_map:
             return -coverage, travel_cost, draw_map
