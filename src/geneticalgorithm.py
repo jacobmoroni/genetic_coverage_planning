@@ -15,7 +15,7 @@ from pathmaker import PathMaker
 class GeneticalGorithm( ):
     def __init__( self, mappy, scale, narrowest_hall, max_dna_len, pather):
         # setup params
-        self._G_sz = 200 # has to be an EVEN number !!!!!
+        self._G_sz = 100 # has to be an EVEN number !!!!!
         self._starting_path_len = 200
         # self._G_num = 10
         self._tourney_sz = 4

@@ -190,7 +190,7 @@ class Mappy(object):
             cv2.line(img_color, path[ii],path[ii+1], (0,1,0),1)
         #
         for lc in loop_closures:
-            cv2.line(img_color, tuple(np.flip(waypoints[lc[0]])), tuple(np.flip(waypoints[lc[1]])), (1,0,0),1)
+            cv2.line(img_color, tuple(np.flip(waypoints[lc[0]],0)), tuple(np.flip(waypoints[lc[1]],0)), (1,0,0),1)
         #
         # ax = fig.add_subplot(1,3,3)
         gs = gridspec.GridSpec(1, 2, width_ratios=[2, 1])
