@@ -274,21 +274,22 @@ class Mappy(object):
 
         cover_map = np.copy(self._img)
         draw_map = np.copy(cover_map)
-        prev_theta = 0
         buffer_mask = np.logical_and(self._safety_img<0.3,self._safety_img>0)
 
         travel_cost = 0.0
-        for idx, wpt in enumerate(waypoints):
-            if wpt == -1 or idx == len(waypoints)-1:
-                break
-            #
-            wpt_loc = self.all_waypoints[wpt]
-            wpt_theta = self._traverse_angles[wpt,waypoints[idx+1]]
-            delta_theta = got.rad_wrap_pi(wpt_theta - prev_theta)
-            travel_cost += self._traverse_dists[wpt,waypoints[idx+1]] + self._rho*abs(delta_theta)
-            center = (int(wpt_loc[1]), int(wpt_loc[0]))
-            frustum = self._traverse_frustum[wpt,waypoints[idx+1]]
-            cv2.fillPoly(draw_map, [frustum], 1, offset=center)
+        for agent in range(waypoints.shape[0]):
+            prev_theta = 0
+            for idx, wpt in enumerate(waypoints[agent]):
+                if wpt == -1 or idx == len(waypoints[agent])-1:
+                    break
+                #
+                wpt_loc = self.all_waypoints[wpt]
+                wpt_theta = self._traverse_angles[wpt,waypoints[agent][idx+1]]
+                delta_theta = got.rad_wrap_pi(wpt_theta - prev_theta)
+                travel_cost += self._traverse_dists[wpt,waypoints[agent][idx+1]] + self._rho*abs(delta_theta)
+                center = (int(wpt_loc[1]), int(wpt_loc[0]))
+                frustum = self._traverse_frustum[wpt,waypoints[agent][idx+1]]
+                cv2.fillPoly(draw_map, [frustum], 1, offset=center)
 
         #this line returns coverage of total pixel seen
         # coverage = (np.sum(draw_map) - self._num_occluded)/(draw_map.size - self._num_occluded)
@@ -307,13 +308,79 @@ class Mappy(object):
         #
     #
 
-    def getLoopClosures(self, waypoints, return_loop_close = False):
+    def getSoloLoopClosures(self, waypoints, return_loop_close = False):
         sep_thresh = 40
-        num_loop_close = 0
+        num_lcs = (np.zeros(waypoints.shape[0])).astype(int)
+        solo_loop_closures = []
+        for agent in range(waypoints.shape[0]):
+            num_loop_close = 0
+            wps = waypoints[agent][waypoints[agent]!=-1]
+            wpt_sequence = np.array([wps,np.roll(wps,-1)]).T
+            wpt_sequence = wpt_sequence[0:-1]
 
-        waypoints = waypoints[waypoints!=-1]
-        wpt_sequence = np.array([waypoints,np.roll(waypoints,-1)]).T
-        wpt_sequence = wpt_sequence[0:-1]
+            #find where path passes through the same waypoints at different times
+            unq, unq_idx, unq_cnt = np.unique(wpt_sequence, axis=0, return_inverse=True, return_counts=True)
+            cnt_mask = unq_cnt > 1
+            dup_ids = unq[cnt_mask]
+            cnt_idx, = np.nonzero(cnt_mask)
+            idx_mask = np.in1d(unq_idx, cnt_idx)
+            idx_idx, = np.nonzero(idx_mask)
+            srt_idx = np.argsort(unq_idx[idx_mask])
+            dup_idx = np.split(idx_idx[srt_idx], np.cumsum(unq_cnt[cnt_mask])[:-1])
+
+            #only count as loop closure if they are separated by at least sep_thresh
+            if len(dup_ids > 0):
+                for dup in dup_idx:
+                    if abs(dup[0]-dup[1] > sep_thresh):
+                        num_loop_close +=1
+                    #
+                    else:
+                        pass
+                    #
+                #
+            #
+            num_lcs[agent] = num_loop_close
+            if return_loop_close ==True:
+                lc = []
+                for dup in dup_idx:
+                    lc.append(wpt_sequence[dup[0]])
+                #
+                solo_loop_closures.append[lc]
+
+
+        if return_loop_close == False:
+            return num_lcs
+        #
+        else:
+            return num_lcs, solo_loop_closures
+        #
+    #
+    def getCombLoopClosures(self, waypoints, return_loop_close = False):
+        #TODO Combine combo and individual loop closure functions into a single function because it is mostly repetitious
+        sep_thresh = 5
+        num_lcs = (np.zeros(waypoints.shape[0])).astype(int)
+        comb_loop_closures = []
+        num_loop_close = 0
+        path_splits = (np.zeros(waypoints.shape[0])).astype(int)
+        # paths_sequence = []
+        # for agent in range(waypoints.shape[0]):
+        #     wps = waypoints[agent][waypoints[agent]!=-1]
+        #     wpt_sequence = np.array([wps,np.roll(wps,-1)]).T
+        #     wpt_sequence = wpt_sequence[0:-1]
+        #     paths_sequence.append(wpt_sequence)
+        # for agent in range(waypoints.shape[0]-1):
+        #     for wp1,seq in enumerate(paths_sequence[agent]):
+        #         are_equal = (paths_sequence[agent + 1] == seq)
+        #         lc = np.logical_and(lc[:,0],lc[:,1])
+        #         set_trace()
+        wps = waypoints[waypoints!=-1]
+        wpt_sequence = np.array([wps,np.roll(wps,-1)]).T
+        # wpt_sequence = wpt_sequence[0:-1]
+        path_split_idx = 0
+        for agent in range(waypoints.shape[0]):
+            path_split_idx += len(waypoints[agent][waypoints[agent]!=-1])
+            path_splits[agent] = path_split_idx
+        # set_trace()
 
         #find where path passes through the same waypoints at different times
         unq, unq_idx, unq_cnt = np.unique(wpt_sequence, axis=0, return_inverse=True, return_counts=True)
@@ -324,27 +391,16 @@ class Mappy(object):
         idx_idx, = np.nonzero(idx_mask)
         srt_idx = np.argsort(unq_idx[idx_mask])
         dup_idx = np.split(idx_idx[srt_idx], np.cumsum(unq_cnt[cnt_mask])[:-1])
-
-        #only count as loop closure if they are separated by at least sep_thresh
         if len(dup_ids > 0):
             for dup in dup_idx:
-                if abs(dup[0]-dup[1] > sep_thresh):
-                    num_loop_close +=1
-                #
-                else:
-                    pass
-                #
-            #
-        #
-        if return_loop_close == False:
-            return num_loop_close
-        #
-        else:
-            lc = []
-            for dup in dup_idx:
-                lc.append(wpt_sequence[dup[0]])
-            #
-            return lc
+                if not np.isin(path_splits,dup).any():
+                    agent_lc = np.digitize(dup,path_splits)
+                    if len(np.unique(agent_lc))>1:
+                        num_loop_close += 1
+                        comb_loop_closures.append(wpt_sequence[dup][0])
+
+        return num_loop_close, comb_loop_closures
+
         #
     #
 #
