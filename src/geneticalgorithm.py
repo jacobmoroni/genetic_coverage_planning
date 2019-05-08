@@ -251,6 +251,7 @@ class Organism( ):
                         try:
                             pt2 = self._dna_list[agent][idx2]
                         except:
+                            #TODO something breaks here sometimes an agent is too short but partially padded with zeros. check into why that is
                             set_trace()
                         if self._pather._graph[pt1,pt2]:
                             np.delete(self._dna_list[agent], np.arange(idx1+1, idx2-1, 1))
