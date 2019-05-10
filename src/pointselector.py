@@ -33,7 +33,7 @@ class PointSelector(object):
         self._fig = fig
         self._cid = points.figure.canvas.mpl_connect('button_press_event', self)
         nearest_point = -1
-    #
+
     def __call__(self, event):
 
         # Records x and y locations of mouse clicks and sends them to start and goal positions
@@ -64,5 +64,3 @@ class PointSelector(object):
                                              nearest_point)
 
         return [self._x,self._y]
-    #
-#

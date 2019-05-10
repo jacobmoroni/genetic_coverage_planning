@@ -11,15 +11,15 @@ import gori_tools as got
 reload(got)
 
 class PathMaker(object):
-    def __init__(self, mappy, scale, hall_width, safety_buffer):
+    def __init__(self, mappy, path_params):
         self._mappy = mappy
-        self._scale = scale
-        self._hall_width = hall_width
-        self._safety_buffer = hall_width/2#safety_buffer
+        self._scale = self._mappy._scale
+        self._hall_width = self._mappy._hall_width
+        self._safety_buffer = self._hall_width/2
         size = self._mappy.shape
-        self._path_memory = 10
-        # self._grid = np.mgrid[0:size[0]*scale:scale, 0:size[1]*scale:scale]
-    #
+        self._path_memory = path_params['path_memory']
+        self._max_dist = path_params['max_traverse_dist']
+
     @property
     def path_memory(self):
         return self._path_memory
@@ -43,7 +43,7 @@ class PathMaker(object):
         print("Pruning Dots")
         waypoint_displacements = np.array([XY_scale[None,:,0] - XY_scale[:,0,None],
                                   XY_scale[None,:,1] - XY_scale[:,1,None]])
-        #
+
         waypoint_distances = np.linalg.norm(waypoint_displacements, axis=0)
         # waypoint_angles = np.arctan2(waypoint_displacements[1], waypoint_displacements[0])
 
@@ -78,72 +78,54 @@ class PathMaker(object):
         XY = np.rint(XY).astype(int)
         self._XY = XY
 
-    def computeTraversableGraph(self, max_dist):
+    def computeTraversableGraph(self):
         self._graph = np.zeros((len(self._XY), len(self._XY)))
         displacements = np.array([self._XY[None,:,0] - self._XY[:,0,None],
                                   self._XY[None,:,1] - self._XY[:,1,None]])
         distances = np.linalg.norm(displacements, axis=0)*self._scale
         angles = np.arctan2(displacements[1], displacements[0])
         sector_width = np.pi/4
-        idx_bool = np.zeros_like(distances)
-        for ii, (angle_row, distance_row) in enumerate(zip(angles,distances)):
-            sector1 = np.array(np.where(np.logical_and(angle_row<(sector_width* 1/2), angle_row>(sector_width*-1/2)))).flatten()
-            sector2 = np.array(np.where(np.logical_and(angle_row<(sector_width* 3/2), angle_row>(sector_width* 1/2)))).flatten()
-            sector3 = np.array(np.where(np.logical_and(angle_row<(sector_width* 5/2), angle_row>(sector_width* 3/2)))).flatten()
-            sector4 = np.array(np.where(np.logical_and(angle_row<(sector_width* 7/2), angle_row>(sector_width* 5/2)))).flatten()
-            sector5 = np.array(np.where(np.logical_and(angle_row>(sector_width*-3/2), angle_row<(sector_width*-1/2)))).flatten()
-            sector6 = np.array(np.where(np.logical_and(angle_row>(sector_width*-5/2), angle_row<(sector_width*-3/2)))).flatten()
-            sector7 = np.array(np.where(np.logical_and(angle_row>(sector_width*-7/2), angle_row<(sector_width*-5/2)))).flatten()
-            sector8 = np.array(np.where(np.logical_or(angle_row>(sector_width* 7/2), angle_row<(sector_width*-7/2)))).flatten()
-            sector1 = np.delete(sector1,np.where(sector1==ii))
-            traversable_nodes = []
-            if sector1.size > 0:
-                traversable_nodes.append(sector1[np.argmin(distance_row[sector1])])
-            if sector2.size > 0:
-                traversable_nodes.append(sector2[np.argmin(distance_row[sector2])])
-            if sector3.size > 0:
-                traversable_nodes.append(sector3[np.argmin(distance_row[sector3])])
-            if sector4.size > 0:
-                traversable_nodes.append(sector4[np.argmin(distance_row[sector4])])
-            if sector5.size > 0:
-                traversable_nodes.append(sector5[np.argmin(distance_row[sector5])])
-            if sector6.size > 0:
-                traversable_nodes.append(sector6[np.argmin(distance_row[sector6])])
-            if sector7.size > 0:
-                traversable_nodes.append(sector7[np.argmin(distance_row[sector7])])
-            if sector8.size > 0:
-                traversable_nodes.append(sector8[np.argmin(distance_row[sector8])])
-            idx_bool[ii,traversable_nodes]=True
+        sectors = np.array([-7/2,-5/2,-3/2, -1/2, 1/2, 3/2, 5/2, 7/2])
+        sectors = sector_width*sectors
 
-        # set_trace()
-        idx_bool2 = distances<max_dist
+        idx_bool = np.zeros_like(distances)
+        idx_test = np.zeros_like(distances)
+        sectored_angles = np.digitize(angles,sectors)
+        sectored_angles[sectored_angles==8]=0
+        for ii, distance_row in enumerate(distances):
+            traversable_nodes = []
+            for sector in range(len(sectors)):
+                candidates = np.array(np.where(sectored_angles[ii] == sector)).flatten()
+                if sector == 4:
+                    candidates = candidates[candidates!=ii]
+                if candidates.size > 0:
+                    traversable_nodes.append(candidates[np.argmin(distance_row[candidates])])
+
+            idx_bool[ii,traversable_nodes]=True
+        idx_bool2 = distances<self._max_dist
+
         idx_bool_total = np.logical_and(idx_bool,idx_bool2)
-        # print(f"idx_bool: {idx_bool.shape}")
         in_range_idx = np.array(np.where(idx_bool_total))
-        # print(f"in_range_idx: {in_range_idx.shape}")
         for ii, edge in enumerate(tqdm(in_range_idx.T, desc="Pruning Collisions")):
             if self._mappy.lineCollisionCheck(self._XY[edge[0]],self._XY[edge[1]],self._safety_buffer/3):
                 self._graph[edge[0], edge[1]] = 1
-            #
-        #
-        # self._graph[in_range_idx[0], in_range_idx[1]] = 1
-    #
+
     def saveTraversableGraph(self,file_name):
         np.save(file_name, self._graph, allow_pickle=False, fix_imports=False)
-    #
+
     def loadTraversableGraph(self,file_name):
         self._graph = np.load(file_name)
-    #
+
     def saveWptsXY(self,file_name):
         np.save(file_name, self._XY, allow_pickle=False, fix_imports=False)
-    #
+
     def loadWptsXY(self,file_name):
         self._XY = np.load(file_name)
-    #
+
     def assignWeights(self, current_heading, current_idx, choices):
         displacements = np.array([self._XY[choices,0] - self._XY[current_idx,0],
                                   self._XY[choices,1] - self._XY[current_idx,1]])
-        #
+
         angles = np.arctan2(displacements[1], displacements[0]) - current_heading
         angles = got.rad_wrap_pi(angles)
         w = scipy.stats.norm.logpdf(angles, scale=1)
@@ -151,7 +133,7 @@ class PathMaker(object):
         w = np.exp(w)
         w = w / np.sum(w)
         return w
-    #
+
     def makeMeAPath(self, path_len, start_idx):
         current_idx = start_idx
         current_heading = np.random.rand()*2*np.pi - np.pi;
@@ -176,5 +158,3 @@ class PathMaker(object):
     @property
     def waypoint_locs(self):
         return self._XY
-    #
-#

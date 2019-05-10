@@ -32,14 +32,14 @@ def plotty(population,pather,mappy):
     pointy = PointSelector(point,objs,mappy,pather,population,fig)
     plt.plot(objs[:,0], objs[:,1],'.b')
     plt.show()
-#
+
 def update_pareto(gen_num, data, population):
     population.set_data(data[..., gen_num])
     plt.xlim(-1,max(data[0,:,gen_num])+0.05)
     # text = "generation number: "+str(gen_num)
     # plt.text(-1,0.38,text, fontsize=14)
     return population,
-#
+
 def plotParetoHist(pareto_hist):
     pareto_hist = np.array(pareto_hist)
     fig1= plt.figure()
@@ -55,8 +55,7 @@ def plotParetoHist(pareto_hist):
     plt.show()
     #this save file is kind of a bug, but it lets you get the images before it finishes at high quality
     # pareto_animation.save('pareto_history/frames.mp4',writer = 'writer',codec = 'mp4')
-    #
-#
+
 def plotFitness(pareto_hist):
     pareto_hist = np.array(pareto_hist)
     fig2= plt.figure()
@@ -95,19 +94,18 @@ inv_2pi = 0.5 / np.pi
 def deg_wrap_180( angle ):
     angle -= 360.0 * np.floor((angle + 180.) * inv_360)
     return angle
-#
+
 def deg_wrap_360( angle ):
     angle -= 360.0 * np.floor(angle * inv_360)
     return angle
-#
+
 def rad_wrap_pi( angle ):
     angle -= 2*np.pi * np.floor((angle + np.pi) * inv_2pi)
     return angle
-#
+
 def rad_wrap_2pi( angle ):
     angle -= 2*np.pi * np.floor(angle * inv_2pi)
     return angle
-#
 
 # ======================================
 # ======================================
@@ -115,7 +113,7 @@ def rad_wrap_2pi( angle ):
 def getRot2D(theta):
     return np.array([[np.cos(theta), -np.sin(theta)],
                      [np.sin(theta),  np.cos(theta)]])
-#
+
 def defineFrustumPts(scale, min_view, max_view, view_angle):
     num_rays = 10.
     # num_rays = 1.
@@ -127,14 +125,13 @@ def defineFrustumPts(scale, min_view, max_view, view_angle):
     for angle in ray_angles:
         rot = getRot2D(-angle)
         pts.append(rot.dot([0, min_view/scale]))
-    #
+
     # define points on the outside of the view
     for angle in ray_angles:
         rot = getRot2D(angle)
         pts.append(rot.dot([0, max_view/scale]))
-    #
+
     return np.array(pts)
-#
 
 # ======================================
 # ======================================
@@ -157,20 +154,19 @@ def lowVarSample(X, fitnesses, pressure):
         while u > c:
             i += 1
             c = c + w[i]
-        #
+
         new_x = copy.deepcopy(X[i])
         Xbar.append(new_x)
         last_i = i
-    #
+
     return Xbar
-#
+
 
 def sortBy(stuff, stuff_values):
     order = np.argsort(stuff_values)
     stuff = list(np.array(stuff)[order])
     stuff_values = list(np.array(stuff_values)[order])
     return stuff, stuff_values
-#
 
 # ======================================
 # ======================================
@@ -178,7 +174,6 @@ def sortBy(stuff, stuff_values):
 def giveMeOptions(graph, pt1, pt2):
     options = np.where(graph[pt1]*graph[pt2])
     return options
-#
 
 # ======================================
 # ======================================
@@ -186,7 +181,3 @@ def giveMeOptions(graph, pt1, pt2):
 def getObjValsList( population ):
     objs = [thing._obj_val for thing in population._gen_parent]
     return objs
-#
-
-
-#
