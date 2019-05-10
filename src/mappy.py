@@ -173,25 +173,30 @@ class Mappy(object):
         plt.imshow(img_color)
         plt.show()
     #
-    def visualizePathWithCoverage(self, waypoints, path_idx, fig, coverage_map, loop_closures, coverage, travel_dist, nearest_point):
+    def visualizePathWithCoverage(self, waypoints, path_idx, fig, coverage_map, loop_closures, combo_closures, coverage, travel_dist, nearest_point):
         # make this draw lines instead of points
         img = self._safety_img.copy()
         cov_img = coverage_map
         # img = coverage_map
+        path_colors = [(1.0,0,0),(0,1.0,0),(0,0,1.0)]
+        lc_colors = [(0.5,0.1,0),(0,0.5,0.1),(0.1,0,0.5)]
 
         img[img==0] += cov_img[img==0]
         img[img<0.3] += cov_img[img<0.3]
         img = np.clip(img,0,1.0)
         img_color = img[...,None]*np.array([1, 1, 1])
-        path = waypoints[path_idx]
-        path = np.fliplr(path)
-        path = list(map(tuple,path))
-        for ii in range(len(path)-1):
-            cv2.line(img_color, path[ii],path[ii+1], (0,1,0),1)
+        for agent in range(len(path_idx)):
+            path = waypoints[path_idx[agent][path_idx[agent]!=-1]]
+            path = np.fliplr(path)
+            path = list(map(tuple,path))
+            for ii in range(len(path)-1):
+                cv2.line(img_color, path[ii],path[ii+1], path_colors[agent%3],1)
         #
-        for lc in loop_closures:
-            cv2.line(img_color, tuple(np.flip(waypoints[lc[0]],0)), tuple(np.flip(waypoints[lc[1]],0)), (1,0,0),1)
+            for lc in loop_closures[agent]:
+                cv2.line(img_color, tuple(np.flip(waypoints[lc[0]],0)), tuple(np.flip(waypoints[lc[1]],0)), lc_colors[agent%3], 1)
         #
+        for lc in combo_closures:
+            cv2.line(img_color, tuple(np.flip(waypoints[lc[0]],0)), tuple(np.flip(waypoints[lc[1]],0)), (1.0,1.0,0), 1)
         # ax = fig.add_subplot(1,3,3)
         gs = gridspec.GridSpec(1, 2, width_ratios=[2, 1])
         ax = plt.subplot(gs[1])
@@ -218,6 +223,7 @@ class Mappy(object):
         alpha = self._view_angle/self._num_rays
         ray_angles = np.arange(self._num_rays)*alpha - self._view_angle/2.0
         for from_wpt,wp in tqdm(enumerate(graph), desc="Precomputing Frustums"):
+        # for from_wpt,wp in enumerate(graph):
             for to_wpt,node in enumerate(wp):
                 if node == 1:
                     wpt_loc = self.all_waypoints[from_wpt]
@@ -345,7 +351,7 @@ class Mappy(object):
                 for dup in dup_idx:
                     lc.append(wpt_sequence[dup[0]])
                 #
-                solo_loop_closures.append[lc]
+                solo_loop_closures.append(lc)
 
 
         if return_loop_close == False:

@@ -42,7 +42,6 @@ class GeneticalGorithm( ):
             for jj in range(self._num_agents):
                 rand_path = pather.makeMeAPath(self._starting_path_len,start_idx)
                 rand_paths.append(rand_path)
-            # rand_paths = np.array(rand_paths)
             self._gen_parent.append( Organism(rand_paths, mappy, scale, narrowest_hall, max_dna_len, pather) )
         #
         self._gen_parent_fit = self.rackNstack(self._gen_parent)
@@ -122,7 +121,6 @@ class GeneticalGorithm( ):
 
 class Organism( ):
     def __init__(self, dna_list, mappy, scale, narrowest_hall, max_dna_len, pather):
-        # TODO: I think we need to add the coverage contraint to pass into the class to make it a rolling constraint
         # [ value ] vs binary
 
         self._xover_probability = 0.7
@@ -143,11 +141,13 @@ class Organism( ):
         self._min_solo_lcs = 2
         self._min_comb_lcs = 3
         self._dna_list = dna_list
-        dna = np.array(dna_list)
-        self._num_agents = dna.shape[1]
-        self._len_dna = (np.ones(dna.shape[0])*dna.shape[1]).astype(int)
-        self._num_agents = len(self._len_dna)
-        self._dna = dna
+        # dna = np.array(dna_list)
+        self._num_agents = len(self._dna_list)
+        self._len_dna = (np.ones(self._num_agents)).astype(int)
+        for agent in range(self._num_agents):
+            self._len_dna[agent] = len(self._dna_list[agent])
+        # self._num_agents = len(self._len_dna)
+        # self._dna = dna
 
         self.addTelomere()
 
@@ -171,7 +171,6 @@ class Organism( ):
         for agent in range(self._num_agents):
             self._len_dna[agent] = len(self._dna_list[agent])
         self.addTelomere()
-        #TODO: Continue here. Generation is done. now I need to do plotting and crossover
 
     #
     def calcObj(self):
@@ -185,41 +184,39 @@ class Organism( ):
         return [coverage, travel_dist]
     #
     def crossover(self, mate):
-        uniform_num = np.random.rand()
+        uniform_num = np.random.rand(2)
         xover_pts = self.matchWaypt(mate._dna, mate._len_dna)
-        # trav_pts = self.travWaypt(mate._dna, mate._len_dna)
-        if uniform_num < self._xover_probability and len(xover_pts) > 0:
+        new_dna1 = []
+        new_dna2 = []
+        for agent in range(self._dna.shape[0]):
+            if uniform_num[agent] < self._xover_probability and len(xover_pts[agent]) > 0:
 
-            xover_idx = np.arange( len(xover_pts) )
-            single_idx = np.random.choice( xover_idx )
+                xover_idx = np.arange( len(xover_pts[agent]) )
+                single_idx = np.random.choice( xover_idx )
 
-            single_pt = xover_pts[single_idx]
+                single_pt = xover_pts[agent][single_idx]
 
-            dna1 = self._dna[0:single_pt[0]]
-            dna2 = mate._dna[0:single_pt[1]]
+                dna1 = self._dna[agent][0:single_pt[0]]
+                dna2 = mate._dna[agent][0:single_pt[1]]
 
-            dna1 = np.append( dna1, mate._dna[single_pt[1]:])
-            dna2 = np.append( dna2, self._dna[single_pt[0]:])
-            for dna in [dna1,dna2]:
-                if len(dna) < self._min_dna_len:
-                    len_tail = self._min_dna_len - len(dna)
-                    dna_tail = self._pather.makeMeAPath(len_tail, dna[-1])
+                dna1 = np.append( dna1, mate._dna[agent][single_pt[1]:])
+                dna2 = np.append( dna2, self._dna[agent][single_pt[0]:])
+                for dna in [dna1,dna2]:
+                    if len(dna) < self._min_dna_len:
+                        len_tail = self._min_dna_len - len(dna)
+                        dna_tail = self._pather.makeMeAPath(len_tail, dna[-1])
+                    #
                 #
-            #
-        else:
-            dna1 = self._dna
-            dna2 = mate._dna
-        #
-        # idx = np.where(dna1 == -1)[0]
-        # dna1 = np.delete(dna1,idx)
-        # idx = np.where(dna2 == -1)[0]
-        # dna2 = np.delete(dna2,idx)
+            else:
+                dna1 = self._dna[agent]
+                dna2 = mate._dna[agent]
 
-        dna1 = dna1[dna1 != -1]
-        dna2 = dna2[dna2 != -1]
-
-        lil_timmy = Organism(dna1[:self._max_dna_len+1], self._mappy, self._scale, self._narrowest_hall, self._max_dna_len, self._pather)
-        lil_susy = Organism(dna2[:self._max_dna_len+1], self._mappy, self._scale, self._narrowest_hall, self._max_dna_len, self._pather)
+            dna1 = dna1[dna1 != -1]
+            dna2 = dna2[dna2 != -1]
+            new_dna1.append(dna1)
+            new_dna2.append(dna2)
+        lil_timmy = Organism(new_dna1, self._mappy, self._scale, self._narrowest_hall, self._max_dna_len, self._pather)
+        lil_susy = Organism(new_dna2, self._mappy, self._scale, self._narrowest_hall, self._max_dna_len, self._pather)
 
         return [lil_timmy, lil_susy]
     #
@@ -242,17 +239,18 @@ class Organism( ):
     def muterpolate(self):
         for agent in range(self._num_agents):
             mut_points = np.random.choice(np.arange(0, self._len_dna[agent]-(self._srch_dist+3), 1), self._num_muterpolations)
+            #reverse sort points to minimize chance of trying to access out of bounds after shortenning path
+            mut_points = np.sort(mut_points)[::-1]
             for idx1 in mut_points:
                 for idx2 in range(idx1+self._srch_dist+1, idx1+1, -1):
                     do_it = np.random.rand()
                     if do_it < self._P_muterpolate_each:
-                        # check to see if we can get there directly
-                        pt1 = self._dna_list[agent][idx1]
                         try:
+                            pt1 = self._dna_list[agent][idx1]
                             pt2 = self._dna_list[agent][idx2]
                         except:
-                            #TODO something breaks here sometimes an agent is too short but partially padded with zeros. check into why that is
-                            set_trace()
+                            break
+                        # check to see if we can get there directly
                         if self._pather._graph[pt1,pt2]:
                             np.delete(self._dna_list[agent], np.arange(idx1+1, idx2-1, 1))
                             break
@@ -282,12 +280,13 @@ class Organism( ):
         keepout_idx = 1
         xover_pts = []
         # broadcast is brd
-        brd_diff_mat = np.abs(self._dna[keepout_idx:self._len_dna+1,None] - dna_mate[None,keepout_idx:len_dna_mate+1])
-
-        un_pruned_pts = np.array(np.where(brd_diff_mat == 0)).T + keepout_idx
-
-        xover_tf = np.abs( un_pruned_pts[:,0] - un_pruned_pts[:,1] ) < self._time_thresh
-        xover_pts = un_pruned_pts[xover_tf]
+        for agent in range(self._dna.shape[0]):
+            dna_poss = self._dna[agent][self._dna[agent]!=-1]
+            mate_poss = dna_mate[agent][dna_mate[agent]!=-1]
+            brd_diff_mat = np.abs(dna_poss[keepout_idx:self._len_dna[agent]+1,None] - mate_poss[None,keepout_idx:len_dna_mate[agent]+1])
+            un_pruned_pts = np.array(np.where(brd_diff_mat == 0)).T + keepout_idx
+            xover_tf = np.abs( un_pruned_pts[:,0] - un_pruned_pts[:,1] ) < self._time_thresh
+            xover_pts.append(un_pruned_pts[xover_tf])
 
         return xover_pts
     #
@@ -296,9 +295,9 @@ class Organism( ):
     #
     def addTelomere(self):
         for agent in range(self._num_agents):
-            # self._dna_list[agent] = self._dna_list[agent][self._dna_list[agent]!=-1]
             if self._len_dna[agent] > self._max_dna_len:
-                self._dna_list[agent] = self._dna[0:self._max_dna_len]
+                self._dna_list[agent] = self._dna_list[agent][0:self._max_dna_len]
+                self._len_dna[agent] = self._max_dna_len
             elif self._len_dna[agent] < self._max_dna_len:
                 self._dna_list[agent] = np.append( self._dna_list[agent], np.ones(self._max_dna_len - self._len_dna[agent]) * -1 ).astype(int)
         self._dna = np.vstack(self._dna_list)

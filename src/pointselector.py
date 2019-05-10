@@ -51,12 +51,14 @@ class PointSelector(object):
         current_organism = self.population._gen_parent[nearest_point]
         # self.mappy.visualizePath(self.pather._XY,current_organism._dna[0:current_organism._len_dna],self._fig)
         coverage, travel_dist, coverage_map = self.mappy.getCoverage(current_organism._dna,return_map=True)
-        loop_closures = self.mappy.getLoopClosures(current_organism._dna, return_loop_close=True)
+        num_lcs,loop_closures = self.mappy.getSoloLoopClosures(current_organism._dna, return_loop_close=True)
+        num_lcs,combo_closures = self.mappy.getCombLoopClosures(current_organism._dna)
         self.mappy.visualizePathWithCoverage(self.pather._XY,
-                                             current_organism._dna[0:current_organism._len_dna],
+                                             current_organism._dna,
                                              self._fig,
                                              coverage_map,
                                              loop_closures,
+                                             combo_closures,
                                              coverage,
                                              travel_dist,
                                              nearest_point)

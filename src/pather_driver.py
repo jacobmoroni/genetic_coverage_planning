@@ -78,6 +78,7 @@ else:
     pather.saveWptsXY(cwd + '/data/wilk_3_wptsXY_new.npy')
 #
 mappy.all_waypoints = pather.waypoint_locs
+print("Precomputing coverage map.")
 mappy.computeFrustums(pather._graph)
 
 print("Spawning the contestants.")
