@@ -38,12 +38,17 @@ class GeneticalGorithm( ):
         # create random set of chromosomes
         start_idx = org_params['start_idx']
         # pool this for loop with multiprocess
-        for ii in tqdm(range(self._G_sz), desc="Adeves (aka. Adam and Eve'ing)"):
+        adeveing = tqdm(total=self._G_sz, desc="Adeves (aka. Adam and Eve'ing)")
+        while len(self._gen_parent) < self._G_sz:
+        # for ii in tqdm(range(self._G_sz), desc="Adeves (aka. Adam and Eve'ing)"):
             rand_paths = []
             for agent in range(self._num_agents):
                 rand_path = pather.makeMeAPath(self._starting_path_len, start_idx[agent])
                 rand_paths.append(rand_path)
-            self._gen_parent.append( Organism(rand_paths, mappy, pather, org_params))
+            cand_org = Organism(rand_paths, mappy, pather, org_params)
+            if cand_org._obj_val[0] <= self._cov_constr_0:
+                self._gen_parent.append( cand_org )
+                adeveing.update(1)
         self._gen_parent_fit = self.rackNstack(self._gen_parent)
 
     def runEvolution(self, num_generations):

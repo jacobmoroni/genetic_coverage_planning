@@ -39,12 +39,14 @@ cwd = os.getcwd()
 
 # setting this to true will use waypoints and traversability that have already been genrated
 # set to false to re-generate waypoints and traversability graph for new map or altered parameters
-use_old_graph = True
+use_old_graph = False
 old_graph_fname = cwd + '/data/wilk_3_graph.npy'
 old_wpts_fname = cwd + '/data/wilk_3_wpts.npy'
 
 # file where the pre-scaled map is.
-file_name = cwd + "/data/map_scaled.png"
+scaled_map_file = cwd + "/data/map_scaled.png"
+raw_map_file = cwd + "/data/map.png"
+
 
 ###############################################################################
 # parameters
@@ -67,7 +69,7 @@ max_traverse_dist = 3.5 #max distance traversable with one step
 
 #Genetic Algorithm Parameters
 gen_size = 100 #number of organisms per generation (must be even)
-starting_path_len = 100 #length of initial path
+starting_path_len = 150 #length of initial path
 num_agents = 2 #number of agents
 gamma = 0.5 #roulette exponent >=0. 0 means no fitness pressure
 coverage_constr_0 = 0.3 #starting coverage constraint
@@ -75,8 +77,8 @@ coverage_constr_f = 0.8 #final coverage constraint
 coverage_aging = 60 #number of generations to age coverage constraint
 
 #Organism Parameters
-start_idx = [207,207] #waypoint index where all paths will begin
-max_dna_len = 150 #maximum number of waypoints in a path
+start_idx = [207,5] #waypoint index where all paths will begin
+max_dna_len = 200 #maximum number of waypoints in a path
 min_dna_len = 30 #minimimum number of waypoints in a path
 crossover_prob = 0.7 #probability of performing crossover when generating new organisms
 crossover_time_thresh = 70 #how close crossover points need to be to eachother to be considered
@@ -127,25 +129,31 @@ gen_params = {'gen_size':gen_size,
               'coverage_aging':coverage_aging,
               'org_params':org_params}
 
+map_scaled = cv2.imread(scaled_map_file,cv2.IMREAD_GRAYSCALE)/255
+map_raw = cv2.imread(raw_map_file,cv2.IMREAD_GRAYSCALE)
 
-
-map_scaled = cv2.imread(file_name,cv2.IMREAD_GRAYSCALE)/255
 print("Generating map from image file.")
-mappy = Mappy(map_scaled, map_params)
-
-pather = PathMaker(mappy, path_params)
-
 if use_old_graph:
+    mappy = Mappy(map_scaled, map_params)
+    pather = PathMaker(mappy, path_params)
+
     print("Loading waypoints and traversible graph from file.")
     pather.loadTraversableGraph(old_graph_fname)
     pather.loadWptsXY(old_wpts_fname)
+    mappy.saveMap(cwd + 'data/map_scaled_new.png')
+
 else:
+    mappy = Mappy(map_raw, map_params, new_map=True)
+    pather = PathMaker(mappy, path_params)
+
     print("Generating possible waypoints.")
     pather.smartlyPlaceDots()
+    print("Check waypoints placed and starting location(s). Press ESC to continue")
+    mappy.visualizeWaypoints(pather.waypoint_locs, start_idx)
     print("Generating traversible graph.")
     pather.computeTraversableGraph()
-    mappy.computeFrustums(pather._graph)
-    pather.saveTraversableGraph(cwd + 'data/wilk_3_graph_new.npy')
+    print("new files have been saved. overwrite old files with new to use in future")
+    pather.saveTraversableGraph(cwd + '/data/wilk_3_graph_new.npy')
     pather.saveWptsXY(cwd + '/data/wilk_3_wptsXY_new.npy')
 #
 mappy.all_waypoints = pather.waypoint_locs

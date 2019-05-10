@@ -11,14 +11,19 @@ import gori_tools as got
 reload(got)
 
 class Mappy(object):
-    def __init__(self, img, map_params):
-        self._img = img
-        self._num_occluded = np.sum(self._img)
+    def __init__(self, img, map_params, new_map = False):
+
         self._scale = map_params['scale']
         self._hall_width = map_params['narrowest_hall']
         self._safety_buffer = self._hall_width/2
+        self._bw_thresh = map_params['bw_thresh']
+        self._scale_px2m = map_params['scale_px2m']
+        if new_map == True:
+            self._img = self.generateNewMap(img)
+        else:
+            self._img = img
+        self._num_occluded = np.sum(self._img)
         self.shape = self._img.shape
-
         # view area stuff for coverage calcualtion
         self._num_rays = map_params['num_rays']
         self._min_view = map_params['min_view']
@@ -37,14 +42,18 @@ class Mappy(object):
         self._rho = map_params['rho']
         self._solo_sep_thresh = map_params['solo_sep_thresh']
 
+        #colors used for plotting
+        self._path_colors = [(1.0,0,0),(0,1.0,0),(0,0,1.0)]
+        self._lc_colors = [(0.5,0.1,0),(0,0.5,0.1),(0.1,0,0.5)]
 
-    def generateNewMap(self, raw_file_name, output_file_name, bw_thresh, img_raw_scale, visualize = False):
-        # TODO: Figure out the best way to do this this may need to be changed to get it to work with a new map
-        map_raw = cv2.imread(raw_file_name,cv2.IMREAD_GRAYSCALE)
+    def saveMap(self, output_file_name):
+        cv2.imwrite(output_file_name, self._img)
+
+    def generateNewMap(self, map_raw, visualize = True):
         if visualize:
             cv2.imshow('raw',map_raw)
 
-        map_bw = cv2.threshold(map_raw, bw_thresh, 255, cv2.THRESH_BINARY)[1]
+        map_bw = cv2.threshold(map_raw, self._bw_thresh, 255, cv2.THRESH_BINARY)[1]
         map_bw = cv2.bitwise_not(map_bw)
         if visualize:
             cv2.imshow('threshold_bw',map_bw)
@@ -57,24 +66,22 @@ class Mappy(object):
             cv2.imshow('filtered', map_bw)
 
         # shrink image to get desired scale
-        scale_px2m = img_raw_scale #measured estimate for this case
-        scale_des = self._scale
         height,width = map_bw.shape
-        new_height = int(height*scale_px2m/scale_des)
-        new_width = int(width*scale_px2m/scale_des)
-        map_shrunk = cv2.resize(map_bw,(new_width,new_height))
+        new_height = int(height*self._scale_px2m/self._scale)
+        new_width = int(width*self._scale_px2m/self._scale)
+        map_shrunk = cv2.resize(map_bw,(new_width,new_height))/255
         if visualize:
             cv2.imshow('resized',map_shrunk)
 
-        cv2.imwrite(output_file_name, map_shrunk)
         map_mat = np.array(map_shrunk)
         if visualize:
             # shut down when done
+            print ("Check generated map, press ESC to continue")
             k = cv2.waitKey(0)
             if k == 27:         # wait for ESC key to exit
                 cv2.destroyAllWindows()
 
-        self._img = map_mat
+        return map_mat
 
     def getClosestObstacles(self, XY_scale):
         # now we need to move dots to be at least safety_buffer away from obstacles
@@ -141,7 +148,11 @@ class Mappy(object):
         img = pac_dots + self._safety_img
         img_color = img[...,None]*np.array([1, 1, 1])
         if start_idx is not None:
-            cv2.circle(img_color, (waypoints[start_idx,1], waypoints[start_idx,0]), 5, (0,0,1))
+            for agent in range(len(start_idx)):
+                cv2.circle(img_color, (waypoints[start_idx[agent],1],
+                                       waypoints[start_idx[agent],0]),
+                                       5,
+                                       self._path_colors[(((agent-1)*-1)+1)%3])
 
         cv2.namedWindow('Map With Waypoints')
         cv2.imshow('Map With Waypoints', img_color)
@@ -178,8 +189,6 @@ class Mappy(object):
         img = self._safety_img.copy()
         cov_img = coverage_map
         # img = coverage_map
-        path_colors = [(1.0,0,0),(0,1.0,0),(0,0,1.0)]
-        lc_colors = [(0.5,0.1,0),(0,0.5,0.1),(0.1,0,0.5)]
 
         img[img==0] += cov_img[img==0]
         img[img<0.3] += cov_img[img<0.3]
@@ -190,10 +199,10 @@ class Mappy(object):
             path = np.fliplr(path)
             path = list(map(tuple,path))
             for ii in range(len(path)-1):
-                cv2.line(img_color, path[ii],path[ii+1], path_colors[agent%3],1)
+                cv2.line(img_color, path[ii],path[ii+1], self._path_colors[agent%3],1)
 
             for lc in loop_closures[agent]:
-                cv2.line(img_color, tuple(np.flip(waypoints[lc[0]],0)), tuple(np.flip(waypoints[lc[1]],0)), lc_colors[agent%3], 1)
+                cv2.line(img_color, tuple(np.flip(waypoints[lc[0]],0)), tuple(np.flip(waypoints[lc[1]],0)), self._lc_colors[agent%3], 1)
 
         for lc in combo_closures:
             cv2.line(img_color, tuple(np.flip(waypoints[lc[0]],0)), tuple(np.flip(waypoints[lc[1]],0)), (1.0,1.0,0), 1)

@@ -25,9 +25,9 @@ class PathMaker(object):
         return self._path_memory
 
     def smartlyPlaceDots(self):
-        self.pac_dots = np.zeros_like(self._mappy)
+        pac_dots = np.zeros_like(self._mappy)
         stride = int((self._hall_width)//self._scale)
-        print("Placing Dots", self.pac_dots.shape)
+        print("Placing Dots", pac_dots.shape)
         size = self._mappy.shape
         X,Y = np.mgrid[0:size[0]:stride,0:size[1]:stride]
         XY = np.vstack((X.flatten(), Y.flatten())).T
