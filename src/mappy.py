@@ -44,8 +44,9 @@ class Mappy(object):
         self._solo_sep_thresh = map_params['solo_sep_thresh']
 
         #colors used for plotting
-        self._path_colors = [(1.0,0,0),(0,1.0,0),(0,0,1.0)]
-        self._lc_colors = [(0.5,0.1,0),(0,0.5,0.1),(0.1,0,0.5)]
+        self._path_colors = [(1.0,0,0),(0,1.0,0),(0,0,1.0),(1.0,1.0,0.0),(0.0,1.0,1.0)]
+        self._num_colors = 5
+        self._lc_colors = [(0.5,0.1,0),(0,0.5,0.1),(0.1,0,0.5),(1.0,1.0,0.3),(0.3,1.0,1.0)]
 
     def saveMap(self, output_file_name):
         cv2.imwrite(output_file_name, self._img)
@@ -153,7 +154,7 @@ class Mappy(object):
                 cv2.circle(img_color, (waypoints[start_idx[agent],1],
                                        waypoints[start_idx[agent],0]),
                                        5,
-                                       self._path_colors[(((agent-1)*-1)+1)%3])
+                                       self._path_colors[(((agent-1)*-1)+1)%self._num_colors])
 
         cv2.namedWindow('Map With Waypoints')
         cv2.imshow('Map With Waypoints', img_color)
@@ -200,15 +201,15 @@ class Mappy(object):
             path = np.fliplr(path)
             path = list(map(tuple,path))
             for ii in range(len(path)-1):
-                cv2.line(img_color, path[ii],path[ii+1], self._path_colors[agent%3],1)
+                cv2.line(img_color, path[ii],path[ii+1], self._path_colors[agent%self._num_colors],1)
 
         for from_agent in range(len(path_idx)):
             for to_agent,path in enumerate(loop_closures[from_agent]):
                 for lc in path:
                     if to_agent == from_agent:
-                        cv2.line(img_color, tuple(np.flip(waypoints[lc[0]],0)), tuple(np.flip(waypoints[lc[1]],0)), self._lc_colors[from_agent%3], 1)
+                        cv2.line(img_color, tuple(np.flip(waypoints[lc[0]],0)), tuple(np.flip(waypoints[lc[1]],0)), self._lc_colors[from_agent%self._num_colors], 1)
                     else:
-                        color = tuple(np.array(self._path_colors[from_agent%3])/2+np.array(self._path_colors[to_agent%3])/2)
+                        color = tuple(np.array(self._path_colors[from_agent%self._num_colors])/2+np.array(self._path_colors[to_agent%3])/2)
                         cv2.line(img_color, tuple(np.flip(waypoints[lc[0]],0)), tuple(np.flip(waypoints[lc[1]],0)), color, 1)
 
         # for lc in combo_closures:
@@ -340,37 +341,6 @@ class Mappy(object):
         dup_idx = np.split(idx_idx[srt_idx], np.cumsum(unq_cnt[cnt_mask])[:-1])
 
         return len(dup_ids),dup_idx
-
-    # def getSoloLoopClosures(self, waypoints, return_loop_close = False):
-    #     num_agents = waypoints.shape[0]
-    #     num_lcs = (np.zeros(num_agents)).astype(int)
-    #     solo_loop_closures = []
-    #     for agent in range(num_agents):
-    #         num_loop_close = 0
-    #         wps = waypoints[agent][waypoints[agent]!=-1]
-    #         wpt_sequence = np.array([wps,np.roll(wps,-1)]).T
-    #         wpt_sequence = wpt_sequence[0:-1]
-    #
-    #         num_dups, dup_idx = self.getDuplicateWPs(wpt_sequence)
-    #
-    #         #only count as loop closure if they are separated by at least sep_thresh
-    #         if num_dups>0:
-    #             for dup in dup_idx:
-    #                 if abs(dup[0]-dup[1] > self._solo_sep_thresh):
-    #                     num_loop_close +=1
-    #
-    #         num_lcs[agent] = num_loop_close
-    #         if return_loop_close ==True:
-    #             lc = []
-    #             for dup in dup_idx:
-    #                 lc.append(wpt_sequence[dup[0]])
-    #
-    #             solo_loop_closures.append(lc)
-    #
-    #     if return_loop_close == False:
-    #         return num_lcs
-    #     else:
-    #         return num_lcs, solo_loop_closures
 
     def getLoopClosures(self, waypoints, return_loop_close = False):
         num_agents = waypoints.shape[0]

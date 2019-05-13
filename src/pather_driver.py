@@ -70,7 +70,7 @@ max_traverse_dist = 3.5 #max distance traversable with one step
 #Genetic Algorithm Parameters
 gen_size = 100 #number of organisms per generation (must be even)
 starting_path_len = 150 #length of initial path
-num_agents = 2 #number of agents
+num_agents = 5 #number of agents
 gamma = 0.5 #roulette exponent >=0. 0 means no fitness pressure
 coverage_constr_0 = 0.3 #starting coverage constraint
 coverage_constr_f = 0.8 #final coverage constraint

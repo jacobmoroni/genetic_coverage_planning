@@ -168,11 +168,26 @@ class Organism( ):
         coverage, travel_dist = self._mappy.getCoverage(self._dna)
         lc_mat = self._mappy.getLoopClosures(self._dna)
         solo_lcs = np.diagonal(lc_mat)
-        combo_lcs = np.sum(lc_mat-np.diag(solo_lcs))
+        combo_lc_mat = lc_mat-np.diag(solo_lcs)
+
+        #true if there is a path with no loop closures to any other path
+        all_path_lc = (np.sum(combo_lc_mat+combo_lc_mat.T,axis=0)==0).any()
+        #TODO figure out how to handle lots of agent loop closure to make sure map can be combined
+        #TODO maybe only do some of this with multi agent to save time
+        #total number of cross-path loop closures
+        combo_lcs = np.sum(combo_lc_mat)
         travel_dist = travel_dist * self._ft_scale
-        if (solo_lcs < self._min_solo_lcs).any() or combo_lcs < self._min_comb_lcs:
+        if (solo_lcs < self._min_solo_lcs).any() or combo_lcs < self._min_comb_lcs or all_path_lc:
             coverage = 0
         return [coverage, travel_dist]
+
+    def padMinDNA(self,dna):
+        dna = dna[dna!=-1]
+        if len(dna) < self._min_dna_len:
+            len_tail = self._min_dna_len - len(dna)
+            dna_tail = self._pather.makeMeAPath(len_tail, dna[-1])
+            dna = np.append(dna,dna_tail[1:])
+        return dna
 
     def crossover(self, mate):
         uniform_num = np.random.rand(self._num_agents)
@@ -192,17 +207,16 @@ class Organism( ):
 
                 dna1 = np.append( dna1, mate._dna[agent][single_pt[1]:])
                 dna2 = np.append( dna2, self._dna[agent][single_pt[0]:])
-                for dna in [dna1,dna2]:
-                    if len(dna) < self._min_dna_len:
-                        len_tail = self._min_dna_len - len(dna)
-                        dna_tail = self._pather.makeMeAPath(len_tail, dna[-1])
+                dna1 = self.padMinDNA(dna1)
+                dna2 = self.padMinDNA(dna2)
 
             else:
                 dna1 = self._dna[agent]
                 dna2 = mate._dna[agent]
-
             dna1 = dna1[dna1 != -1]
             dna2 = dna2[dna2 != -1]
+            if len(dna1) <30 or len(dna2) < 30:
+                set_trace()
             new_dna1.append(dna1)
             new_dna2.append(dna2)
         lil_timmy = Organism(new_dna1, self._mappy, self._pather, self._org_params)
@@ -228,9 +242,12 @@ class Organism( ):
 
     def muterpolate(self):
         for agent in range(self._num_agents):
-            mut_points = np.random.choice(np.arange(0, self._len_dna[agent]-(self._srch_dist+3), 1), self._num_muterpolations)
-            #reverse sort points to minimize chance of trying to access out of bounds after shortenning path
-            mut_points = np.sort(mut_points)[::-1]
+            try:
+                mut_points = np.random.choice(np.arange(0, self._len_dna[agent]-(self._srch_dist+3), 1), self._num_muterpolations)
+                #reverse sort points to minimize chance of trying to access out of bounds after shortenning path
+                mut_points = np.sort(mut_points)[::-1]
+            except:
+                set_trace()
             for idx1 in mut_points:
                 for idx2 in range(idx1+self._srch_dist+1, idx1+1, -1):
                     do_it = np.random.rand()
