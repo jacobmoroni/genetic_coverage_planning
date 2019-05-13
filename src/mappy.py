@@ -29,6 +29,7 @@ class Mappy(object):
         self._min_view = map_params['min_view']
         self._max_view = map_params['max_view']
         self._view_angle = map_params['view_angle']
+        self._coverage_blend = map_params['coverage_blend']
         self._grid = np.mgrid[0:self.shape[0]*self._scale:self._scale, 0:self.shape[1]*self._scale:self._scale]
 
         num_dilations = int(self._safety_buffer/self._scale)
@@ -51,19 +52,19 @@ class Mappy(object):
 
     def generateNewMap(self, map_raw, visualize = True):
         if visualize:
-            cv2.imshow('raw',map_raw)
+            cv2.imshow('Originial Image',map_raw)
 
         map_bw = cv2.threshold(map_raw, self._bw_thresh, 255, cv2.THRESH_BINARY)[1]
         map_bw = cv2.bitwise_not(map_bw)
         if visualize:
-            cv2.imshow('threshold_bw',map_bw)
+            cv2.imshow('Image threshold black and white',map_bw)
 
         # try to clean up noise in the map
         kernel = np.ones((5,5),np.uint8)
         map_bw = cv2.morphologyEx(map_bw, cv2.MORPH_CLOSE,kernel)
         map_bw = cv2.morphologyEx(map_bw, cv2.MORPH_CLOSE,kernel)
         if visualize:
-            cv2.imshow('filtered', map_bw)
+            cv2.imshow('filtered image', map_bw)
 
         # shrink image to get desired scale
         height,width = map_bw.shape
@@ -71,7 +72,7 @@ class Mappy(object):
         new_width = int(width*self._scale_px2m/self._scale)
         map_shrunk = cv2.resize(map_bw,(new_width,new_height))/255
         if visualize:
-            cv2.imshow('resized',map_shrunk)
+            cv2.imshow('resized map',map_shrunk)
 
         map_mat = np.array(map_shrunk)
         if visualize:
@@ -282,7 +283,7 @@ class Mappy(object):
         self._traverse_dists = traverse_dists
 
     def getCoverage(self, waypoints, return_map=False):
-
+        num_agents = waypoints.shape[0]
         if self.all_waypoints is None:
             raise ValueError('Map has no waypoints')
 
@@ -291,7 +292,7 @@ class Mappy(object):
         buffer_mask = np.logical_and(self._safety_img<0.3,self._safety_img>0)
 
         travel_cost = 0.0
-        for agent in range(waypoints.shape[0]):
+        for agent in range(num_agents):
             prev_theta = 0
             for idx, wpt in enumerate(waypoints[agent]):
                 if wpt == -1 or idx == len(waypoints[agent])-1:
@@ -306,12 +307,13 @@ class Mappy(object):
                 cv2.fillPoly(draw_map, [frustum], 1, offset=center)
 
         #this line returns coverage of total pixel seen
-        # coverage = (np.sum(draw_map) - self._num_occluded)/(draw_map.size - self._num_occluded)
+        internal_coverage = (np.sum(draw_map) - self._num_occluded)/(draw_map.size - self._num_occluded)
 
         #this line returns coverage of buffer seen (more important for mapping)
-        coverage = np.sum(draw_map[buffer_mask])/draw_map[buffer_mask].size
+        wall_coverage = np.sum(draw_map[buffer_mask])/draw_map[buffer_mask].size
 
-        # TODO: blend the 2 coverage types to favor buffer over total. but still incentivize total
+        #blended coverage
+        coverage = self._coverage_blend*wall_coverage + (1-self._coverage_blend)*internal_coverage
 
         # minimize negative coverage and minimize travel distance
         if return_map:
@@ -319,27 +321,34 @@ class Mappy(object):
         else:
             return -coverage, travel_cost
 
+    def getDuplicateWPs(self, wpt_sequence):
+
+        #find where path passes through the same waypoints at different times
+        unq, unq_idx, unq_cnt = np.unique(wpt_sequence, axis=0, return_inverse=True, return_counts=True)
+        cnt_mask = unq_cnt > 1
+        dup_ids = unq[cnt_mask]
+        cnt_idx, = np.nonzero(cnt_mask)
+        idx_mask = np.in1d(unq_idx, cnt_idx)
+        idx_idx, = np.nonzero(idx_mask)
+        srt_idx = np.argsort(unq_idx[idx_mask])
+        dup_idx = np.split(idx_idx[srt_idx], np.cumsum(unq_cnt[cnt_mask])[:-1])
+
+        return len(dup_ids),dup_idx
+
     def getSoloLoopClosures(self, waypoints, return_loop_close = False):
-        num_lcs = (np.zeros(waypoints.shape[0])).astype(int)
+        num_agents = waypoints.shape[0]
+        num_lcs = (np.zeros(num_agents)).astype(int)
         solo_loop_closures = []
-        for agent in range(waypoints.shape[0]):
+        for agent in range(num_agents):
             num_loop_close = 0
             wps = waypoints[agent][waypoints[agent]!=-1]
             wpt_sequence = np.array([wps,np.roll(wps,-1)]).T
             wpt_sequence = wpt_sequence[0:-1]
 
-            #find where path passes through the same waypoints at different times
-            unq, unq_idx, unq_cnt = np.unique(wpt_sequence, axis=0, return_inverse=True, return_counts=True)
-            cnt_mask = unq_cnt > 1
-            dup_ids = unq[cnt_mask]
-            cnt_idx, = np.nonzero(cnt_mask)
-            idx_mask = np.in1d(unq_idx, cnt_idx)
-            idx_idx, = np.nonzero(idx_mask)
-            srt_idx = np.argsort(unq_idx[idx_mask])
-            dup_idx = np.split(idx_idx[srt_idx], np.cumsum(unq_cnt[cnt_mask])[:-1])
+            num_dups, dup_idx = self.getDuplicateWPs(wpt_sequence)
 
             #only count as loop closure if they are separated by at least sep_thresh
-            if len(dup_ids > 0):
+            if num_dups>0:
                 for dup in dup_idx:
                     if abs(dup[0]-dup[1] > self._solo_sep_thresh):
                         num_loop_close +=1
@@ -352,42 +361,57 @@ class Mappy(object):
 
                 solo_loop_closures.append(lc)
 
-
         if return_loop_close == False:
             return num_lcs
         else:
             return num_lcs, solo_loop_closures
 
     def getCombLoopClosures(self, waypoints, return_loop_close = False):
-        #TODO Combine combo and individual loop closure functions into a single function because it is mostly repetitious
-        num_lcs = (np.zeros(waypoints.shape[0])).astype(int)
-        comb_loop_closures = []
-        num_loop_close = 0
-        path_splits = (np.zeros(waypoints.shape[0])).astype(int)
+        num_agents = waypoints.shape[0]
+        num_lcs = (np.zeros(num_agents)).astype(int)
+        path_splits = (np.zeros(num_agents)).astype(int)
 
         wps = waypoints[waypoints!=-1]
         wpt_sequence = np.array([wps,np.roll(wps,-1)]).T
-        # wpt_sequence = wpt_sequence[0:-1]
+
+        if return_loop_close:
+            lc_data = np.empty((num_agents,num_agents),dtype=np.object)
+            for ii in range(num_agents):
+                for jj in range(num_agents):
+                    lc_data[ii][jj] = []
+
         path_split_idx = 0
-        for agent in range(waypoints.shape[0]):
+        for agent in range(num_agents):
             path_split_idx += len(waypoints[agent][waypoints[agent]!=-1])
             path_splits[agent] = path_split_idx
 
-        #find where path passes through the same waypoints at different times
-        unq, unq_idx, unq_cnt = np.unique(wpt_sequence, axis=0, return_inverse=True, return_counts=True)
-        cnt_mask = unq_cnt > 1
-        dup_ids = unq[cnt_mask]
-        cnt_idx, = np.nonzero(cnt_mask)
-        idx_mask = np.in1d(unq_idx, cnt_idx)
-        idx_idx, = np.nonzero(idx_mask)
-        srt_idx = np.argsort(unq_idx[idx_mask])
-        dup_idx = np.split(idx_idx[srt_idx], np.cumsum(unq_cnt[cnt_mask])[:-1])
-        if len(dup_ids > 0):
+        num_dups, dup_idx = self.getDuplicateWPs(wpt_sequence)
+        lc_mat = np.zeros((num_agents,num_agents))
+        if num_dups>0:
             for dup in dup_idx:
                 if not np.isin(path_splits,dup).any():
                     agent_lc = np.digitize(dup,path_splits)
-                    if len(np.unique(agent_lc))>1:
-                        num_loop_close += 1
-                        comb_loop_closures.append(wpt_sequence[dup][0])
-
-        return num_loop_close, comb_loop_closures
+                    unq_lc = np.unique(agent_lc)
+                    if len(unq_lc)==1:
+                        lc_mat[unq_lc[0],unq_lc[0]] += 1
+                        if return_loop_close:
+                            lc_data[unq_lc[0],unq_lc[0]].append(wpt_sequence[dup][0])
+                    elif len(unq_lc)==2:
+                        lc_mat[unq_lc[0],unq_lc[1]] += 1
+                        if return_loop_close:
+                            lc_data[unq_lc[0],unq_lc[1]].append(wpt_sequence[dup][0])
+                    else:
+                        for ii in range(len(unq_lc)):
+                            for jj in range(ii+1,len(unq_lc)):
+                                lc_mat[unq_lc[ii],unq_lc[jj]] += 1
+                                if return_loop_close:
+                                    lc_data[unq_lc[ii],unq_lc[jj]].append(wpt_sequence[dup][0])
+        unq_combo_lcs = []
+        for ii in range(num_agents):
+            for jj in range(ii+1,num_agents):
+                if lc_mat[ii,jj]!=0:
+                    unq_combo_lcs.append([ii,jj])
+        if not return_loop_close:
+            return lc_mat
+        else:
+            return lc_mat,lc_data

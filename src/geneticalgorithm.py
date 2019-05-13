@@ -166,20 +166,21 @@ class Organism( ):
 
     def calcObj(self):
         coverage, travel_dist = self._mappy.getCoverage(self._dna)
-        num_solo_lcs = self._mappy.getSoloLoopClosures(self._dna)
-        num_comb_lcs, comb_loop_closures = self._mappy.getCombLoopClosures(self._dna)
-
+        # num_solo_lcs = self._mappy.getSoloLoopClosures(self._dna)
+        lc_mat = self._mappy.getCombLoopClosures(self._dna)
+        solo_lcs = np.diagonal(lc_mat)
+        combo_lcs = np.sum(lc_mat-np.diag(solo_lcs))
         travel_dist = travel_dist * self._ft_scale
-        if (num_solo_lcs < self._min_solo_lcs).any() or num_comb_lcs < self._min_comb_lcs:
+        if (solo_lcs < self._min_solo_lcs).any() or combo_lcs < self._min_comb_lcs:
             coverage = 0
         return [coverage, travel_dist]
 
     def crossover(self, mate):
-        uniform_num = np.random.rand(2)
+        uniform_num = np.random.rand(self._num_agents)
         xover_pts = self.matchWaypt(mate._dna, mate._len_dna)
         new_dna1 = []
         new_dna2 = []
-        for agent in range(self._dna.shape[0]):
+        for agent in range(self._num_agents):
             if uniform_num[agent] < self._xover_probability and len(xover_pts[agent]) > 0:
 
                 xover_idx = np.arange( len(xover_pts[agent]) )
@@ -240,8 +241,8 @@ class Organism( ):
                             pt2 = self._dna_list[agent][idx2]
                         except:
                             break
-                        # check to see if we can get there directly
                         if self._pather._graph[pt1,pt2]:
+                            # check to see if we can get there directly
                             np.delete(self._dna_list[agent], np.arange(idx1+1, idx2-1, 1))
                             break
                         else:
@@ -259,10 +260,10 @@ class Organism( ):
     def matchWaypt(self, dna_mate, len_dna_mate):
         keepout_idx = 1
         xover_pts = []
-        # broadcast is brd
         for agent in range(self._dna.shape[0]):
             dna_poss = self._dna[agent][self._dna[agent]!=-1]
             mate_poss = dna_mate[agent][dna_mate[agent]!=-1]
+            # broadcast is brd
             brd_diff_mat = np.abs(dna_poss[keepout_idx:self._len_dna[agent]+1,None] - mate_poss[None,keepout_idx:len_dna_mate[agent]+1])
             un_pruned_pts = np.array(np.where(brd_diff_mat == 0)).T + keepout_idx
             xover_tf = np.abs( un_pruned_pts[:,0] - un_pruned_pts[:,1] ) < self._time_thresh
