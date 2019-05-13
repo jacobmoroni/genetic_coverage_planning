@@ -70,14 +70,14 @@ max_traverse_dist = 3.5 #max distance traversable with one step
 #Genetic Algorithm Parameters
 gen_size = 100 #number of organisms per generation (must be even)
 starting_path_len = 150 #length of initial path
-num_agents = 5 #number of agents
+num_agents = 2 #number of agents
 gamma = 0.5 #roulette exponent >=0. 0 means no fitness pressure
 coverage_constr_0 = 0.3 #starting coverage constraint
 coverage_constr_f = 0.8 #final coverage constraint
 coverage_aging = 60 #number of generations to age coverage constraint
 
 #Organism Parameters
-start_idx = [207,1,10,305,207] #waypoint index where all paths will begin
+start_idx = [207,207,1,10,305,207] #waypoint index where all paths will begin
 max_dna_len = 200 #maximum number of waypoints in a path
 min_dna_len = 30 #minimimum number of waypoints in a path
 crossover_prob = 0.7 #probability of performing crossover when generating new organisms

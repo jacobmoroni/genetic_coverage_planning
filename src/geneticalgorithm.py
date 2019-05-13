@@ -166,8 +166,7 @@ class Organism( ):
 
     def calcObj(self):
         coverage, travel_dist = self._mappy.getCoverage(self._dna)
-        # num_solo_lcs = self._mappy.getSoloLoopClosures(self._dna)
-        lc_mat = self._mappy.getCombLoopClosures(self._dna)
+        lc_mat = self._mappy.getLoopClosures(self._dna)
         solo_lcs = np.diagonal(lc_mat)
         combo_lcs = np.sum(lc_mat-np.diag(solo_lcs))
         travel_dist = travel_dist * self._ft_scale

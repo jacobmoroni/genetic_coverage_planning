@@ -185,7 +185,7 @@ class Mappy(object):
         plt.imshow(img_color)
         plt.show()
 
-    def visualizePathWithCoverage(self, waypoints, path_idx, fig, coverage_map, loop_closures, combo_closures, coverage, travel_dist, nearest_point):
+    def visualizePathWithCoverage(self, waypoints, path_idx, fig, coverage_map, loop_closures, coverage, travel_dist, nearest_point):
         # make this draw lines instead of points
         img = self._safety_img.copy()
         cov_img = coverage_map
@@ -202,11 +202,17 @@ class Mappy(object):
             for ii in range(len(path)-1):
                 cv2.line(img_color, path[ii],path[ii+1], self._path_colors[agent%3],1)
 
-            for lc in loop_closures[agent]:
-                cv2.line(img_color, tuple(np.flip(waypoints[lc[0]],0)), tuple(np.flip(waypoints[lc[1]],0)), self._lc_colors[agent%3], 1)
+        for from_agent in range(len(path_idx)):
+            for to_agent,path in enumerate(loop_closures[from_agent]):
+                for lc in path:
+                    if to_agent == from_agent:
+                        cv2.line(img_color, tuple(np.flip(waypoints[lc[0]],0)), tuple(np.flip(waypoints[lc[1]],0)), self._lc_colors[from_agent%3], 1)
+                    else:
+                        color = tuple(np.array(self._path_colors[from_agent%3])/2+np.array(self._path_colors[to_agent%3])/2)
+                        cv2.line(img_color, tuple(np.flip(waypoints[lc[0]],0)), tuple(np.flip(waypoints[lc[1]],0)), color, 1)
 
-        for lc in combo_closures:
-            cv2.line(img_color, tuple(np.flip(waypoints[lc[0]],0)), tuple(np.flip(waypoints[lc[1]],0)), (1.0,1.0,0), 1)
+        # for lc in combo_closures:
+        #     cv2.line(img_color, tuple(np.flip(waypoints[lc[0]],0)), tuple(np.flip(waypoints[lc[1]],0)), (1.0,1.0,0), 1)
         gs = gridspec.GridSpec(1, 2, width_ratios=[2, 1])
         ax = plt.subplot(gs[1])
         ax.set_title('Selected Path')
@@ -335,38 +341,38 @@ class Mappy(object):
 
         return len(dup_ids),dup_idx
 
-    def getSoloLoopClosures(self, waypoints, return_loop_close = False):
-        num_agents = waypoints.shape[0]
-        num_lcs = (np.zeros(num_agents)).astype(int)
-        solo_loop_closures = []
-        for agent in range(num_agents):
-            num_loop_close = 0
-            wps = waypoints[agent][waypoints[agent]!=-1]
-            wpt_sequence = np.array([wps,np.roll(wps,-1)]).T
-            wpt_sequence = wpt_sequence[0:-1]
+    # def getSoloLoopClosures(self, waypoints, return_loop_close = False):
+    #     num_agents = waypoints.shape[0]
+    #     num_lcs = (np.zeros(num_agents)).astype(int)
+    #     solo_loop_closures = []
+    #     for agent in range(num_agents):
+    #         num_loop_close = 0
+    #         wps = waypoints[agent][waypoints[agent]!=-1]
+    #         wpt_sequence = np.array([wps,np.roll(wps,-1)]).T
+    #         wpt_sequence = wpt_sequence[0:-1]
+    #
+    #         num_dups, dup_idx = self.getDuplicateWPs(wpt_sequence)
+    #
+    #         #only count as loop closure if they are separated by at least sep_thresh
+    #         if num_dups>0:
+    #             for dup in dup_idx:
+    #                 if abs(dup[0]-dup[1] > self._solo_sep_thresh):
+    #                     num_loop_close +=1
+    #
+    #         num_lcs[agent] = num_loop_close
+    #         if return_loop_close ==True:
+    #             lc = []
+    #             for dup in dup_idx:
+    #                 lc.append(wpt_sequence[dup[0]])
+    #
+    #             solo_loop_closures.append(lc)
+    #
+    #     if return_loop_close == False:
+    #         return num_lcs
+    #     else:
+    #         return num_lcs, solo_loop_closures
 
-            num_dups, dup_idx = self.getDuplicateWPs(wpt_sequence)
-
-            #only count as loop closure if they are separated by at least sep_thresh
-            if num_dups>0:
-                for dup in dup_idx:
-                    if abs(dup[0]-dup[1] > self._solo_sep_thresh):
-                        num_loop_close +=1
-
-            num_lcs[agent] = num_loop_close
-            if return_loop_close ==True:
-                lc = []
-                for dup in dup_idx:
-                    lc.append(wpt_sequence[dup[0]])
-
-                solo_loop_closures.append(lc)
-
-        if return_loop_close == False:
-            return num_lcs
-        else:
-            return num_lcs, solo_loop_closures
-
-    def getCombLoopClosures(self, waypoints, return_loop_close = False):
+    def getLoopClosures(self, waypoints, return_loop_close = False):
         num_agents = waypoints.shape[0]
         num_lcs = (np.zeros(num_agents)).astype(int)
         path_splits = (np.zeros(num_agents)).astype(int)
