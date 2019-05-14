@@ -167,17 +167,22 @@ class Organism( ):
     def calcObj(self):
         coverage, travel_dist = self._mappy.getCoverage(self._dna)
         lc_mat = self._mappy.getLoopClosures(self._dna)
+        #total number of solo_loop closures
         solo_lcs = np.diagonal(lc_mat)
         combo_lc_mat = lc_mat-np.diag(solo_lcs)
-
-        #true if there is a path with no loop closures to any other path
-        all_path_lc = (np.sum(combo_lc_mat+combo_lc_mat.T,axis=0)==0).any()
-        #TODO figure out how to handle lots of agent loop closure to make sure map can be combined
-        #TODO maybe only do some of this with multi agent to save time
-        #total number of cross-path loop closures
+        #total number of combined loop closures
         combo_lcs = np.sum(combo_lc_mat)
+
+        #computing number of connected components using adjacency matrix, degree matrix, and grapha laplacian
+        adjacency = ((combo_lc_mat + combo_lc_mat.T)>=1).astype(int)
+        degree = np.diag(np.sum(adjacency, axis = 0))
+        graph_laplacian = degree - adjacency
+        eig,v = np.linalg.eig(graph_laplacian)
+        num_con = self._num_agents - np.sum(eig>1e-6)
+
         travel_dist = travel_dist * self._ft_scale
-        if (solo_lcs < self._min_solo_lcs).any() or combo_lcs < self._min_comb_lcs or all_path_lc:
+        #apply contstraints by zeroing coverage
+        if (solo_lcs < self._min_solo_lcs).any() or combo_lcs < self._min_comb_lcs or num_con > 1:
             coverage = 0
         return [coverage, travel_dist]
 
@@ -215,8 +220,6 @@ class Organism( ):
                 dna2 = mate._dna[agent]
             dna1 = dna1[dna1 != -1]
             dna2 = dna2[dna2 != -1]
-            if len(dna1) <30 or len(dna2) < 30:
-                set_trace()
             new_dna1.append(dna1)
             new_dna2.append(dna2)
         lil_timmy = Organism(new_dna1, self._mappy, self._pather, self._org_params)
