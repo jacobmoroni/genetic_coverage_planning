@@ -239,7 +239,6 @@ class Mappy(object):
         alpha = self._view_angle/self._num_rays
         ray_angles = np.arange(self._num_rays)*alpha - self._view_angle/2.0
         for from_wpt,wp in tqdm(enumerate(graph), desc="Precomputing Frustums"):
-        # for from_wpt,wp in enumerate(graph):
             for to_wpt,node in enumerate(wp):
                 if node == 1:
                     wpt_loc = self.all_waypoints[from_wpt]
@@ -369,7 +368,8 @@ class Mappy(object):
                     agent_lc = np.digitize(dup,path_splits)
                     unq_lc = np.unique(agent_lc)
                     if len(unq_lc)==1:
-                        lc_mat[unq_lc[0],unq_lc[0]] += 1
+                        if (abs(np.diff(dup))>self._solo_sep_thresh).any():
+                            lc_mat[unq_lc[0],unq_lc[0]] += 1
                         if return_loop_close:
                             lc_data[unq_lc[0],unq_lc[0]].append(wpt_sequence[dup][0])
                     elif len(unq_lc)==2:
