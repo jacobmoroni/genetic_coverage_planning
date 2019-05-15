@@ -188,3 +188,4 @@ def savePopulation(filename):
 
 def loadPopulation(filename):
     population = pickle.load( open(filename, "rb"))
+    return population

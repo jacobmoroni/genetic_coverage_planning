@@ -13,47 +13,49 @@ Database file #1: genetic_coverage_paper_2019.bib
 -- See the "IEEEtran_bst_HOWTO.pdf" manual for usage information.
 Warning--missing institution in Choset2001
 Warning--empty journal in Bircher2016
+Warning--empty journal in Weisstein
+Warning--empty year in Weisstein
 
 Done.
-You've used 5 entries,
+You've used 6 entries,
             3975 wiz_defined-function locations,
-            838 strings with 8312 characters,
-and the built_in function-call counts, 3415 in all, are:
-= -- 255
-> -- 93
+            844 strings with 8437 characters,
+and the built_in function-call counts, 3732 in all, are:
+= -- 277
+> -- 97
 < -- 23
-+ -- 50
-- -- 18
-* -- 178
-:= -- 545
-add.period$ -- 10
-call.type$ -- 5
-change.case$ -- 3
++ -- 52
+- -- 19
+* -- 195
+:= -- 610
+add.period$ -- 12
+call.type$ -- 6
+change.case$ -- 4
 chr.to.int$ -- 54
-cite$ -- 7
-duplicate$ -- 235
-empty$ -- 272
-format.name$ -- 21
-if$ -- 753
+cite$ -- 10
+duplicate$ -- 264
+empty$ -- 302
+format.name$ -- 22
+if$ -- 815
 int.to.chr$ -- 0
-int.to.str$ -- 5
-missing$ -- 47
-newline$ -- 41
-num.names$ -- 5
-pop$ -- 115
+int.to.str$ -- 6
+missing$ -- 52
+newline$ -- 46
+num.names$ -- 6
+pop$ -- 131
 preamble$ -- 1
 purify$ -- 0
 quote$ -- 2
-skip$ -- 254
+skip$ -- 277
 stack$ -- 0
-substring$ -- 129
-swap$ -- 193
+substring$ -- 130
+swap$ -- 205
 text.length$ -- 5
 text.prefix$ -- 0
 top$ -- 5
 type$ -- 0
-warning$ -- 2
-while$ -- 13
-width$ -- 6
-write$ -- 70
-(There were 2 warnings)
+warning$ -- 4
+while$ -- 14
+width$ -- 7
+write$ -- 79
+(There were 4 warnings)

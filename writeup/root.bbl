@@ -51,4 +51,10 @@ A.~Parkinson, \emph{{Optimization-Based Design}}.\hskip 1em plus 0.5em minus
 S.~Thrun, W.~Burgard, and D.~Fox, \emph{{Probabilistic Robotics}}.\hskip 1em
   plus 0.5em minus 0.4em\relax Cambridge, Massachusetts: MIT press, 2006.
 
+\bibitem{Weisstein}
+\BIBentryALTinterwordspacing
+E.~W. Weisstein, ``{Laplacian Matrix}.'' [Online]. Available:
+  \url{http://mathworld.wolfram.com/LaplacianMatrix.html}
+\BIBentrySTDinterwordspacing
+
 \end{thebibliography}

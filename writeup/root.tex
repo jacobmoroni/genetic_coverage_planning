@@ -177,9 +177,11 @@ After computing the traversable graph, we use the information in it to precomput
 \section{APPROACH}\label{approach}
 \subsection{Single Agent Architecture}
 
+Performing coverage planning for a single agent is much more simple than multi agent planning. We began by developing the architecture for a single agent as follows.
+
 \subsubsection{Chromosome}
 
-The chromosome defining each member organism in a generation has a minimum, initial, and maximum number of genes. Each gene represents one waypoint in a path and its value encodes a location in the grid of possible waypoints, as seen in Fig. \ref{fig:waypoints}. The first generation of parents is spawned by generating a random path within the 2D map. The first step to create this path is to seed the same initial waypoint to each organism in the generation's population, representing the idea that the doorway to enter the building is always in the same place. All organisms in the first generation start with the same initial number of waypoints, however, the chromosome length is allowed to vary in crossover and mutation between the minimum and maximum number of genes. Once the chromosome is defined, both the coverage and flight time objective values are computed for that organism.
+The chromosome defining each member organism in a generation has a minimum, initial, and maximum number of genes. Each gene represents one waypoint in a path and its value encodes a location in the grid of possible waypoints, as seen in Fig. \ref{fig:waypoints}. The first generation of parents is spawned by generating a random path within the 2D map. The first step to create this path is to seed the same initial waypoint to each organism in the generation's population, representing the idea that the doorway to enter the building is always in the same place. All organisms in the first generation start with the same initial number of waypoints, however, the chromosome length is allowed to vary in crossover and mutation between the minimum and maximum number of genes. Once the chromosome is defined, both the coverage and flight time objective values are computed for that organism. To start the first generation with only good organisms, any chromosomes that do not satisfy the starting constraints as detailed in Section \ref{constraints} are thrown out rather than added to the first generation. Then a new organism is generated in its place and this process is repeated until the the desired number of organisms has been added to the first generation.
 
 \subsubsection{Crossover}
 
@@ -212,16 +214,24 @@ The second mutation ($\mathcal{B}$) is intended to straighten and shorten the pa
 \label{fig:muterpolation}
 \end{figure}
 
-\subsubsection{Constraints}
+\subsubsection{Constraints}\label{constraints}
 
-Most of the constraints of the system are modeled into the discretization, traversability graph, and upper and lower bounds of the chromosome length as described in section \ref{setup}. However, constraining the minimum coverage could not be applied directly to the model.
+Most of the constraints of the system are modeled into the discretization, traversability graph, and upper and lower bounds of the chromosome length as described in Section \ref{setup}. However, constraining the minimum coverage and loop closures could not be applied directly to the model.
 
 The coverage constraint was applied by adding to the cost to make it worse than the worst feasible design. Since we are using two objectives we implemented this constraint by adding a large cost to the flight time objective to guarantee that all organisms violating the constraint will be dominated by other designs (according to the maximin fitness).
 
 Rather than start with a high constraint that would eliminate many of the original designs, we initialized the constraint with a low value. Over several generations we increase the constraint slowly to push the designs into the desired region of objective space. This also inadvertently increases the average flight time, but as the system continues to evolve, more efficient flight paths are found even with the new, strict coverage constraint.
 
-As described in \cite{Parkinson2019}, constraints are applied to the fitness value. Because we have two objectives, and our non-modeled constraint directly relates to only one of the objectives, we implement this constraint on the objective value prior to computing the fitness value for the organism.
-\todo{add single agent loop closure here}
+We defined loop closures as anywhere that the path passes through the same waypoints in the same direction more than once as shown in Fig. \ref{fig:loop_closure}. For a path to satisfy the loop closure constraint, it has to have a set number of loop closures. To avoid useless loop closures, in order for a loop closure to count towards the constraint, it needs to be separated by at least a certain number of waypoints. Similarly to the coverage constraint, we enforced this constraint by adding a large cost to the coverage, ensuring that all paths that violate the constraint are dominated by other designs.
+
+\begin{figure}
+\centering
+\includegraphics[width=0.8\linewidth]{figures/loop_closure.png}
+\caption{An example of single agent loop closure. A valid loop closure is marked in blue where the path passes through the same waypoints in the same direction. Examples of times when the path crosses over it's self but not loop closures are marked in red.}
+\label{fig:loop_closure}
+\end{figure}
+
+As described in \cite{Parkinson2019}, constraints are applied to the fitness value. Because we have two objectives, and our non-modeled constraints directly relates to only one of the objectives, we implement these constraints on the objective values prior to computing the fitness value for the organism.
 
 \subsubsection{Minimax and Elitism}
 
@@ -239,16 +249,39 @@ We use a Roulette-style sampling method to pick parents in a way that gives orga
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Multi-Agent Architecture}
 
+The following section details the changes and addittions to the architecture to generate multi-agent paths.
+
 \subsubsection{Chromosome}
-This n agents chromosome is max lenxn
+The chromosome was expanded to be of size $nxl$ where $n$ is the number of agents and $l$ is the maximum path length where each row represents the path of its respective agent. The genes in the rows have the same representation as in the single agent case. To accommodate for paths that are shorter than the maximum length, the paths are padded with -1 at the end to populate any unused genes in the chromosome.
 
 \subsubsection{Crossover}
-treats each agent separately
+Crossover is largely the same as the single agent case. It treats each agent separately and preforms crossover on each path separately.
 
 \subsubsection{Mutation}
-treats each agent separately
+Much like crossover, the mutation mechanisms were only modified to accept the new chromosome structure. We treat each agent separately as mutation $\mathcal{A}$ and $\mathcal{B}$ are performed on the chromosome.
 
 \subsubsection{Constraints}
+The majority of the architecture change was in modeling the constraints for the multi-agent case. The constraint on coverage was applied to the coverage of the full chromosome, not the individual paths. The loop closure constraint had to be expanded to handle loop closures between agents. When dealing with more than one agent, in order for a single 3D map to be generated, the agents must close the loop between each other. For only two or three agents, this is still simple to enforce. After four agents, graph theory is necessary to efficiently evaluate the connectivity of the paths.
+
+To keep track of loop closures, we created a symmetric $nxn$ loop closure matrix $L$ where $n$ is the number of agents $l_{ij}$ is the number of loop closures between agent $i$ and agent $j$ the values along the diagonal of $L$ are the number of loop closures the agent has with its own path, the loop closure constraint from the single agent architecture was applied here using these values to ensure that paths loop close with themselves. We also added a new constraint to ensure the agents paths are connected enough to build a single map.
+
+As described by \cite{Weisstein}, we create the $nxn$ symmetric adjacency matrix $A$ from the loop closure matrix $L$ defined by
+
+\begin{equation}
+  a_{ij}=
+  \begin{cases}
+  1, & \text{if } (l_{ij} \geq 1 \text{ and } i \neq j)\\
+  0, & \text{otherwise}
+  \end{cases}
+\end{equation}
+
+which encodes which agents are directly connected to other agents
+Then we create the $nxn$ diagonal degree matrix $D$ defined by
+
+\begin{equation}
+  d_{ii} = \sum_{i=0}^{n} (a_i)
+\end{equation}
+
 coverage constraint applied to full coverage
 multi-agent closures
 
@@ -282,9 +315,9 @@ Pixel Scale (meters/pixel)                      & 0.15                       \\
 Minimum Coverage Constraint Start               & 0.3                        \\
 Minimum Coverage Constraint End                 & 0.8                        \\
 Minimum Coverage Constraint Aging (Generations) & 60                         \\
+\todo{update this table to show all variables}\\
 \end{tabular}
 \label{tab:parameters}
-\todo{update this table to show all variables}
 \end{table}
 
 \subsection{Single Agent}
