@@ -18,6 +18,31 @@
 \fi
 #2}}
 
+\bibitem{Choset2001}
+\BIBentryALTinterwordspacing
+H.~Choset, ``{Coverage for robotics-A survey of recent results},'' Tech. Rep.,
+  2001. [Online]. Available:
+  \url{https://link.springer.com/content/pdf/10.1023{\%}2FA{\%}3A1016639210559.pdf}
+\BIBentrySTDinterwordspacing
+
+\bibitem{Bircher2016}
+\BIBentryALTinterwordspacing
+A.~Bircher, M.~Kamel, K.~Alexis, M.~Burri, P.~Oettershagen, S.~Omari,
+  T.~Mantel, R.~Siegwart, and R.~Siegwart~rsiegwart, ``{Three-dimensional
+  coverage path planning via viewpoint resampling and tour optimization for
+  aerial robots},'' vol.~40, pp. 1059--1078, 2016. [Online]. Available:
+  \url{https://link.springer.com/content/pdf/10.1007{\%}2Fs10514-015-9517-1.pdf}
+\BIBentrySTDinterwordspacing
+
+\bibitem{Sipahioglu2010}
+\BIBentryALTinterwordspacing
+A.~Sipahioglu, G.~Kirlik, O.~Parlaktuna, and A.~Yazici, ``{Energy constrained
+  multi-robot sensor-based coverage path planning using capacitated arc routing
+  approach},'' \emph{Robotics and Autonomous Systems}, vol.~58, no.~5, pp.
+  529--538, may 2010. [Online]. Available:
+  \url{https://www.sciencedirect.com/science/article/pii/S0921889010000060}
+\BIBentrySTDinterwordspacing
+
 \bibitem{Parkinson2019}
 A.~Parkinson, \emph{{Optimization-Based Design}}.\hskip 1em plus 0.5em minus
   0.4em\relax Provo, Utah: BYU Academic Publishing, 2019.

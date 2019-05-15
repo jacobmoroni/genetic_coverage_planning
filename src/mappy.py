@@ -232,7 +232,7 @@ class Mappy(object):
 
 
     def computeFrustums(self, graph):
-        frustum_graph = np.zeros((graph.shape[0],graph.shape[1],self._num_rays+2,2))
+        traverse_frustum = np.zeros((graph.shape[0],graph.shape[1],self._num_rays+2,2))
         traverse_angles = np.zeros_like(graph)
         traverse_dists = np.zeros_like(graph)
         obstacles = (np.array(np.nonzero(self._img)) * self._scale)
@@ -280,11 +280,11 @@ class Mappy(object):
                     Rot = got.getRot2D(wpt_theta).T
                     frustum = np.around(Rot.dot(pts)).astype('int32').T
 
-                    frustum_graph[from_wpt,to_wpt] = frustum
+                    traverse_frustum[from_wpt,to_wpt] = frustum
                     traverse_angles[from_wpt,to_wpt] = wpt_theta
                     traverse_dists[from_wpt,to_wpt] = travel_cost
 
-        self._traverse_frustum = frustum_graph.astype(np.int32)
+        self._traverse_frustum = traverse_frustum.astype(np.int32)
         self._traverse_angles = traverse_angles
         self._traverse_dists = traverse_dists
 

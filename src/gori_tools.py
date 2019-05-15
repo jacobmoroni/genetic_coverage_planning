@@ -7,6 +7,7 @@ import copy
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
 import matplotlib.animation as animation
+import pickle
 
 from tqdm import tqdm
 import pointselector
@@ -181,3 +182,9 @@ def giveMeOptions(graph, pt1, pt2):
 def getObjValsList( population ):
     objs = [thing._obj_val for thing in population._gen_parent]
     return objs
+
+def savePopulation(filename):
+    pickle.dump(population, open(filename, "wb"))
+
+def loadPopulation(filename):
+    population = pickle.load( open(filename, "rb"))
