@@ -265,37 +265,31 @@ The majority of the architecture change was in modeling the constraints for the 
 
 To keep track of loop closures, we created a symmetric $nxn$ loop closure matrix $C$ with each element defined by
 
-\begin{equation}
-  \begin{align}
-    c_{ij} &= \text{loop closures between agent } i \text{ and agent } j \\
-    i,j &= 0...n
-  \end{align}
-\end{equation}
+\begin{align}
+  c_{ij} &= \text{loop closures between agent } i \text{ and agent } j \\
+  i,j &= 0...n \nonumber
+\end{align}
 
 where $n$ is the number of agents and the values along the diagonal of $C$ are the number of loop closures the agent has with its own path, the loop closure constraint from the single agent architecture was applied here using these values to ensure that paths loop close with themselves. We also added a new constraint to ensure the agents paths are connected enough to build a single map.
 
 As described by \cite{Weisstein}, we create the $nxn$ symmetric adjacency matrix $A$ from the loop closure matrix $C$ with each element defined by
 
-\begin{equation}
-  \begin{align}
-    a_{ij} &=
-    \begin{cases}
-      1, & \text{if } (c_{ij} \geq 1 \text{ and } i \neq j)\\
-      0, & \text{otherwise}
-    \end{cases}\\
-    i,j &=0 ...n
-  \end{align}
-\end{equation}
+\begin{align}
+  a_{ij} &=
+  \begin{cases}
+    1, & \text{if } (c_{ij} \geq 1 \text{ and } i \neq j)\\
+    0, & \text{otherwise}
+  \end{cases}\\
+  i,j &=0 ...n \nonumber
+\end{align}
 
 which encodes which agents are directly connected to other agents
 Then we create the $nxn$ diagonal degree matrix $D$ defined by
 
-\begin{equation}
-  \begin{align}
-    d_{ii} &= \sum_{j=0}^{n} a_{ij} \\
-    i &= 0 ... n
-  \end{align}
-\end{equation}
+\begin{align}
+  d_{ii} &= \sum_{j=0}^{n} a_{ij} \\
+  i &= 0 ... n \nonumber
+\end{align}
 
 So each element along the diagonal represents the number of agents that agent is directly connected to through loop closure. Then we define the Graph Laplacian Matrix $L$ as
 
@@ -304,6 +298,21 @@ So each element along the diagonal represents the number of agents that agent is
 \end{equation}
 
 which encodes the connectivity of the agents. We can determine whether there are enough loop closures in the paths to connect them into a single map by looking at the eigenvalues of $L$. The number of zero eigenvalues represents the number of separate connected components in the graph. So if all agents are connected to each other, there will be only one zero eigenvalue, where if there are not sufficient loop closures to combine into a single map, there will be more than one eigenvalue. We use this to set the last constraint used for the multi-agent architecture. There must be exactly one zero eigenvalue of $L$ to satisfy the constraint.
+
+\begin{figure}
+\centering
+\includegraphics[width=0.8\linewidth]{figures/loop_closure.png}
+\caption{\todo{caption}%C=\begin{bmatrix}
+ %7 &  0 &  0 & 2 & 5\\
+ %0 &  10&  3 & 0 & 0\\
+ %0 &  3 &  3 & 7 & 0\\
+ %2 &  0 &  7 & 2 & 1\\
+ %5 &  0 &  0 & 1 & 5
+%\end{bmatrix}
+}
+\label{fig:loop_closure}
+\end{figure}
+
 
 \subsubsection{Minimax and Elitism}
 The minimax fitness function is the same as with a single agent except that the coverage value used is the total negative coverage of all the agents summed together and the scaled total flight time of all the agents are used as the objective values. Elitism remains the same.
