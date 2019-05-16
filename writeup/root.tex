@@ -144,7 +144,7 @@ We split the optimization into two competing objectives. First, to maximize cove
 The first objective is to maximize coverage of the environment.  To simplify the problem, we assume the UAV only flies forward. We use the camera's minimum and maximum viewable depths and horizontal field of view to construct the camera viewable area. Then at each camera pose, we subtract everything occluded by obstacles from the viewable area and set the new viewable area as explored at a waypoint. After repeating this process for every waypoint in the path, we calculate the percent of the explorable space in the map that is seen in that path. Viewing walls is much more important to generate 3D maps than viewing the open space in the middle of rooms for example. To capture this, we computed a second coverage value which is the percent of safety buffer (computed when placing waypoints) seen by the path. We then preform an alpha blend of the two coverage types to get a single value that is used as the first objective value.
 
 \begin{equation}%\nonumber
-    coverage = \alpha_{cov} C_{total} + \left(1-\alpha_{cov})\right. C_{walls}
+    \text{coverage} = \alpha_{cov} C_{total} + \left(1-\alpha_{cov})\right. C_{walls}
 \end{equation}
 
 Where $C_{total}$ is the total coverage, $C_{walls}$ is the coverage of the safety buffer, and $\alpha_{cov}$ is a tunable parameter to weight the importance of walls vs. empty space in the coverage calculation. See Fig. \ref{fig:coverage} for an example result of this step.
@@ -161,7 +161,7 @@ Where $C_{total}$ is the total coverage, $C_{walls}$ is the coverage of the safe
 The second objective function minimizes flight time. To achieve this, we assume a constant velocity flight and compute the total distance flown in each path. This favors paths with fewer waypoints. To avoid meandering too much and incentivize flying straight lines, we also added a turning cost proportional to the change in angle between waypoints.
 
 \begin{equation}%\nonumber
-    flight\: time = \sum_{i=0}^{n} (d_i + \rho\abs{\Delta \theta_i})
+    \text{flight time} = \sum_{i=0}^{n} (d_i + \rho\abs{\Delta \theta_i})
 \end{equation}
 
 Where $n$ is the total number of waypoints in a given path, $d_i$ is the distance between the current waypoint and the next waypoint, $\rho$ is a tunable parameter to weight the cost of turning, and $\Delta \theta_i$ is the difference in heading angle between the current and next waypoint.
@@ -263,33 +263,53 @@ Much like crossover, the mutation mechanisms were only modified to accept the ne
 \subsubsection{Constraints}
 The majority of the architecture change was in modeling the constraints for the multi-agent case. The constraint on coverage was applied to the coverage of the full chromosome, not the individual paths. The loop closure constraint had to be expanded to handle loop closures between agents. When dealing with more than one agent, in order for a single 3D map to be generated, the agents must close the loop between each other. For only two or three agents, this is still simple to enforce. After four agents, graph theory is necessary to efficiently evaluate the connectivity of the paths.
 
-To keep track of loop closures, we created a symmetric $nxn$ loop closure matrix $L$ where $n$ is the number of agents $l_{ij}$ is the number of loop closures between agent $i$ and agent $j$ the values along the diagonal of $L$ are the number of loop closures the agent has with its own path, the loop closure constraint from the single agent architecture was applied here using these values to ensure that paths loop close with themselves. We also added a new constraint to ensure the agents paths are connected enough to build a single map.
-
-As described by \cite{Weisstein}, we create the $nxn$ symmetric adjacency matrix $A$ from the loop closure matrix $L$ defined by
+To keep track of loop closures, we created a symmetric $nxn$ loop closure matrix $C$ with each element defined by
 
 \begin{equation}
-  a_{ij}=
-  \begin{cases}
-  1, & \text{if } (l_{ij} \geq 1 \text{ and } i \neq j)\\
-  0, & \text{otherwise}
-  \end{cases}
+  \begin{align}
+    c_{ij} &= \text{loop closures between agent } i \text{ and agent } j \\
+    i,j &= 0...n
+  \end{align}
+\end{equation}
+
+where $n$ is the number of agents and the values along the diagonal of $C$ are the number of loop closures the agent has with its own path, the loop closure constraint from the single agent architecture was applied here using these values to ensure that paths loop close with themselves. We also added a new constraint to ensure the agents paths are connected enough to build a single map.
+
+As described by \cite{Weisstein}, we create the $nxn$ symmetric adjacency matrix $A$ from the loop closure matrix $C$ with each element defined by
+
+\begin{equation}
+  \begin{align}
+    a_{ij} &=
+    \begin{cases}
+      1, & \text{if } (c_{ij} \geq 1 \text{ and } i \neq j)\\
+      0, & \text{otherwise}
+    \end{cases}\\
+    i,j &=0 ...n
+  \end{align}
 \end{equation}
 
 which encodes which agents are directly connected to other agents
 Then we create the $nxn$ diagonal degree matrix $D$ defined by
 
 \begin{equation}
-  d_{ii} = \sum_{i=0}^{n} (a_i)
+  \begin{align}
+    d_{ii} &= \sum_{j=0}^{n} a_{ij} \\
+    i &= 0 ... n
+  \end{align}
 \end{equation}
 
-coverage constraint applied to full coverage
-multi-agent closures
+So each element along the diagonal represents the number of agents that agent is directly connected to through loop closure. Then we define the Graph Laplacian Matrix $L$ as
+
+\begin{equation}
+  L = D-A
+\end{equation}
+
+which encodes the connectivity of the agents. We can determine whether there are enough loop closures in the paths to connect them into a single map by looking at the eigenvalues of $L$. The number of zero eigenvalues represents the number of separate connected components in the graph. So if all agents are connected to each other, there will be only one zero eigenvalue, where if there are not sufficient loop closures to combine into a single map, there will be more than one eigenvalue. We use this to set the last constraint used for the multi-agent architecture. There must be exactly one zero eigenvalue of $L$ to satisfy the constraint.
 
 \subsubsection{Minimax and Elitism}
-total coverage and total flight time used as objective values
+The minimax fitness function is the same as with a single agent except that the coverage value used is the total negative coverage of all the agents summed together and the scaled total flight time of all the agents are used as the objective values. Elitism remains the same.
 
 \subsubsection{Low-Variance Sampling}
-
+The low variance sampling did not need to be modified for the multi-agent architecture.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{RESULTS}\label{results}
@@ -315,6 +335,7 @@ Pixel Scale (meters/pixel)                      & 0.15                       \\
 Minimum Coverage Constraint Start               & 0.3                        \\
 Minimum Coverage Constraint End                 & 0.8                        \\
 Minimum Coverage Constraint Aging (Generations) & 60                         \\
+Coverage Blending Factor                        & 1.0                        \\
 \todo{update this table to show all variables}\\
 \end{tabular}
 \label{tab:parameters}
