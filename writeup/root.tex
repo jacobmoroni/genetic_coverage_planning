@@ -6,7 +6,7 @@
 
 %\documentclass[a4paper, 10pt, conference]{ieeeconf}      % Use this line for a4 paper
 
-\IEEEoverridecommandlockouts                              % This command is only needed if
+% \IEEEoverridecommandlockouts                              % This command is only needed if
                                                           % you want to use the \thanks command
 
 \overrideIEEEmargins                                      % Needed to meet printer requirements.
@@ -45,7 +45,7 @@
 Optimal Multi-Agent Coverage and Flight Time with Genetic Path Planning
 }
 
-\author{Jacob M. Olson$^{1}$, Craig C. Bidstrup, Brady K Anderson$^{2}$% <-this % stops a space
+\author{Jacob M. Olson$^{1}$, Craig C. Bidstrup, Brady K Anderson, Alan R. Parkinson$^{2}$% <-this % stops a space
 %\thanks{This research was supported through the Center for Unmanned Aircraft Systems (C-UAS), a National Science Foundation-sponsored industry/university cooperative research center (I/UCRC) under NSF Award No. IIP-1650547 along with significant contributions from C-UAS industry members.}% <-this % stops a space
 \thanks{$^{1}$The corresponding author can be contacted at
         {\tt\small jacobmo at byu.edu}.}%
@@ -350,7 +350,7 @@ which encodes the connectivity of the agents. We can determine whether there are
 The minimax fitness function is the same as with a single agent except that the coverage value used is the total negative coverage of all the agents summed together and the scaled total flight time of all the agents are used as the objective values. Elitism remains the same.
 
 \subsubsection{Low-Variance Sampling}
-The low variance sampling did not need to be modified for the multi-agent architecture.
+The low variance sampling did not need modification for the multi-agent architecture.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{RESULTS}\label{results}

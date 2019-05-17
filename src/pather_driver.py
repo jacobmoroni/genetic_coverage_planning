@@ -57,7 +57,7 @@ num_rays = 15 #number of rays used to compute coverage with obstacles
 min_view = 0.5 #minimum distance the camera counts as viewed
 max_view = 7 #maximum distance the camera counts as viewed
 view_angle = 69.4*np.pi/180 #horizontal field of view of camera (in radians)
-rho = 2 #turning penalty gain. currently disabled
+rho = 2.0 #turning penalty gain. currently disabled
 solo_sep_thresh = 30#10 #threshold for separation between loop closures
 bw_thresh = 90 # value used to threshold a new map when converting to black and white
 scale_px2m = 1/0.44*0.0254 #measured estimate of original image pixels to meters scale
@@ -70,7 +70,7 @@ max_traverse_dist = 3.5 #max distance traversable with one step
 #Genetic Algorithm Parameters
 gen_size = 100 #number of organisms per generation (must be even)
 starting_path_len = 150 #75 #length of initial path
-num_agents = 1 #5 #number of agents
+num_agents = 2 #5 #number of agents
 gamma = 0.5 #roulette exponent >=0. 0 means no fitness pressure
 coverage_constr_0 = 0.3 #starting coverage constraint
 coverage_constr_f = 0.8 #final coverage constraint
@@ -83,12 +83,12 @@ min_dna_len = 30 #minimimum number of waypoints in a path
 crossover_prob = 0.7 #probability of performing crossover when generating new organisms
 crossover_time_thresh = 70 #how close crossover points need to be to eachother to be considered
 mutation_prob = 0.3 #probability of performing mutation on new organisms
-muterpolate_prob = 0.3 #probability of performing muterpolation on new organisms
+muterpolate_prob = 0.2 #probability of performing muterpolation on new organisms
 num_muterpolations = 20 #number of possible points to perform muterpolation
 muterpolation_srch_dist = 5 #how far ahead to look from each point when performing muterpolation
 muterpolation_sub_prob = 0.8 #probability of accepting muterpolation point
 min_solo_lcs = 2 #minimum number of loop closures each agent must have with their own path
-min_comb_lcs = 0#4 #minimum number of loop closures agents must have with other agents
+min_comb_lcs = 4 #minimum number of loop closures agents must have with other agents
 flight_time_scale = 0.0001 #scaling factor for flight time used in maximin fitnesses
 
 ###############################################################################
