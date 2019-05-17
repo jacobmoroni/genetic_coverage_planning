@@ -141,7 +141,25 @@ We split the optimization into two competing objectives. First, to maximize cove
 
 \subsubsection{Maximize Coverage}
 
-The first objective is to maximize coverage of the environment.  To simplify the problem, we assume the UAV only flies forward. We use the camera's minimum and maximum viewable depths and horizontal field of view to construct the camera viewable area. Then at each camera pose, we subtract everything occluded by obstacles from the viewable area and set the new viewable area as explored at a waypoint. After repeating this process for every waypoint in the path, we calculate the percent of the explorable space in the map that is seen in that path. Viewing walls is much more important to generate 3D maps than viewing the open space in the middle of rooms for example. To capture this, we computed a second coverage value which is the percent of safety buffer (computed when placing waypoints) seen by the path. We then preform an alpha blend of the two coverage types to get a single value that is used as the first objective value.
+The first objective is to maximize coverage of the environment.  To simplify the problem, we assume the UAV only flies forward. We use the camera's minimum and maximum viewable depths and horizontal field of view to construct the camera viewable area. Then at each camera pose, we subtract all explorable area occluded by obstacles from the viewable area by dividing the viewable area into $m$ sections and setting the distance of each section $d_{view,i}$ to
+
+\begin{align}
+  d_{view,i} &= min(\text{max depth}, \text{nearest obstacle}) \\
+  i &= 0...m \nonumber
+\end{align}
+
+As $m$ increases, the coverage calculation becomes more accurate, but also more more computationally costly. An example of how the coverage is evaluated is shown in Fig. \ref{fig:coverage_sections}.
+
+\begin{figure}
+\centering
+\includegraphics[width=0.5\linewidth]{figures/coverage_sections.png}
+\caption{An example of how the coverage would be evaluated at a single waypoint with $m$=7. The blue dot is the agent at a waypoint, the white area is what would be counted as viewed and the grey area represents the maximum viewable area.}
+\label{fig:coverage_sections}
+\end{figure}
+
+
+
+and set the new viewable area as explored at a waypoint. After repeating this process for every waypoint in the path, we calculate the percent of the explorable space in the map that is seen in that path. Viewing walls is much more important to generate 3D maps than viewing the open space in the middle of rooms for example. To capture this, we computed a second coverage value which is the percent of safety buffer (computed when placing waypoints) seen by the path. We then preform an alpha blend of the two coverage types to get a single value that is used as the first objective value.
 
 \begin{equation}%\nonumber
     \text{coverage} = \alpha_{cov} C_{total} + \left(1-\alpha_{cov})\right. C_{walls}
@@ -236,6 +254,7 @@ As described in \cite{Parkinson2019}, constraints are applied to the fitness val
 \subsubsection{Minimax and Elitism}
 
 After all of a generation's children have been created, the fitness of the parents and children is computed by using the minimax fitness function. In brief, the minimax scheme encourages a spread of designs across the Pareto front between competing objective values, with a target of minimizing the objectives. It does this by calculating the distance between each of the objective values of all the organisms, and finds the minimum difference of both objectives to each other. It then computes the maximum of all of these minima as the fitness value. Following the notation in \cite{Parkinson2019}, if $f_k^i$ is the computed $k^{\mathrm{th}}$ objective value for organism $i$, the minimax fitness for organism $i$ is computed by,
+
 \begin{equation}%\nonumber
     fitness = \max_{i \neq j}\left(\min_{k}\left(f_k^i - f_k^j\right)\right).
 \end{equation}
@@ -297,20 +316,35 @@ So each element along the diagonal represents the number of agents that agent is
   L = D-A
 \end{equation}
 
-which encodes the connectivity of the agents. We can determine whether there are enough loop closures in the paths to connect them into a single map by looking at the eigenvalues of $L$. The number of zero eigenvalues represents the number of separate connected components in the graph. So if all agents are connected to each other, there will be only one zero eigenvalue, where if there are not sufficient loop closures to combine into a single map, there will be more than one eigenvalue. We use this to set the last constraint used for the multi-agent architecture. There must be exactly one zero eigenvalue of $L$ to satisfy the constraint.
+which encodes the connectivity of the agents. We can determine whether there are enough loop closures in the paths to connect them into a single map by looking at the eigenvalues of $L$. The number of zero eigenvalues represents the number of separate connected components in the graph. So if all agents are connected to each other, there will be only one zero eigenvalue, where if there are not sufficient loop closures to combine into a single map, there will be more than one eigenvalue. We use this to set the last constraint used for the multi-agent architecture. There must be exactly one zero eigenvalue of $L$ to satisfy the constraint. An example connectivity graph for a system with five agents is shown in Fig. \ref{fig:connectivity}
 
 \begin{figure}
 \centering
-\includegraphics[width=0.8\linewidth]{figures/loop_closure.png}
-\caption{\todo{caption}%C=\begin{bmatrix}
+\includegraphics[width=0.8\linewidth]{figures/connectivity.png}
+\caption{An example connectivity graph with five agents and its respective loop closure matrix $C$, adjacency matrix $A$, and degree matrix $D$. The agent number is labeled on each blue node and the number of loop closures between agents is shown with the black edges between nodes.
+%C=\begin{bmatrix}
  %7 &  0 &  0 & 2 & 5\\
  %0 &  10&  3 & 0 & 0\\
  %0 &  3 &  3 & 7 & 0\\
  %2 &  0 &  7 & 2 & 1\\
  %5 &  0 &  0 & 1 & 5
 %\end{bmatrix}
+%A=\begin{bmatrix}
+% 0 &  0 &  0 & 1 & 1\\
+% 0 &  0 &  1 & 0 & 0\\
+% 0 &  1 &  0 & 1 & 0\\
+% 1 &  0 &  1 & 0 & 1\\
+% 1 &  0 &  0 & 1 & 0
+%\end{bmatrix}
+% D=\begin{bmatrix}
+ % 2 &  0 &  0 & 0 & 0\\
+ % 0 &  1 &  0 & 0 & 0\\
+ % 0 &  0 &  2 & 0 & 0\\
+ % 0 &  0 &  0 & 3 & 0\\
+ % 0 &  0 &  0 & 0 & 2
+% \end{bmatrix}
 }
-\label{fig:loop_closure}
+\label{fig:connectivity}
 \end{figure}
 
 
@@ -330,21 +364,28 @@ The designer is required to set many parameters for the genetic algorithm to wor
 \begin{tabular}{l|l}
 \hline
 \multicolumn{1}{|l|}{Parameter}                 & \multicolumn{1}{l|}{Value} \\ \hline
-Generation Size (Organisms)                     & 100                        \\
-Crossover Probability                           & 0.7                        \\
-Mutation $\mathcal{A}$ Probability              & 0.3                        \\
-Mutation $\mathcal{B}$ Probability              & 0.3                        \\
-Number of Mutation $\mathcal{B}$ Instances      & 20                         \\
-Mutation $\mathcal{B}$ Acceptance Probability   & 0.8                        \\
-Objective Scaling Factor : Flight Time          & 0.0001                     \\
-Objective Scaling Factor : Coverage             & -1.0                       \\
-Minimum Chromosome Length (Waypoints)           & 75                         \\
-Maximum Chromosome Length (Waypoints)           & 250                        \\
-Pixel Scale (meters/pixel)                      & 0.15                       \\
-Minimum Coverage Constraint Start               & 0.3                        \\
-Minimum Coverage Constraint End                 & 0.8                        \\
-Minimum Coverage Constraint Aging (Generations) & 60                         \\
-Coverage Blending Factor                        & 1.0                        \\
+Generation Size (Organisms)                        & 100                     \\
+Crossover Probability                              & 0.7                     \\
+Crossover Time Threshold (Waypoints)               & 70                      \\
+Mutation $\mathcal{A}$ Probability                 & 0.3                     \\
+Mutation $\mathcal{B}$ Probability                 & 0.3                     \\
+Number of Mutation $\mathcal{B}$ Instances         & 20                      \\
+Mutation $\mathcal{B}$ Acceptance Probability      & 0.8                     \\
+Mutation $\mathcal{B}$ Search Distance (Waypoints) & 5                       \\
+Objective Scaling Factor : Flight Time             & 0.0001                  \\
+Objective Scaling Factor : Coverage                & -1.0                    \\
+Coverage Blending Factor $\alpha_{cov}$            & 1.0                     \\
+Coverage Sections                                  & 15                      \\
+Minimum Chromosome Length (Waypoints)              & 75                      \\
+Maximum Chromosome Length (Waypoints)              & 250                     \\
+Pixel Scale (meters/pixel)                         & 0.15                    \\
+Minimum Coverage Constraint Start                  & 0.3                     \\
+Minimum Coverage Constraint End                    & 0.8                     \\
+Minimum Coverage Constraint Aging (Generations)    & 60                      \\
+Loop Closure Separation Threshold (Waypoints)      & 30                      \\
+Minimum Loop Closures                              & 2                       \\
+Path Memory (Waypoints)                            & 10                      \\
+
 \todo{update this table to show all variables}\\
 \end{tabular}
 \label{tab:parameters}
