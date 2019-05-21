@@ -19,6 +19,8 @@ class PathMaker(object):
         size = self._mappy.shape
         self._path_memory = path_params['path_memory']
         self._max_dist = path_params['max_traverse_dist']
+        self._waypoint_dist_factor = path_params['waypoint_dist_factor']
+        self._wall_waypoint_factor = path_params['wall_waypoint_factor']
 
     @property
     def path_memory(self):
@@ -39,20 +41,25 @@ class PathMaker(object):
         XY_scale[idx,0] = XY_scale[idx,0] - (self._safety_buffer-min_distances[idx])*np.cos(min_angles[idx])
         XY_scale[idx,1] = XY_scale[idx,1] - (self._safety_buffer-min_distances[idx])*np.sin(min_angles[idx])
 
+        # set_trace()
+
         #pruning hallways
         print("Pruning Dots")
-        waypoint_displacements = np.array([XY_scale[None,:,0] - XY_scale[:,0,None],
-                                  XY_scale[None,:,1] - XY_scale[:,1,None]])
+        waypoint_displacements = np.array([XY_scale[None,:,0] -
+                                           XY_scale[:,0,None],
+                                           XY_scale[None,:,1] -
+                                           XY_scale[:,1,None]])
 
         waypoint_distances = np.linalg.norm(waypoint_displacements, axis=0)
         # waypoint_angles = np.arctan2(waypoint_displacements[1], waypoint_displacements[0])
 
         #find waypoints too close to eachother
-        idx_bool = waypoint_distances<self._hall_width*0.8#0.9#0.7
+        idx_bool = waypoint_distances<self._hall_width*self._waypoint_dist_factor
         waypoint_I = np.eye(XY_scale.shape[0])
         idx_bool = np.logical_xor(waypoint_I,idx_bool)
         pruning_idx = np.array(np.where(idx_bool)).T
         pruning_idx = np.unique(np.sort(pruning_idx),axis =0)
+
         #prune waypoints where 2 are close to a single waypoint
         unq, _, unq_count = np.unique(np.sort(pruning_idx,axis = None), return_inverse=True, return_counts=True)
         count_mask = unq_count > 1
@@ -74,6 +81,13 @@ class PathMaker(object):
         row,_ = np.where(XY_scale == -1)
         XY_scale = np.delete(XY_scale,row,0)
 
+        #prune away waypoints that arent near a wall
+        min_distances, min_angles = self._mappy.getClosestObstacles(XY_scale)
+        idx_bool_far = min_distances > self._safety_buffer*self._wall_waypoint_factor
+        idx_far = np.array(np.where(idx_bool_far))
+        XY_scale = np.delete(XY_scale,idx_far,0)
+
+        #reset XY for pixel scale
         XY = XY_scale/self._scale
         XY = np.rint(XY).astype(int)
         self._XY = XY

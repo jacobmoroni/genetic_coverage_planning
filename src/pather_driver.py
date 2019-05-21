@@ -42,7 +42,7 @@ cwd = os.getcwd() #current working directory
 ###############################################################################
 # setting this to true will use waypoints and traversability that have already been genrated
 # set to false to re-generate waypoints and traversability graph for new map or altered parameters
-use_old_graph = True
+use_old_graph = False
 old_graph_fname = cwd + '/data/wilk_3_graph.npy'
 old_wpts_fname = cwd + '/data/wilk_3_wpts.npy'
 
@@ -66,29 +66,32 @@ coverage_blend = 1.0 #percentage of coverage score based on viewing walls vs all
 #Path parameters
 path_memory = 10 #Memory of path where path generator will not return to unless no other option exists
 max_traverse_dist = 3.5 #max distance traversable with one step
+waypoint_dist_factor = 0.8 #factor multiplied by safety buffer to determine which waypoints are too close to eachother for pruning
+wall_waypoint_factor = 3 #factor multiplied by safety buffer to determine which waypoints are too far away from a wall to be usefull for pruning.
 
 #Genetic Algorithm Parameters
 gen_size = 100 #number of organisms per generation (must be even)
-starting_path_len = 150 #75 #length of initial path
-num_agents = 2 #5 #number of agents
+starting_path_len = 150 #length of initial path
+num_agents = 2 #number of agents
 gamma = 0.5 #roulette exponent >=0. 0 means no fitness pressure
 coverage_constr_0 = 0.3 #starting coverage constraint
-coverage_constr_f = 0.8 #final coverage constraint
-coverage_aging = 60 #number of generations to age coverage constraint
+coverage_constr_f = 0.95 #final coverage constraint
+coverage_aging = 150 #number of generations to age coverage constraint
 
 #Organism Parameters
-start_idx = [207,207,1,10,305,207] #waypoint index where all paths will begin
-max_dna_len = 200 #100 #maximum number of waypoints in a path
+start_idx = [111,111,0,15,197,173] #waypoint index where all paths will begin
+# start_idx = [207,207,1,10,305,207] #waypoint index where all paths will begin
+max_dna_len = 150 #maximum number of waypoints in a path
 min_dna_len = 30 #minimimum number of waypoints in a path
 crossover_prob = 0.7 #probability of performing crossover when generating new organisms
 crossover_time_thresh = 70 #how close crossover points need to be to eachother to be considered
 mutation_prob = 0.3 #probability of performing mutation on new organisms
 muterpolate_prob = 0.2 #probability of performing muterpolation on new organisms
-num_muterpolations = 20 #number of possible points to perform muterpolation
+num_muterpolations = 15 #number of possible points to perform muterpolation
 muterpolation_srch_dist = 5 #how far ahead to look from each point when performing muterpolation
 muterpolation_sub_prob = 0.8 #probability of accepting muterpolation point
-min_solo_lcs = 2 #minimum number of loop closures each agent must have with their own path
-min_comb_lcs = 4 #minimum number of loop closures agents must have with other agents
+min_solo_lcs = 5 #minimum number of loop closures each agent must have with their own path
+min_comb_lcs = 10 #minimum number of loop closures agents must have with other agents
 flight_time_scale = 0.0001 #scaling factor for flight time used in maximin fitnesses
 
 ###############################################################################
@@ -105,7 +108,9 @@ map_params = {'scale':scale,
               'coverage_blend':coverage_blend}
 
 path_params = {'path_memory':path_memory,
-               'max_traverse_dist':max_traverse_dist}
+               'max_traverse_dist':max_traverse_dist,
+               'waypoint_dist_factor':waypoint_dist_factor,
+               'wall_waypoint_factor':wall_waypoint_factor}
 
 org_params = {'start_idx':start_idx,
               'max_dna_len':max_dna_len,
@@ -168,4 +173,4 @@ pareto_hist = []
 pareto_hist += [got.getObjValsList(population)]
 
 got.plotty(population, pather, mappy)
-pareto_hist += population.runEvolution(100)
+pareto_hist += population.runEvolution(500)

@@ -34,6 +34,39 @@ def plotty(population,pather,mappy):
     plt.plot(objs[:,0], objs[:,1],'.b')
     plt.show()
 
+def animateFlight(id,population,pather,mappy):
+    current_organism = population._gen_parent[id]
+    coverage, travel_dist, coverage_map = mappy.getCoverage(current_organism._dna,return_map=True)
+    lc_mat,loop_closures = mappy.getLoopClosures(current_organism._dna, return_loop_close=True)
+
+    img = mappy._safety_img.copy()
+    cov_img = coverage_map
+    # img = coverage_map
+
+    img[img==0] += cov_img[img==0]
+    img[img<0.3] += cov_img[img<0.3]
+    img = np.clip(img,0,1.0)
+    img_color = img[...,None]*np.array([1, 1, 1])
+
+    waypoints = pather._XY
+    paths = current_organism._dna
+
+    path_colors = [(1.0,0,0),(0,1.0,0),(0,0,1.0),(1.0,1.0,0.0),(0.0,1.0,1.0)]
+    num_colors = 5
+    #TODO make this plot all at the same time
+    for agent in range(int(paths.shape[0])):
+        # set_trace()
+        path = waypoints[paths[agent][paths[agent]!=-1]]
+        path = np.fliplr(path)
+        path = list(map(tuple,path))
+        for ii in range(len(path)-1):
+            cv2.line(img_color, path[ii],path[ii+1], path_colors[agent%num_colors],1)
+            plt.cla()
+            plt.imshow(img_color)
+            pt = np.flip(path[ii+1])
+            plt.plot(pt[1], pt[0],'ok')
+            plt.pause(0.01)
+
 def update_pareto(gen_num, data, population):
     population.set_data(data[..., gen_num])
     plt.xlim(-1,max(data[0,:,gen_num])+0.05)

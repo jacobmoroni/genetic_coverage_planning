@@ -250,7 +250,8 @@ class Organism( ):
                 #reverse sort points to minimize chance of trying to access out of bounds after shortenning path
                 mut_points = np.sort(mut_points)[::-1]
             except:
-                set_trace()
+                print("DNA is getting too short")
+                mut_points = []
             for idx1 in mut_points:
                 for idx2 in range(idx1+self._srch_dist+1, idx1+1, -1):
                     do_it = np.random.rand()

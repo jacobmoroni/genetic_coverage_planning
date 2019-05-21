@@ -149,12 +149,17 @@ class Mappy(object):
 
         img = pac_dots + self._safety_img
         img_color = img[...,None]*np.array([1, 1, 1])
+        for ii, wp in enumerate(waypoints):
+            cv2.putText(img_color,str(ii),(wp[1],wp[0]),cv2.FONT_HERSHEY_SIMPLEX,0.25,(255,255,255))
         if start_idx is not None:
-            for agent in range(len(start_idx)):
-                cv2.circle(img_color, (waypoints[start_idx[agent],1],
-                                       waypoints[start_idx[agent],0]),
-                                       5,
-                                       self._path_colors[(((agent-1)*-1)+1)%self._num_colors])
+            try:
+                for agent in range(len(start_idx)):
+                    cv2.circle(img_color, (waypoints[start_idx[agent],1],
+                                           waypoints[start_idx[agent],0]),
+                                           5,
+                                           self._path_colors[(((agent-1)*-1)+1)%self._num_colors])
+            except:
+                print ("INVALID STARTING LOCATIONS")
 
         cv2.namedWindow('Map With Waypoints')
         cv2.imshow('Map With Waypoints', img_color)
