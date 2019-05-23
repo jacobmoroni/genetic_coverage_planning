@@ -86,9 +86,9 @@ Generating a flight path is a nontrivial task, especially when multiple objectiv
 
 When generating paths for the purpose of building a 3D map of the environment in a GPS-denied area such as indoors, enforcing loop closures becomes critical. Loop closures both between paths of different agents and between different segments of the same path are critical to successfully generate a usable map. Loop closures between different segments of the same path significantly reduce drift that occurs in visual odometry algorithms necessary for navigation and estimation with UAVs. Loop closures between paths of different agents ensures that the individual maps of each agent will combine into a single map.
 
-There are several different approaches to coverage path planning that have been explored over recent years. These approaches range from 2D coverage where the robot must pass over all points in its known environment, common for uses such as cleaning robots or mine searching \cite{Choset2001} to using coverage planning to generate 3D maps of outdoor terrain using viewpoint information from the robot's camera \cite{Bircher2016}. These approaches differ from the coverage planning desired for generating 3D maps of indoor environments with multiple UAVs in that they do not enforce loop closures in the generated paths. \todo{this feels lacking, but I'm not sure how much more it needs}
+There are several different approaches to coverage path planning that have been explored over recent years. These approaches range from 2D coverage where the robot must pass over all points in its known environment, common for uses such as cleaning robots or mine searching \cite{Choset2001} to using coverage planning to generate 3D maps of outdoor terrain using viewpoint information from the robot's camera \cite{Bircher2016}. These approaches differ from the coverage planning desired for generating 3D maps of indoor environments with multiple UAVs in that they do not enforce loop closures in the generated paths.
 
-The complexity of the design space renders many simple optimization routines improper for this problem. Further, by the structure of the problem, derivatives are not available for each design variable. Thus, a derivative-free approach is required. We chose to use a genetic algorithm because they are well suited to this type of problem.
+The complexity of the design space renders many simple optimization routines improper for this problem. Further, by the structure of the problem, derivatives are not available for each design variable. Thus, a derivative-free approach is required. We chose to use a genetic algorithm because they are well suited to this type of problem. As outlined by Gen et al. \cite{Gen2000}, genetic algorithms are a powerful tool for solving complex, multi-objective optimization problems such as this. Genetic algorithms have been used in coverage path planning before, Yakoubi et al. details an approach to 2D coverage planning of a cleaning robot using a multi-objective genetic algorithm \cite{Yakoubi2016} and Hameed discussed using them for 3D terrain \cite{Hameed2014}. Similarly to \cite{Choset2001}, and \cite{Bircher2016}, these approaches to not enforce loop closures and the objective is to visit all areas on the ground. Since the goal of this optimization is to get a path that when flown will generate a high fidelity 3D map of an indoor area, viewing all of the walls and obstacles is more important than visiting all areas on the ground. The genetic algorithm proposed in this paper takes these differences into consideration.
 
 We first discretized and simplified the model as much as possible to shrink the design space before applying a genetic algorithm. We found our genetic algorithm was able to effectively plan single agent and multi-agent paths in an arbitrary environment and satisfy the constraints of the problem.
 
@@ -132,6 +132,7 @@ After removing occluded waypoints, the remaining waypoints are further pruned an
 \centering
 \includegraphics[width=0.8\linewidth]{figures/waypoint2.png}
 \caption{The initial waypoint grid with only occluded waypoints removed (left) and the modified waypoint grid after applying the safety buffer and anti-crowding (right).}
+\todo{make this figure more readable}
 \label{fig:waypoints}
 \end{figure}
 
@@ -192,7 +193,7 @@ Because of the computational cost of computing the modified viewable area at eac
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{APPROACH}\label{approach}
 \subsection{Single Agent Architecture}
-
+\todo{ Add description of genetic algorithm here and continue with parkinsons notes from number 4}
 Performing coverage planning for a single agent is simpler than multi agent planning. We began by detailing the architecture for a single agent as follows.
 
 \subsubsection{Chromosome}
@@ -242,16 +243,17 @@ We defined loop closures as anywhere that the path passes through the same waypo
 
 \begin{figure}
 \centering
-\includegraphics[width=0.8\linewidth]{figures/loop_closure.png}
-\caption{An example of single agent loop closure. A valid loop closure is marked in blue where the path passes through the same waypoints in the same direction. Examples of times when the path crosses over it's self but not loop closures are marked in red.}
+\includegraphics[width=1.0\linewidth]{figures/loop_closure.png}
+\todo{change colors or something, this is hard to see}
+\caption{An example of single agent loop closure. A valid loop closure is marked in blue where the path passes through the same waypoints in the same direction. Examples of times when the path crosses over its self but not loop closures are marked in red.}
 \label{fig:loop_closure}
 \end{figure}
 
 As described in \cite{Parkinson2019}, constraints are applied to the fitness value. Because we have two objectives, and our non-modeled constraints directly relate to only one of the objectives, we implement these constraints on the objective values prior to computing the fitness value for the organism.
 
-\subsubsection{Minimax and Elitism}
+\subsubsection{Maximin and Elitism}
 
-After all of a generation's children have been created, the fitness of the parents and children is computed by using the minimax fitness function. In brief, the minimax scheme encourages a spread of designs across the Pareto front between competing objective values, with a target of minimizing the objectives. It does this by calculating the distance between each of the objective values of all the organisms, and finds the minimum difference of both objectives to each other. It then computes the maximum of all of these minima as the fitness value. Following the notation in \cite{Parkinson2019}, if $f_k^i$ is the computed $k^{\mathrm{th}}$ objective value for organism $i$, the minimax fitness for organism $i$ is computed by,
+After all of a generation's children have been created, the fitness of the parents and children is computed by using the maximin fitness function as described by Balling \cite{Balling2003}. In brief, the maximin scheme encourages a spread of designs across the Pareto front between competing objective values, with a target of minimizing the objectives. It does this by calculating the distance between each of the objective values of all the organisms, and finds the minimum difference of both objectives to each other. It then computes the maximum of all of these minima as the fitness value. Following the notation in \cite{Parkinson2019}, if $f_k^i$ is the computed $k^{\mathrm{th}}$ objective value for organism $i$, the maximin fitness for organism $i$ is computed by,
 
 \begin{equation}%\nonumber
     fitness = \max_{i \neq j}\left(\min_{k}\left(f_k^i - f_k^j\right)\right).
@@ -346,8 +348,8 @@ which encodes the connectivity of the agents. We can determine whether there are
 \end{figure}
 
 
-\subsubsection{Minimax and Elitism}
-The minimax fitness function is the same as with a single agent except that the coverage value used is the total negative coverage of all the agents summed together and the scaled total flight time of all the agents are used as the objective values. Elitism remains the same.
+\subsubsection{Maximin and Elitism}
+The maximin fitness function is the same as with a single agent except that the coverage value used is the total negative coverage of all the agents summed together and the scaled total flight time of all the agents are used as the objective values. Elitism remains the same.
 
 \subsubsection{Low-Variance Sampling}
 The low variance sampling did not need modification for the multi-agent architecture.
@@ -395,6 +397,7 @@ Path Memory (Waypoints)                            & 10                      \\
 \begin{figure*}
 \centering
 \includegraphics[width=1.0\linewidth]{figures/pareto_history2.png}
+\todo{make this bigger so it is more useful}
 \caption{History of the Pareto front across several generations. The dynamic constraint placed on coverage prioritizes high coverage but also induces high flight time for the first 100 generations. Afterward, the algorithm can work with high coverage organisms, optimizing them for lower flight times, while maintaining their high coverage properties.}
 \label{fig:pareto_cheetos}
 \end{figure*}

@@ -1,4 +1,4 @@
-\begin{thebibliography}{1}
+\begin{thebibliography}{10}
 \providecommand{\url}[1]{#1}
 \csname url@rmstyle\endcsname
 \providecommand{\newblock}{\relax}
@@ -34,6 +34,31 @@ A.~Bircher, M.~Kamel, K.~Alexis, M.~Burri, P.~Oettershagen, S.~Omari,
   \url{https://link.springer.com/content/pdf/10.1007{\%}2Fs10514-015-9517-1.pdf}
 \BIBentrySTDinterwordspacing
 
+\bibitem{Gen2000}
+\BIBentryALTinterwordspacing
+M.~Gen and R.~Cheng, \emph{{Genetic algorithms and engineering
+  optimization}}.\hskip 1em plus 0.5em minus 0.4em\relax Wiley, 2000. [Online].
+  Available:
+  \url{https://www.wiley.com/en-us/Genetic+Algorithms+and+Engineering+Optimization-p-9780471315315}
+\BIBentrySTDinterwordspacing
+
+\bibitem{Yakoubi2016}
+\BIBentryALTinterwordspacing
+M.~A. Yakoubi and M.~T. Laskri, ``{The path planning of cleaner robot for
+  coverage region using Genetic Algorithms},'' \emph{Journal of Innovation in
+  Digital Ecosystems}, vol.~3, no.~1, pp. 37--43, jun 2016. [Online].
+  Available:
+  \url{https://www.sciencedirect.com/science/article/pii/S2352664516300050{\#}br000025}
+\BIBentrySTDinterwordspacing
+
+\bibitem{Hameed2014}
+\BIBentryALTinterwordspacing
+I.~A. Hameed, ``{Intelligent Coverage Path Planning for Agricultural Robots and
+  Autonomous Machines on Three-Dimensional Terrain},'' \emph{Journal of
+  Intelligent {\&} Robotic Systems}, vol.~74, no. 3-4, pp. 965--983, jun 2014.
+  [Online]. Available: \url{http://link.springer.com/10.1007/s10846-013-9834-6}
+\BIBentrySTDinterwordspacing
+
 \bibitem{Sipahioglu2010}
 \BIBentryALTinterwordspacing
 A.~Sipahioglu, G.~Kirlik, O.~Parlaktuna, and A.~Yazici, ``{Energy constrained
@@ -46,6 +71,14 @@ A.~Sipahioglu, G.~Kirlik, O.~Parlaktuna, and A.~Yazici, ``{Energy constrained
 \bibitem{Parkinson2019}
 A.~Parkinson, \emph{{Optimization-Based Design}}.\hskip 1em plus 0.5em minus
   0.4em\relax Provo, Utah: BYU Academic Publishing, 2019.
+
+\bibitem{Balling2003}
+\BIBentryALTinterwordspacing
+R.~Balling, ``{The Maximin Fitness Function; Multi-objective City and Regional
+  Planning}.''\hskip 1em plus 0.5em minus 0.4em\relax Springer, Berlin,
+  Heidelberg, 2003, pp. 1--15. [Online]. Available:
+  \url{http://link.springer.com/10.1007/3-540-36970-8{\_}1}
+\BIBentrySTDinterwordspacing
 
 \bibitem{Thrun2006}
 S.~Thrun, W.~Burgard, and D.~Fox, \emph{{Probabilistic Robotics}}.\hskip 1em
