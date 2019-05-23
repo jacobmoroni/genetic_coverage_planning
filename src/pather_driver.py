@@ -4,11 +4,10 @@ dir_remove = []
 for p in sys.path:
     if p.find('python2') !=-1:
         dir_remove.append(p)
-    #
-#
+
 for p in dir_remove:
     sys.path.remove(p)
-#
+
 from IPython.core.debugger import set_trace
 from importlib import reload
 
@@ -50,18 +49,21 @@ old_wpts_fname = cwd + '/data/wilk_3_wptsXY_new.npy'
 scaled_map_file = cwd + "/data/map_scaled.png"
 raw_map_file = cwd + "/data/map.png"
 
-# Map parameters
+# Parameters that remain the same regardless of number of agents
+# Map Generation parameters
 scale = 0.15 #scale from pixels to meters of scaled map
 narrowest_hall = 1.75 #width in meters of narrowest_hall
 num_rays = 15 #number of rays used to compute coverage with obstacles
 min_view = 0.5 #minimum distance the camera counts as viewed
 max_view = 7 #maximum distance the camera counts as viewed
 view_angle = 69.4*np.pi/180 #horizontal field of view of camera (in radians)
-rho = 2.0 #turning penalty gain. currently disabled
-solo_sep_thresh = 30#10 #threshold for separation between loop closures
 bw_thresh = 90 # value used to threshold a new map when converting to black and white
 scale_px2m = 1/0.44*0.0254 #measured estimate of original image pixels to meters scale
+
+# Map Training Parameters
+rho = 2.0 #turning penalty gain.
 coverage_blend = 1.0 #percentage of coverage score based on viewing walls vs all area
+solo_sep_thresh = [30,30,20,10,10] #threshold for separation between loop closures
 
 #Path parameters
 path_memory = 10 #Memory of path where path generator will not return to unless no other option exists
@@ -71,27 +73,27 @@ wall_waypoint_factor = 3 #factor multiplied by safety buffer to determine which 
 
 #Genetic Algorithm Parameters
 gen_size = 100 #number of organisms per generation (must be even)
-starting_path_len = 150 #length of initial path
-num_agents = 5 #number of agents
+starting_path_len = [200,150,100,100,75] #length of initial path
+num_agents = 1 #number of agents
 gamma = 0.5 #roulette exponent >=0. 0 means no fitness pressure
 coverage_constr_0 = 0.3 #starting coverage constraint
 coverage_constr_f = 0.95 #final coverage constraint
 coverage_aging = 150 #number of generations to age coverage constraint
 
 #Organism Parameters
-start_idx = [111,111,0,15,197,173] #waypoint index where all paths will begin
-# start_idx = [207,207,1,10,305,207] #waypoint index where all paths will begin
-max_dna_len = 150 #maximum number of waypoints in a path
-min_dna_len = 30 #minimimum number of waypoints in a path
+start_idx = [111,111,0,15,197,173] #waypoint index where all paths will begin (This is for the pruned map)
+# start_idx = [207,207,1,10,305,207] #waypoint index where all paths will begin (This is for the unpruned map)
+max_dna_len = [250,200,150,125,125] #maximum number of waypoints in a path
+min_dna_len = [70,60,50,30,30] #minimimum number of waypoints in a path
 crossover_prob = 0.7 #probability of performing crossover when generating new organisms
 crossover_time_thresh = 70 #how close crossover points need to be to eachother to be considered
 mutation_prob = 0.3 #probability of performing mutation on new organisms
 muterpolate_prob = 0.2 #probability of performing muterpolation on new organisms
-num_muterpolations = 15 #number of possible points to perform muterpolation
+num_muterpolations = [20,20,15,15,10] #number of possible points to perform muterpolation
 muterpolation_srch_dist = 5 #how far ahead to look from each point when performing muterpolation
 muterpolation_sub_prob = 0.8 #probability of accepting muterpolation point
-min_solo_lcs = 1#5 #minimum number of loop closures each agent must have with their own path
-min_comb_lcs = 1#10 #minimum number of loop closures agents must have with other agents
+min_solo_lcs = [5,5,3,2,1] #minimum number of loop closures each agent must have with their own path
+min_comb_lcs = [0,10,10,5,5] #minimum number of loop closures agents must have with other agents
 flight_time_scale = 0.0001 #scaling factor for flight time used in maximin fitnesses
 
 ###############################################################################
@@ -102,7 +104,7 @@ map_params = {'scale':scale,
               'max_view':max_view,
               'view_angle':view_angle,
               'rho':rho,
-              'solo_sep_thresh':solo_sep_thresh,
+              'solo_sep_thresh':solo_sep_thresh[num_agents-1],
               'bw_thresh':bw_thresh,
               'scale_px2m':scale_px2m,
               'coverage_blend':coverage_blend}
@@ -113,21 +115,21 @@ path_params = {'path_memory':path_memory,
                'wall_waypoint_factor':wall_waypoint_factor}
 
 org_params = {'start_idx':start_idx,
-              'max_dna_len':max_dna_len,
-              'min_dna_len':min_dna_len,
+              'max_dna_len':max_dna_len[num_agents-1],
+              'min_dna_len':min_dna_len[num_agents-1],
               'crossover_prob':crossover_prob,
               'crossover_time_thresh':crossover_time_thresh,
               'mutation_prob':mutation_prob,
               'muterpolate_prob':muterpolate_prob,
-              'num_muterpolations':num_muterpolations,
+              'num_muterpolations':num_muterpolations[num_agents-1],
               'muterpolation_srch_dist':muterpolation_srch_dist,
               'muterpolation_sub_prob':muterpolation_sub_prob,
-              'min_solo_lcs':min_solo_lcs,
-              'min_comb_lcs':min_comb_lcs,
+              'min_solo_lcs':min_solo_lcs[num_agents-1],
+              'min_comb_lcs':min_comb_lcs[num_agents-1],
               'flight_time_scale':flight_time_scale}
 
 gen_params = {'gen_size':gen_size,
-              'starting_path_len':starting_path_len,
+              'starting_path_len':starting_path_len[num_agents-1],
               'num_agents':num_agents,
               'gamma':gamma,
               'coverage_constr_0':coverage_constr_0,
@@ -161,7 +163,7 @@ else:
     print("new files have been saved. overwrite old files with new to use in future")
     pather.saveTraversableGraph(cwd + '/data/wilk_3_graph_new.npy')
     pather.saveWptsXY(cwd + '/data/wilk_3_wptsXY_new.npy')
-#
+
 mappy.setWaypoints(pather.waypoint_locs)
 print("Precomputing coverage map.")
 mappy.computeFrustums(pather._graph)

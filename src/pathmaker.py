@@ -100,8 +100,8 @@ class PathMaker(object):
         sectors = np.array([-7/2,-5/2,-3/2, -1/2, 1/2, 3/2, 5/2, 7/2])
         sectors = sector_width*sectors
 
-        idx_bool = distances.copy()
-        idx_bool[:,:] = 0
+        idx_bool = np.zeros((distances.shape[0],distances.shape[1]))
+        # idx_bool[:,:] = 0
         # np.zeros_like(distances)
         sectored_angles = np.digitize(angles,sectors)
         sectored_angles[sectored_angles==8]=0

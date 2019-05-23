@@ -222,8 +222,6 @@ class Mappy(object):
                         color = tuple(np.array(self._path_colors[from_agent%self._num_colors])/2+np.array(self._path_colors[to_agent%3])/2)
                         cv2.line(img_color, tuple(np.flip(waypoints[lc[0]],0)), tuple(np.flip(waypoints[lc[1]],0)), color, 1)
 
-        # for lc in combo_closures:
-        #     cv2.line(img_color, tuple(np.flip(waypoints[lc[0]],0)), tuple(np.flip(waypoints[lc[1]],0)), (1.0,1.0,0), 1)
         gs = gridspec.GridSpec(1, 2, width_ratios=[2, 1])
         ax = plt.subplot(gs[1])
         ax.set_title('Selected Path')

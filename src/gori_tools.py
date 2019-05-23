@@ -200,7 +200,7 @@ def lowVarSample(X, fitnesses, pressure):
     r = np.random.uniform(0, 1/M)
     c = w[0]
     i = 0
-    # last_i = i
+
     for m in range(M):
         u = r + m/M
         while u > c:
@@ -209,7 +209,6 @@ def lowVarSample(X, fitnesses, pressure):
 
         new_x = copy.deepcopy(X[i])
         Xbar.append(new_x)
-        # last_i = i
 
     return Xbar
 
