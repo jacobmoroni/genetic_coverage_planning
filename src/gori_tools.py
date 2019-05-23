@@ -2,7 +2,7 @@ from IPython.core.debugger import set_trace
 from importlib import reload
 
 import numpy as np
-import cv2
+import cv2.cv2 as cv2
 import copy
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
@@ -30,14 +30,17 @@ def plotty(population,pather,mappy):
     plt.xlabel('-Coverage')
     plt.tight_layout()
     point, = ax.plot(objs[0,0],objs[0,1],'xr')
-    pointy = PointSelector(point,objs,mappy,pather,population,fig)
+    PointSelector(point,objs,mappy,pather,population,fig)
     plt.plot(objs[:,0], objs[:,1],'.b')
     plt.show()
 
 def animateFlight(id,population,pather,mappy):
     current_organism = population._gen_parent[id]
-    coverage, travel_dist, coverage_map = mappy.getCoverage(current_organism._dna,return_map=True)
-    lc_mat,loop_closures = mappy.getLoopClosures(current_organism._dna, return_loop_close=True)
+    
+    #this is a placeholder until I decide if i am going to use coverage, travel_dist, lc_mat, or loop closures
+    # coverage, travel_dist, coverage_map = mappy.getCoverage(current_organism._dna,return_map=True)
+    _, _, coverage_map = mappy.getCoverage(current_organism._dna,return_map=True)
+    # lc_mat,loop_closures = mappy.getLoopClosures(current_organism._dna, return_loop_close=True)
 
     img = mappy._safety_img.copy()
     cov_img = coverage_map
@@ -53,19 +56,28 @@ def animateFlight(id,population,pather,mappy):
 
     path_colors = [(1.0,0,0),(0,1.0,0),(0,0,1.0),(1.0,1.0,0.0),(0.0,1.0,1.0)]
     num_colors = 5
-    #TODO make this plot all at the same time
-    for agent in range(int(paths.shape[0])):
-        # set_trace()
-        path = waypoints[paths[agent][paths[agent]!=-1]]
+    max_path_len = current_organism._max_dna_len
+    num_agents = int(paths.shape[0])
+    combo_path = np.zeros((num_agents,max_path_len,2))
+    for agent in range(num_agents):
+        path = waypoints[paths[agent]]
         path = np.fliplr(path)
-        path = list(map(tuple,path))
-        for ii in range(len(path)-1):
-            cv2.line(img_color, path[ii],path[ii+1], path_colors[agent%num_colors],1)
-            plt.cla()
-            plt.imshow(img_color)
-            pt = np.flip(path[ii+1])
-            plt.plot(pt[1], pt[0],'ok')
-            plt.pause(0.01)
+        combo_path[agent] = path
+    combo_path = combo_path.astype(int)
+    for wp in range(max_path_len-1):
+        plt.cla()
+        for agent in range(num_agents):
+            if combo_path[agent,wp+1,0] != -1:
+                try:
+                    cv2.line(img_color, tuple(combo_path[agent,wp]), tuple(combo_path[agent,wp+1]),
+                         path_colors[agent % num_colors], 1)
+                except:
+                    set_trace()
+
+        plt.imshow(img_color)
+        for agent in range(num_agents):
+            plt.plot(combo_path[agent, wp+1, 0], combo_path[agent, wp+1, 1], 'ok')
+        plt.pause(0.01)
 
 def update_pareto(gen_num, data, population):
     population.set_data(data[..., gen_num])
@@ -85,7 +97,8 @@ def plotParetoHist(pareto_hist):
     plt.xlabel('-Coverage')
     plt.ylabel('Flight Time')
     plt.title('Pareto History')
-    pareto_animation = animation.FuncAnimation(fig1, update_pareto, num_gen,fargs=(data, l), interval=50, blit=False)
+    # pareto_animation = animation.FuncAnimation(fig1, update_pareto, num_gen,fargs=(data, l), interval=50, blit=False)
+    animation.FuncAnimation(fig1, update_pareto, num_gen,fargs=(data, l), interval=50, blit=False)
     plt.show()
     #this save file is kind of a bug, but it lets you get the images before it finishes at high quality
     # pareto_animation.save('pareto_history/frames.mp4',writer = 'writer',codec = 'mp4')
@@ -103,7 +116,7 @@ def plotFitness(pareto_hist):
     data1 = cov
     data2 = ft
 
-    fig, ax1 = plt.subplots()
+    fig2, ax1 = plt.subplots()
 
     color = 'black'
     ax1.set_xlabel('Generations')
@@ -117,7 +130,7 @@ def plotFitness(pareto_hist):
     ax2.set_ylabel('Flight Time', color=color)  # we already handled the x-label with ax1
     ax2.plot(t, data2, color=color, label="Flight Time")
     ax2.tick_params(axis='y', labelcolor=color)
-    fig.tight_layout()  # otherwise the right y-label is slightly clipped
+    fig2.tight_layout()  # otherwise the right y-label is slightly clipped
     plt.show()
 # ======================================
 # ======================================
@@ -182,7 +195,7 @@ def lowVarSample(X, fitnesses, pressure):
     r = np.random.uniform(0, 1/M)
     c = w[0]
     i = 0
-    last_i = i
+    # last_i = i
     for m in range(M):
         u = r + m/M
         while u > c:
@@ -191,7 +204,7 @@ def lowVarSample(X, fitnesses, pressure):
 
         new_x = copy.deepcopy(X[i])
         Xbar.append(new_x)
-        last_i = i
+        # last_i = i
 
     return Xbar
 
@@ -216,7 +229,7 @@ def getObjValsList( population ):
     objs = [thing._obj_val for thing in population._gen_parent]
     return objs
 
-def savePopulation(filename):
+def savePopulation(population,filename):
     pickle.dump(population, open(filename, "wb"))
 
 def loadPopulation(filename):

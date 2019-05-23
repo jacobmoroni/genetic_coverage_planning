@@ -2,7 +2,7 @@ from IPython.core.debugger import set_trace
 from importlib import reload
 
 import numpy as np
-import cv2
+import cv2.cv2 as cv2
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
@@ -36,7 +36,7 @@ class Mappy(object):
         kernel = np.ones((3,3),np.uint8)
         map_dilated = cv2.dilate(self._img,kernel,iterations = num_dilations)
         self._safety_img = 0.25*self._img + 0.25*map_dilated
-        self.all_waypoints = None
+        self._all_waypoints = None
         self._frustum = got.defineFrustumPts(self._scale, self._min_view, self._max_view, self._view_angle)
 
         # gain on turning penalty for paths
@@ -50,6 +50,9 @@ class Mappy(object):
 
     def saveMap(self, output_file_name):
         cv2.imwrite(output_file_name, self._img)
+
+    def setWaypoints(self, new_waypoints):
+        self._all_waypoints = new_waypoints
 
     def generateNewMap(self, map_raw, visualize = True):
         if visualize:
@@ -145,6 +148,8 @@ class Mappy(object):
 
     def visualizeWaypoints(self, waypoints, start_idx=None):
         pac_dots = np.zeros_like(self._img)
+        pac_dots = self._img.copy()
+        pac_dots[:,:] = 0
         pac_dots[waypoints[:,0], waypoints[:,1]] = 1
 
         img = pac_dots + self._safety_img
@@ -238,16 +243,16 @@ class Mappy(object):
 
     def computeFrustums(self, graph):
         traverse_frustum = np.zeros((graph.shape[0],graph.shape[1],self._num_rays+2,2))
-        traverse_angles = np.zeros_like(graph)
-        traverse_dists = np.zeros_like(graph)
+        traverse_angles = np.zeros((graph.shape[0],graph.shape[1]))
+        traverse_dists = np.zeros((graph.shape[0], graph.shape[1]))
         obstacles = (np.array(np.nonzero(self._img)) * self._scale)
         alpha = self._view_angle/self._num_rays
         ray_angles = np.arange(self._num_rays)*alpha - self._view_angle/2.0
         for from_wpt,wp in tqdm(enumerate(graph), desc="Precomputing Frustums"):
             for to_wpt,node in enumerate(wp):
                 if node == 1:
-                    wpt_loc = self.all_waypoints[from_wpt]
-                    next_wpt = self.all_waypoints[to_wpt]
+                    wpt_loc = self._all_waypoints[from_wpt]
+                    next_wpt = self._all_waypoints[to_wpt]
                     wpt_theta = np.arctan2(next_wpt[1]-wpt_loc[1], next_wpt[0]-wpt_loc[0])
                     travel_cost = np.linalg.norm([next_wpt[1]-wpt_loc[1], next_wpt[0]-wpt_loc[0]])
 
@@ -276,7 +281,6 @@ class Mappy(object):
                         except:
                             pass
 
-                    center = (int(wpt_loc[1]), int(wpt_loc[0]))
                     pts = np.array([np.sin(z[1])*z[0],np.cos(z[1])*z[0]])
                     pts = np.hstack((pts,np.array([[np.sin(z[1,-1])*self._min_view],
                                              [np.cos(z[1,-1])*self._min_view]]),
@@ -295,7 +299,7 @@ class Mappy(object):
 
     def getCoverage(self, waypoints, return_map=False):
         num_agents = waypoints.shape[0]
-        if self.all_waypoints is None:
+        if self._all_waypoints is None:
             raise ValueError('Map has no waypoints')
 
         cover_map = np.copy(self._img)
@@ -309,7 +313,7 @@ class Mappy(object):
                 if wpt == -1 or idx == len(waypoints[agent])-1:
                     break
 
-                wpt_loc = self.all_waypoints[wpt]
+                wpt_loc = self._all_waypoints[wpt]
                 wpt_theta = self._traverse_angles[wpt,waypoints[agent][idx+1]]
                 delta_theta = got.rad_wrap_pi(wpt_theta - prev_theta)
                 travel_cost += self._traverse_dists[wpt,waypoints[agent][idx+1]] + self._rho*abs(delta_theta)
@@ -348,7 +352,6 @@ class Mappy(object):
 
     def getLoopClosures(self, waypoints, return_loop_close = False):
         num_agents = waypoints.shape[0]
-        num_lcs = (np.zeros(num_agents)).astype(int)
         path_splits = (np.zeros(num_agents)).astype(int)
 
         wps = waypoints[waypoints!=-1]

@@ -54,9 +54,8 @@ class GeneticalGorithm( ):
     def runEvolution(self, num_generations):
         # list for holding all chromosomes in children generation
         pareto_1_gen = []
-        for ii in tqdm(range(num_generations), desc="Evolving"):
+        for _ in tqdm(range(num_generations), desc="Evolving"):
             gen_child = []
-            gen_child_fit = []
             # grab a set of parents that are good to reproduce
             strong_parents = got.lowVarSample(self._gen_parent, self._gen_parent_fit, self._gamma)
             for mommy, daddy in zip(strong_parents[:self._G_sz//2], strong_parents[self._G_sz//2:]):
@@ -177,7 +176,7 @@ class Organism( ):
         adjacency = ((combo_lc_mat + combo_lc_mat.T)>=1).astype(int)
         degree = np.diag(np.sum(adjacency, axis = 0))
         graph_laplacian = degree - adjacency
-        eig,v = np.linalg.eig(graph_laplacian)
+        eig,_ = np.linalg.eig(graph_laplacian)
         num_con = self._num_agents - np.sum(eig>1e-6)
 
         travel_dist = travel_dist * self._ft_scale

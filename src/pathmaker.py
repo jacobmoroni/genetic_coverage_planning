@@ -3,7 +3,7 @@ from importlib import reload
 
 import numpy as np
 import scipy.stats
-import cv2
+import cv2.cv2 as cv2
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 
@@ -16,7 +16,6 @@ class PathMaker(object):
         self._scale = self._mappy._scale
         self._hall_width = self._mappy._hall_width
         self._safety_buffer = self._hall_width/2
-        size = self._mappy.shape
         self._path_memory = path_params['path_memory']
         self._max_dist = path_params['max_traverse_dist']
         self._waypoint_dist_factor = path_params['waypoint_dist_factor']
@@ -27,9 +26,8 @@ class PathMaker(object):
         return self._path_memory
 
     def smartlyPlaceDots(self):
-        pac_dots = np.zeros_like(self._mappy)
         stride = int((self._hall_width)//self._scale)
-        print("Placing Dots", pac_dots.shape)
+        print("Placing Dots")
         size = self._mappy.shape
         X,Y = np.mgrid[0:size[0]:stride,0:size[1]:stride]
         XY = np.vstack((X.flatten(), Y.flatten())).T
@@ -102,8 +100,9 @@ class PathMaker(object):
         sectors = np.array([-7/2,-5/2,-3/2, -1/2, 1/2, 3/2, 5/2, 7/2])
         sectors = sector_width*sectors
 
-        idx_bool = np.zeros_like(distances)
-        idx_test = np.zeros_like(distances)
+        idx_bool = distances.copy()
+        idx_bool[:,:] = 0
+        # np.zeros_like(distances)
         sectored_angles = np.digitize(angles,sectors)
         sectored_angles[sectored_angles==8]=0
         for ii, distance_row in enumerate(distances):
@@ -150,10 +149,10 @@ class PathMaker(object):
 
     def makeMeAPath(self, path_len, start_idx):
         current_idx = start_idx
-        current_heading = np.random.rand()*2*np.pi - np.pi;
+        current_heading = np.random.rand()*2*np.pi - np.pi
         path_idx = np.array([start_idx])
         cur_path_len = 1
-        for i in range(path_len):
+        for _ in range(path_len):
             choices = (np.where(self._graph[current_idx]))[0]
             choices_comb = np.setdiff1d(choices,path_idx[-self._path_memory:])
             if len(choices_comb) > 0:

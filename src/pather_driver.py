@@ -13,7 +13,7 @@ from IPython.core.debugger import set_trace
 from importlib import reload
 
 import numpy as np
-import cv2
+import cv2.cv2 as cv2
 import os
 
 from matplotlib import pyplot as plt
@@ -42,7 +42,7 @@ cwd = os.getcwd() #current working directory
 ###############################################################################
 # setting this to true will use waypoints and traversability that have already been genrated
 # set to false to re-generate waypoints and traversability graph for new map or altered parameters
-use_old_graph = False
+use_old_graph = True
 old_graph_fname = cwd + '/data/wilk_3_graph.npy'
 old_wpts_fname = cwd + '/data/wilk_3_wpts.npy'
 
@@ -90,8 +90,8 @@ muterpolate_prob = 0.2 #probability of performing muterpolation on new organisms
 num_muterpolations = 15 #number of possible points to perform muterpolation
 muterpolation_srch_dist = 5 #how far ahead to look from each point when performing muterpolation
 muterpolation_sub_prob = 0.8 #probability of accepting muterpolation point
-min_solo_lcs = 5 #minimum number of loop closures each agent must have with their own path
-min_comb_lcs = 10 #minimum number of loop closures agents must have with other agents
+min_solo_lcs = 1#5 #minimum number of loop closures each agent must have with their own path
+min_comb_lcs = 1#10 #minimum number of loop closures agents must have with other agents
 flight_time_scale = 0.0001 #scaling factor for flight time used in maximin fitnesses
 
 ###############################################################################
@@ -162,13 +162,13 @@ else:
     pather.saveTraversableGraph(cwd + '/data/wilk_3_graph_new.npy')
     pather.saveWptsXY(cwd + '/data/wilk_3_wptsXY_new.npy')
 #
-mappy.all_waypoints = pather.waypoint_locs
+mappy.setWaypoints(pather.waypoint_locs)
 print("Precomputing coverage map.")
 mappy.computeFrustums(pather._graph)
 
 print("Spawning the contestants.")
 population = GeneticalGorithm(mappy, pather, gen_params)
-
+plt.show()
 pareto_hist = []
 pareto_hist += [got.getObjValsList(population)]
 

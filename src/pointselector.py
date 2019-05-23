@@ -3,19 +3,16 @@ dir_remove = []
 for p in sys.path:
     if p.find('python2') !=-1:
         dir_remove.append(p)
-    #
-#
+
 for p in dir_remove:
     sys.path.remove(p)
-#
 
 from IPython.core.debugger import set_trace
 from importlib import reload
 
 import numpy as np
-import cv2
+import cv2.cv2 as cv2
 from matplotlib import pyplot as plt
-# plt.ion()
 
 import gori_tools as got
 reload(got)
@@ -32,7 +29,6 @@ class PointSelector(object):
         self._objectives = objs
         self._fig = fig
         self._cid = points.figure.canvas.mpl_connect('button_press_event', self)
-        nearest_point = -1
 
     def __call__(self, event):
 
@@ -45,14 +41,13 @@ class PointSelector(object):
 
         obj_diff = self._objectives - np.array([self._x,self._y])
         nearest_point = np.argmin(np.linalg.norm(obj_diff,axis=1))
-        # print (nearest_point)
         self._points.set_data(self._objectives[nearest_point,0],self._objectives[nearest_point,1])
         self._points.figure.canvas.draw()
         current_organism = self.population._gen_parent[nearest_point]
-        # self.mappy.visualizePath(self.pather._XY,current_organism._dna[0:current_organism._len_dna],self._fig)
         coverage, travel_dist, coverage_map = self.mappy.getCoverage(current_organism._dna,return_map=True)
-        lc_mat,loop_closures = self.mappy.getLoopClosures(current_organism._dna, return_loop_close=True)
-        self.mappy.visualizePathWithCoverage(self.pather._XY,
+        _,loop_closures = self.mappy.getLoopClosures(current_organism._dna, return_loop_close=True)
+        if event.button == 1:
+            self.mappy.visualizePathWithCoverage(self.pather._XY,
                                              current_organism._dna,
                                              self._fig,
                                              coverage_map,
@@ -60,5 +55,7 @@ class PointSelector(object):
                                              coverage,
                                              travel_dist,
                                              nearest_point)
+        if event.button == 3:
+            got.animateFlight(nearest_point,self.population,self.pather,self.mappy)
 
         return [self._x,self._y]
