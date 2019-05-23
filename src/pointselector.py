@@ -56,6 +56,6 @@ class PointSelector(object):
                                              travel_dist,
                                              nearest_point)
         if event.button == 3:
-            got.animateFlight(nearest_point,self.population,self.pather,self.mappy)
+            got.animateFlight(current_organism, self.pather._XY, coverage_map, self.mappy._safety_img.copy())
 
         return [self._x,self._y]

@@ -34,30 +34,19 @@ def plotty(population,pather,mappy):
     plt.plot(objs[:,0], objs[:,1],'.b')
     plt.show()
 
-def animateFlight(id,population,pather,mappy):
-    current_organism = population._gen_parent[id]
-    
-    #this is a placeholder until I decide if i am going to use coverage, travel_dist, lc_mat, or loop closures
-    # coverage, travel_dist, coverage_map = mappy.getCoverage(current_organism._dna,return_map=True)
-    _, _, coverage_map = mappy.getCoverage(current_organism._dna,return_map=True)
-    # lc_mat,loop_closures = mappy.getLoopClosures(current_organism._dna, return_loop_close=True)
-
-    img = mappy._safety_img.copy()
-    cov_img = coverage_map
-    # img = coverage_map
-
+def animateFlight(current_organism, waypoints, cov_img, img):
     img[img==0] += cov_img[img==0]
     img[img<0.3] += cov_img[img<0.3]
     img = np.clip(img,0,1.0)
     img_color = img[...,None]*np.array([1, 1, 1])
 
-    waypoints = pather._XY
     paths = current_organism._dna
 
     path_colors = [(1.0,0,0),(0,1.0,0),(0,0,1.0),(1.0,1.0,0.0),(0.0,1.0,1.0)]
     num_colors = 5
     max_path_len = current_organism._max_dna_len
     num_agents = int(paths.shape[0])
+    last_point = np.zeros(num_agents).astype(int)
     combo_path = np.zeros((num_agents,max_path_len,2))
     for agent in range(num_agents):
         path = waypoints[paths[agent]]
@@ -66,17 +55,33 @@ def animateFlight(id,population,pather,mappy):
     combo_path = combo_path.astype(int)
     for wp in range(max_path_len-1):
         plt.cla()
+        plt.xticks([])
+        plt.yticks([])
         for agent in range(num_agents):
-            if combo_path[agent,wp+1,0] != -1:
-                try:
-                    cv2.line(img_color, tuple(combo_path[agent,wp]), tuple(combo_path[agent,wp+1]),
-                         path_colors[agent % num_colors], 1)
-                except:
-                    set_trace()
+            if paths[agent,wp+1] != -1:
+                cv2.line(img_color,
+                         tuple(combo_path[agent,wp]),
+                         tuple(combo_path[agent,wp+1]),
+                         path_colors[agent % num_colors],
+                         1)
+                last_point[agent] = wp
+            else:
+                cv2.line(img_color,
+                         tuple(combo_path[agent,last_point[agent]]),
+                         tuple(combo_path[agent,last_point[agent]+1]),
+                         path_colors[agent % num_colors],
+                         1)
 
         plt.imshow(img_color)
         for agent in range(num_agents):
-            plt.plot(combo_path[agent, wp+1, 0], combo_path[agent, wp+1, 1], 'ok')
+            if paths[agent,wp+1] != -1:
+                plt.plot(combo_path[agent, wp+1, 0],
+                         combo_path[agent, wp+1, 1],
+                         'ok')
+            else:
+                plt.plot(combo_path[agent, last_point[agent]+1, 0],
+                         combo_path[agent, last_point[agent]+1, 1],
+                         'ok')
         plt.pause(0.01)
 
 def update_pareto(gen_num, data, population):

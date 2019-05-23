@@ -43,8 +43,8 @@ cwd = os.getcwd() #current working directory
 # setting this to true will use waypoints and traversability that have already been genrated
 # set to false to re-generate waypoints and traversability graph for new map or altered parameters
 use_old_graph = True
-old_graph_fname = cwd + '/data/wilk_3_graph.npy'
-old_wpts_fname = cwd + '/data/wilk_3_wpts.npy'
+old_graph_fname = cwd + '/data/wilk_3_graph_new.npy'
+old_wpts_fname = cwd + '/data/wilk_3_wptsXY_new.npy'
 
 # file where the pre-scaled map is.
 scaled_map_file = cwd + "/data/map_scaled.png"
@@ -72,7 +72,7 @@ wall_waypoint_factor = 3 #factor multiplied by safety buffer to determine which 
 #Genetic Algorithm Parameters
 gen_size = 100 #number of organisms per generation (must be even)
 starting_path_len = 150 #length of initial path
-num_agents = 2 #number of agents
+num_agents = 5 #number of agents
 gamma = 0.5 #roulette exponent >=0. 0 means no fitness pressure
 coverage_constr_0 = 0.3 #starting coverage constraint
 coverage_constr_f = 0.95 #final coverage constraint
@@ -168,7 +168,6 @@ mappy.computeFrustums(pather._graph)
 
 print("Spawning the contestants.")
 population = GeneticalGorithm(mappy, pather, gen_params)
-plt.show()
 pareto_hist = []
 pareto_hist += [got.getObjValsList(population)]
 
