@@ -29,7 +29,13 @@ class PointSelector(object):
         self._objectives = objs
         self._fig = fig
         self._cid = points.figure.canvas.mpl_connect('button_press_event', self)
+        self._fig.canvas.mpl_connect('close_event',self.handleClose)
 
+    def handleClose(self,event):
+        # print("SHUTERDOWN")
+        plt.close("all")
+        
+    # def handleClick(self,event):
     def __call__(self, event):
 
         # Records x and y locations of mouse clicks and sends them to start and goal positions

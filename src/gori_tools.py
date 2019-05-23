@@ -14,8 +14,6 @@ import pointselector
 reload(pointselector)
 from pointselector import PointSelector
 
-
-
 # ======================================
 # ======================================
 

@@ -36,6 +36,8 @@ from pointselector import PointSelector
 
 cwd = os.getcwd() #current working directory
 
+#TODO: Try looking at slowing down or loosening the coverage constraints and maybe rework muterpolation
+
 ###############################################################################
 # parameters
 ###############################################################################
@@ -54,14 +56,14 @@ raw_map_file = cwd + "/data/map.png"
 scale = 0.15 #scale from pixels to meters of scaled map
 narrowest_hall = 1.75 #width in meters of narrowest_hall
 num_rays = 15 #number of rays used to compute coverage with obstacles
-min_view = 0.5 #minimum distance the camera counts as viewed
+min_view = 0.2#0.5 #minimum distance the camera counts as viewed
 max_view = 7 #maximum distance the camera counts as viewed
 view_angle = 69.4*np.pi/180 #horizontal field of view of camera (in radians)
 bw_thresh = 90 # value used to threshold a new map when converting to black and white
 scale_px2m = 1/0.44*0.0254 #measured estimate of original image pixels to meters scale
 
 # Map Training Parameters
-rho = 2.0 #turning penalty gain.
+rho = 6.0 #turning penalty gain.
 coverage_blend = 1.0 #percentage of coverage score based on viewing walls vs all area
 solo_sep_thresh = [30,30,20,10,10] #threshold for separation between loop closures
 
@@ -88,7 +90,7 @@ min_dna_len = [70,60,50,30,30] #minimimum number of waypoints in a path
 crossover_prob = 0.7 #probability of performing crossover when generating new organisms
 crossover_time_thresh = 70 #how close crossover points need to be to eachother to be considered
 mutation_prob = 0.3 #probability of performing mutation on new organisms
-muterpolate_prob = 0.2 #probability of performing muterpolation on new organisms
+muterpolate_prob = 0#0.2 #probability of performing muterpolation on new organisms
 num_muterpolations = [20,20,15,15,10] #number of possible points to perform muterpolation
 muterpolation_srch_dist = 5 #how far ahead to look from each point when performing muterpolation
 muterpolation_sub_prob = 0.8 #probability of accepting muterpolation point

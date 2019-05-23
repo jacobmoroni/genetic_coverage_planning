@@ -314,7 +314,8 @@ class Mappy(object):
                 wpt_loc = self._all_waypoints[wpt]
                 wpt_theta = self._traverse_angles[wpt,waypoints[agent][idx+1]]
                 delta_theta = got.rad_wrap_pi(wpt_theta - prev_theta)
-                travel_cost += self._traverse_dists[wpt,waypoints[agent][idx+1]] + self._rho*abs(delta_theta)
+
+                travel_cost += self._traverse_dists[wpt,waypoints[agent][idx+1]] + abs(delta_theta/(np.pi/2))**self._rho
                 center = (int(wpt_loc[1]), int(wpt_loc[0]))
                 frustum = self._traverse_frustum[wpt,waypoints[agent][idx+1]]
                 cv2.fillPoly(draw_map, [frustum], 1, offset=center)
