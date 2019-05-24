@@ -20,6 +20,7 @@ class PathMaker(object):
         self._max_dist = path_params['max_traverse_dist']
         self._waypoint_dist_factor = path_params['waypoint_dist_factor']
         self._wall_waypoint_factor = path_params['wall_waypoint_factor']
+        self._log_scale_weight = path_params['log_scale_weight']
 
     @property
     def path_memory(self):
@@ -38,9 +39,7 @@ class PathMaker(object):
         idx = np.array(np.where(idx_bool))
         XY_scale[idx,0] = XY_scale[idx,0] - (self._safety_buffer-min_distances[idx])*np.cos(min_angles[idx])
         XY_scale[idx,1] = XY_scale[idx,1] - (self._safety_buffer-min_distances[idx])*np.sin(min_angles[idx])
-
-        # set_trace()
-
+        
         #pruning hallways
         print("Pruning Dots")
         waypoint_displacements = np.array([XY_scale[None,:,0] -
@@ -141,17 +140,21 @@ class PathMaker(object):
 
         angles = np.arctan2(displacements[1], displacements[0]) - current_heading
         angles = got.rad_wrap_pi(angles)
-        w = scipy.stats.norm.logpdf(angles, scale=1)
+        w = scipy.stats.norm.logpdf(angles, scale=self._log_scale_weight)
         w -= np.max(w)
         w = np.exp(w)
         w = w / np.sum(w)
         return w
 
-    def makeMeAPath(self, path_len, start_idx):
+    def makeMeAPath(self, path_len, start_idx, prev_path = None):
         current_idx = start_idx
         current_heading = np.random.rand()*2*np.pi - np.pi
-        path_idx = np.array([start_idx])
+        if prev_path is not None:
+            path_idx = prev_path[-self._path_memory:]
+        else:
+            path_idx = np.array([start_idx])
         cur_path_len = 1
+        lop_len = len(path_idx)-1
         for _ in range(path_len):
             choices = (np.where(self._graph[current_idx]))[0]
             choices_comb = np.setdiff1d(choices,path_idx[-self._path_memory:])
@@ -166,7 +169,11 @@ class PathMaker(object):
             current_idx = new_idx
             cur_path_len += 1
 
-        return path_idx.astype(int)
+        return path_idx[lop_len:].astype(int)
+
+    def print_graph(self):
+        for i in range(self._graph.shape[0]):
+            print(i, np.array(np.where(self._graph[i] == 1)))
 
     @property
     def waypoint_locs(self):

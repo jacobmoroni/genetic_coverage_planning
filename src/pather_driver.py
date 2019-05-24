@@ -36,8 +36,6 @@ from pointselector import PointSelector
 
 cwd = os.getcwd() #current working directory
 
-#TODO: Try looking at slowing down or loosening the coverage constraints and maybe rework muterpolation
-
 ###############################################################################
 # parameters
 ###############################################################################
@@ -46,6 +44,8 @@ cwd = os.getcwd() #current working directory
 use_old_graph = True
 old_graph_fname = cwd + '/data/wilk_3_graph_new.npy'
 old_wpts_fname = cwd + '/data/wilk_3_wptsXY_new.npy'
+# old_graph_fname = cwd + '/data/wilk_3_graph.npy'
+# old_wpts_fname = cwd + '/data/wilk_3_wpts.npy'
 
 # file where the pre-scaled map is.
 scaled_map_file = cwd + "/data/map_scaled.png"
@@ -63,7 +63,7 @@ bw_thresh = 90 # value used to threshold a new map when converting to black and 
 scale_px2m = 1/0.44*0.0254 #measured estimate of original image pixels to meters scale
 
 # Map Training Parameters
-rho = 6.0 #turning penalty gain.
+rho = 8.0 #turning penalty gain.
 coverage_blend = 1.0 #percentage of coverage score based on viewing walls vs all area
 solo_sep_thresh = [30,30,20,10,10] #threshold for separation between loop closures
 
@@ -71,26 +71,32 @@ solo_sep_thresh = [30,30,20,10,10] #threshold for separation between loop closur
 path_memory = 10 #Memory of path where path generator will not return to unless no other option exists
 max_traverse_dist = 3.5 #max distance traversable with one step
 waypoint_dist_factor = 0.8 #factor multiplied by safety buffer to determine which waypoints are too close to eachother for pruning
-wall_waypoint_factor = 3 #factor multiplied by safety buffer to determine which waypoints are too far away from a wall to be usefull for pruning.
+wall_waypoint_factor = 2.5 #factor multiplied by safety buffer to determine which waypoints are too far away from a wall to be usefull for pruning.
+log_scale_weight = 0.7 #1 #factor for assigning probability of moving forward when generating new paths or path segments (smaller = higher forward probability) 
 
 #Genetic Algorithm Parameters
-gen_size = 100 #number of organisms per generation (must be even)
+gen_size = 150 #number of organisms per generation (must be even)
 starting_path_len = [200,150,100,100,75] #length of initial path
-num_agents = 1 #number of agents
+num_agents = 3 #number of agents
 gamma = 0.5 #roulette exponent >=0. 0 means no fitness pressure
 coverage_constr_0 = 0.3 #starting coverage constraint
-coverage_constr_f = 0.95 #final coverage constraint
-coverage_aging = 150 #number of generations to age coverage constraint
+coverage_constr_f = 0.9 #final coverage constraint
+coverage_aging = 80 #number of generations to age coverage constraint
 
 #Organism Parameters
-start_idx = [111,111,0,15,197,173] #waypoint index where all paths will begin (This is for the pruned map)
+# waypoint index where all paths will begin (This is for the pruned map)
+start_idx = [[99], [99, 99], [0, 15, 184],
+             [99, 0, 15, 184], [99, 99, 0, 15, 184]]  # (This is for the pruned map)
+# start_idx = [[111], [111, 111], [0, 15, 197],
+            #  [111, 0, 15, 197], [111, 111, 0, 15, 197]]  # (This is for the pruned map)
+# start_idx = [111,111,0,15,197,173] #waypoint index where all paths will begin (This is for the pruned map)
 # start_idx = [207,207,1,10,305,207] #waypoint index where all paths will begin (This is for the unpruned map)
 max_dna_len = [250,200,150,125,125] #maximum number of waypoints in a path
 min_dna_len = [70,60,50,30,30] #minimimum number of waypoints in a path
 crossover_prob = 0.7 #probability of performing crossover when generating new organisms
 crossover_time_thresh = 70 #how close crossover points need to be to eachother to be considered
-mutation_prob = 0.3 #probability of performing mutation on new organisms
-muterpolate_prob = 0#0.2 #probability of performing muterpolation on new organisms
+mutation_prob = 0#0.3 #probability of performing mutation on new organisms
+muterpolate_prob = 0#0.2#0.2 #probability of performing muterpolation on new organisms
 num_muterpolations = [20,20,15,15,10] #number of possible points to perform muterpolation
 muterpolation_srch_dist = 5 #how far ahead to look from each point when performing muterpolation
 muterpolation_sub_prob = 0.8 #probability of accepting muterpolation point
@@ -114,9 +120,10 @@ map_params = {'scale':scale,
 path_params = {'path_memory':path_memory,
                'max_traverse_dist':max_traverse_dist,
                'waypoint_dist_factor':waypoint_dist_factor,
-               'wall_waypoint_factor':wall_waypoint_factor}
+               'wall_waypoint_factor':wall_waypoint_factor,
+               'log_scale_weight':log_scale_weight}
 
-org_params = {'start_idx':start_idx,
+org_params = {'start_idx':start_idx[num_agents-1],
               'max_dna_len':max_dna_len[num_agents-1],
               'min_dna_len':min_dna_len[num_agents-1],
               'crossover_prob':crossover_prob,
@@ -159,7 +166,7 @@ else:
     print("Generating possible waypoints.")
     pather.smartlyPlaceDots()
     print("Check waypoints placed and starting location(s). Press ESC to continue")
-    mappy.visualizeWaypoints(pather.waypoint_locs, start_idx)
+    mappy.visualizeWaypoints(pather.waypoint_locs, start_idx, show_wp_num= True)
     print("Generating traversible graph.")
     pather.computeTraversableGraph()
     print("new files have been saved. overwrite old files with new to use in future")

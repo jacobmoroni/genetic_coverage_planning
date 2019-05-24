@@ -115,7 +115,7 @@ The first step to discretizing the design space is to simplify the 2D floor plan
 
 \begin{figure}
 \centering
-\includegraphics[width=0.8\linewidth]{figures/map_bw.png}
+\includegraphics[width=1.0\linewidth]{figures/map_bw.png}
 \caption{The initial 2D floor map of the area of interest and the segmented floor map reflecting explorable and occluded spaces.}
 \label{fig:map_gen}
 \end{figure}
@@ -126,13 +126,12 @@ Once this map is segmented, it is scaled to represent the minimum resolution des
 
 To further discretize and simplify the design space of the optimization, we place waypoints on the map and constrain the flight path to only fly through these waypoints. First, a grid is overlaid onto the map with a resolution of one half the width of the narrowest accessible hallway. This ensures that there are waypoints in every hallway and room to make the space fully traversable. Next, all waypoints overlapping occluded space are removed.
 
-After removing occluded waypoints, the remaining waypoints are further pruned and adjusted to better cover the space. To remove waypoints that would cause the UAV to collide with obstacles, we generate a safety buffer around all occluded space greater than half the width of the UAV. Any waypoint that falls within this safety buffer is nudged away from the wall. The waypoints are then pruned to remove redundancy. The distance between adjacent waypoints is checked and any that are closer than the initial grid resolution are replaced with a single waypoint at the centroid of the cluster. This prevents over-crowding of waypoints in hallways and corners to make it simpler to generate flight paths in these areas. Fig. \ref{fig:waypoints} shows an example of this waypoint pruning process. Point A shows two waypoints being merged while Point B shows three. We chose to do this simplified discretization approach rather than computing Voronoi Graphs of the map as done by Sipahioglu et al. \cite{Sipahioglu2010} which tend to collapse rooms down into very few waypoints. We wanted to allow more open-ended exploration in open areas such as large rooms.
+After removing occluded waypoints, the remaining waypoints are further pruned and adjusted to better cover the space. To remove waypoints that would cause the UAV to collide with obstacles, we generate a safety buffer around all occluded space greater than half the width of the UAV. Any waypoint that falls within this safety buffer is nudged away from the wall. The waypoints are then pruned to remove redundancy. The distance between adjacent waypoints is checked and any that are closer than the initial grid resolution are replaced with a single waypoint at the centroid of the cluster. This prevents over-crowding of waypoints in hallways and corners to make it simpler to generate flight paths in these areas. We create another waypoint grid that also removes waypoints that are not near walls to simplify the design space even more. Fig. \ref{fig:waypoints} shows an example of this waypoint pruning process. We chose to do this simplified discretization approach rather than computing Voronoi Graphs of the map as done by Sipahioglu et al. \cite{Sipahioglu2010} which tend to collapse rooms down into few waypoints. We wanted to allow more open-ended exploration in open areas such as large rooms.
 
 \begin{figure}
 \centering
-\includegraphics[width=0.8\linewidth]{figures/waypoint2.png}
-\caption{The initial waypoint grid with only occluded waypoints removed (left) and the modified waypoint grid after applying the safety buffer and anti-crowding (right).}
-\todo{make this figure more readable}
+\includegraphics[width=1.0\linewidth]{figures/waypoint3.png}
+\caption{The initial waypoint grid with only occluded waypoints removed (upper-left), the modified waypoint grid after applying the safety buffer and anti-crowding (upper-right), and the modified waypoint grid after applying safety buffer, anti-crowding, and pruning waypoints not near walls ( lower-right).}
 \label{fig:waypoints}
 \end{figure}
 
@@ -175,7 +174,7 @@ Where $\mathcal{C}$ is the value used for the coverage constraint, $\mathcal{C}_
 
 \subsubsection{Minimize Flight Time}
 
-The second objective function minimizes flight time. To achieve this, we assume a constant velocity flight and compute the total distance flown in each path. To avoid meandering too much and incentivize flying straight lines, we also added a turning cost proportional to the change in heading angle between waypoints.
+The second objective function minimizes flight time. To achieve this, we assume a constant velocity flight and compute the total distance flown in each path. To avoid excessive meandering and incentivize flying straight lines, we also added a turning cost proportional to the change in heading angle between waypoints.
 
 \begin{equation}%\nonumber
     \text{flight time} = \sum_{i=0}^{l} (d_{w,i} + \rho\abs{\Delta \psi_i})
@@ -193,8 +192,8 @@ Because of the computational cost of computing the modified viewable area at eac
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{APPROACH}\label{approach}
 \subsection{Single Agent Architecture}
-\todo{ Add description of genetic algorithm here and continue with parkinsons notes from number 4}
-Performing coverage planning for a single agent is simpler than multi agent planning. We began by detailing the architecture for a single agent as follows.
+
+Performing coverage planning for a single agent is simpler than multi agent planning. We begin by detailing the architecture for a single agent as follows. The methodology of genetic algorithms is to structure the optimization problem in a way that mimics the genetics and evolution process observable in nature. The variables of the optimization are stored in a "chromosome" similarly to how genes are stored in nature. To enforce survival of the fittest, fitness pressure is applied through mate selection. Then to move from generation to generation, reproduction mechanisms such as gene crossover and mutation are implemented on the new organisms introduced to the population from mating.
 
 \subsubsection{Chromosome}
 
@@ -217,7 +216,7 @@ After a new chromosome is generated, either by cloning or crossover, it is subje
 
 \begin{figure}
 \centering
-\includegraphics[width=0.8\linewidth]{figures/mutation.png}
+\includegraphics[width=1.0\linewidth]{figures/mutation.png}
 \caption{An example of the Mutation $\mathcal{A}$ mechanism. A random waypoint in the path is chosen (marked in red) and the tail is replaced with a random path of a random length.}
 \label{fig:mutation}
 \end{figure}
@@ -226,7 +225,7 @@ The second mutation ($\mathcal{B}$) is intended to straighten and shorten the pa
 
 \begin{figure}
 \centering
-\includegraphics[width=0.8\linewidth]{figures/muterpolation.png}
+\includegraphics[width=1.0\linewidth]{figures/muterpolation.png}
 \caption{An example of the Mutation $\mathcal{B}$ mechanism. Multiple random points are chosen (marked in red). From each point, the path is searched up to a certain length to find places where shortcuts or alternate paths can be taken (shown as blue segments).}
 \label{fig:muterpolation}
 \end{figure}
@@ -244,8 +243,7 @@ We defined loop closures as anywhere that the path passes through the same waypo
 \begin{figure}
 \centering
 \includegraphics[width=1.0\linewidth]{figures/loop_closure.png}
-\todo{change colors or something, this is hard to see}
-\caption{An example of single agent loop closure. A valid loop closure is marked in blue where the path passes through the same waypoints in the same direction. Examples of times when the path crosses over its self but not loop closures are marked in red.}
+\caption{An example of single agent loop closure. A valid loop closure is marked in green where the path passes through the same waypoints in the same direction. Examples of times when the path crosses over its self but not loop closures are marked in red.}
 \label{fig:loop_closure}
 \end{figure}
 
@@ -396,8 +394,7 @@ Path Memory (Waypoints)                            & 10                      \\
 
 \begin{figure*}
 \centering
-\includegraphics[width=1.0\linewidth]{figures/pareto_history2.png}
-\todo{make this bigger so it is more useful}
+\includegraphics[width=1.0\linewidth]{figures/pareto_history3.png}
 \caption{History of the Pareto front across several generations. The dynamic constraint placed on coverage prioritizes high coverage but also induces high flight time for the first 100 generations. Afterward, the algorithm can work with high coverage organisms, optimizing them for lower flight times, while maintaining their high coverage properties.}
 \label{fig:pareto_cheetos}
 \end{figure*}

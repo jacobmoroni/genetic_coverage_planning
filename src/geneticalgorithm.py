@@ -235,7 +235,7 @@ class Organism( ):
                     len_tail += np.random.randint(self._max_dna_len-self._len_dna[agent])
             except:
                 set_trace()
-            dna_tail = self._pather.makeMeAPath(len_tail, self._dna[agent,idx])
+            dna_tail = self._pather.makeMeAPath(len_tail, self._dna[agent,idx], self._dna[agent,0:idx+1])
             dna_head = self._dna_list[agent][0:idx]
 
             self._dna_list[agent] = np.append(dna_head, dna_tail)

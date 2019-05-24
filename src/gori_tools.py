@@ -14,12 +14,11 @@ import pointselector
 reload(pointselector)
 from pointselector import PointSelector
 
-# ======================================
-# ======================================
+# ==============================================================================
+# ==============================================================================
 
 def plotty(population,pather,mappy):
     objs = np.array([thing._obj_val for thing in population._gen_parent])
-    # objs = saveParetoHist( population )
     fig = plt.figure()
     gs = gridspec.GridSpec(1, 2, width_ratios=[2, 1])
     ax = plt.subplot(gs[0])
@@ -46,6 +45,7 @@ def animateFlight(current_organism, waypoints, cov_img, img):
     num_agents = int(paths.shape[0])
     last_point = np.zeros(num_agents).astype(int)
     combo_path = np.zeros((num_agents,max_path_len,2))
+    end_of_path = np.zeros(num_agents)
     for agent in range(num_agents):
         path = waypoints[paths[agent]]
         path = np.fliplr(path)
@@ -69,6 +69,9 @@ def animateFlight(current_organism, waypoints, cov_img, img):
                          tuple(combo_path[agent,last_point[agent]+1]),
                          path_colors[agent % num_colors],
                          1)
+                end_of_path[agent] = True
+        if end_of_path.all():
+            break
 
         plt.imshow(img_color)
         for agent in range(num_agents):
@@ -80,6 +83,7 @@ def animateFlight(current_organism, waypoints, cov_img, img):
                 plt.plot(combo_path[agent, last_point[agent]+1, 0],
                          combo_path[agent, last_point[agent]+1, 1],
                          'ok')
+                
         plt.pause(0.01)
 
 def update_pareto(gen_num, data, population):
@@ -100,11 +104,13 @@ def plotParetoHist(pareto_hist):
     plt.xlabel('-Coverage')
     plt.ylabel('Flight Time')
     plt.title('Pareto History')
-    # pareto_animation = animation.FuncAnimation(fig1, update_pareto, num_gen,fargs=(data, l), interval=50, blit=False)
-    animation.FuncAnimation(fig1, update_pareto, num_gen,fargs=(data, l), interval=50, blit=False)
+    animation.FuncAnimation(fig1, update_pareto, num_gen,
+                            fargs=(data, l), interval=50, blit=False)
     plt.show()
-    #this save file is kind of a bug, but it lets you get the images before it finishes at high quality
-    # pareto_animation.save('pareto_history/frames.mp4',writer = 'writer',codec = 'mp4')
+    # this save file is kind of a bug, but it lets you get the images before it 
+    # finishes at high quality. 
+    # pareto_animation.save('pareto_history/frames.mp4',
+    #                        writer = 'writer',codec = 'mp4')
 
 def plotFitness(pareto_hist):
     pareto_hist = np.array(pareto_hist)
@@ -127,16 +133,19 @@ def plotFitness(pareto_hist):
     ax1.plot(t, data1, color=color, label="Coverage")
     ax1.tick_params(axis='y', labelcolor=color)
 
-    ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
+    # instantiate a second axes that shares the same x-axis
+    ax2 = ax1.twinx()  
 
     color = 'blue'
-    ax2.set_ylabel('Flight Time', color=color)  # we already handled the x-label with ax1
+    # we already handled the x-label with ax1
+    ax2.set_ylabel('Flight Time', color=color)  
     ax2.plot(t, data2, color=color, label="Flight Time")
     ax2.tick_params(axis='y', labelcolor=color)
-    fig2.tight_layout()  # otherwise the right y-label is slightly clipped
+    # otherwise the right y-label is slightly clipped
+    fig2.tight_layout()  
     plt.show()
-# ======================================
-# ======================================
+# ==============================================================================
+# ==============================================================================
 
 inv_360 = 1 / 360
 inv_2pi = 0.5 / np.pi
@@ -157,8 +166,8 @@ def rad_wrap_2pi( angle ):
     angle -= 2*np.pi * np.floor(angle * inv_2pi)
     return angle
 
-# ======================================
-# ======================================
+# ==============================================================================
+# ==============================================================================
 
 def getRot2D(theta):
     return np.array([[np.cos(theta), -np.sin(theta)],
@@ -183,8 +192,8 @@ def defineFrustumPts(scale, min_view, max_view, view_angle):
 
     return np.array(pts)
 
-# ======================================
-# ======================================
+# ==============================================================================
+# ==============================================================================
 
 def lowVarSample(X, fitnesses, pressure):
     # pressure should be between 0 and 1

@@ -30,23 +30,35 @@ class Mappy(object):
         self._max_view = map_params['max_view']
         self._view_angle = map_params['view_angle']
         self._coverage_blend = map_params['coverage_blend']
-        self._grid = np.mgrid[0:self.shape[0]*self._scale:self._scale, 0:self.shape[1]*self._scale:self._scale]
+        self._grid = np.mgrid[0:self.shape[0]*self._scale:self._scale, 
+                              0:self.shape[1]*self._scale:self._scale]
 
         num_dilations = int(self._safety_buffer/self._scale)
         kernel = np.ones((3,3),np.uint8)
         map_dilated = cv2.dilate(self._img,kernel,iterations = num_dilations)
         self._safety_img = 0.25*self._img + 0.25*map_dilated
         self._all_waypoints = None
-        self._frustum = got.defineFrustumPts(self._scale, self._min_view, self._max_view, self._view_angle)
+        self._frustum = got.defineFrustumPts(self._scale, 
+                                             self._min_view, 
+                                             self._max_view, 
+                                             self._view_angle)
 
         # gain on turning penalty for paths
         self._rho = map_params['rho']
         self._solo_sep_thresh = map_params['solo_sep_thresh']
 
         #colors used for plotting
-        self._path_colors = [(1.0,0,0),(0,1.0,0),(0,0,1.0),(1.0,1.0,0.0),(0.0,1.0,1.0)]
+        self._path_colors = [(1.0,0,0),
+                             (0,1.0,0),
+                             (0,0,1.0),
+                             (1.0,1.0,0.0),
+                             (0.0,1.0,1.0)]
         self._num_colors = 5
-        self._lc_colors = [(0.5,0.1,0),(0,0.5,0.1),(0.1,0,0.5),(1.0,1.0,0.3),(0.3,1.0,1.0)]
+        self._lc_colors = [(0.5,0.1,0),
+                           (0,0.5,0.1),
+                           (0.1,0,0.5),
+                           (1.0,1.0,0.3),
+                           (0.3,1.0,1.0)]
 
     def saveMap(self, output_file_name):
         cv2.imwrite(output_file_name, self._img)
@@ -58,7 +70,10 @@ class Mappy(object):
         if visualize:
             cv2.imshow('Originial Image',map_raw)
 
-        map_bw = cv2.threshold(map_raw, self._bw_thresh, 255, cv2.THRESH_BINARY)[1]
+        map_bw = cv2.threshold(map_raw, 
+                               self._bw_thresh, 
+                               255, 
+                               cv2.THRESH_BINARY)[1]
         map_bw = cv2.bitwise_not(map_bw)
         if visualize:
             cv2.imshow('Image threshold black and white',map_bw)
@@ -89,7 +104,7 @@ class Mappy(object):
         return map_mat
 
     def getClosestObstacles(self, XY_scale):
-        # now we need to move dots to be at least safety_buffer away from obstacles
+        # move dots to be at least safety_buffer away from obstacles
         obstacles = (np.array(np.nonzero(self._img)) * self._scale)
         displacements = np.array([obstacles[None, 0] - XY_scale[:,0, None],
                                   obstacles[None, 1] - XY_scale[:,1, None]])
@@ -105,7 +120,8 @@ class Mappy(object):
         return min_distances, min_angles
 
     def lineCollisionCheck(self, first, second, safety_buffer):
-        # Uses Line Equation to check for collisions along new line made by connecting nodes
+        # Uses Line Equation to check for collisions along 
+        # new line made by connecting nodes
         x1 = first[0]
         y1 = first[1]
         x2 = second[0]
@@ -146,30 +162,37 @@ class Mappy(object):
         cv2.waitKey()
         cv2.destroyWindow('Map With Buffer')
 
-    def visualizeWaypoints(self, waypoints, start_idx=None):
-        pac_dots = np.zeros_like(self._img)
+    def visualizeWaypoints(self, waypoints, start_idx=None, show_wp_num=False):
         pac_dots = self._img.copy()
         pac_dots[:,:] = 0
         pac_dots[waypoints[:,0], waypoints[:,1]] = 1
-
+        num_dilations = 1
+        kernel = np.ones((2, 2), np.uint8)
+        pac_dots = cv2.dilate(pac_dots, kernel, iterations=num_dilations)
         img = pac_dots + self._safety_img
         img_color = img[...,None]*np.array([1, 1, 1])
-        for ii, wp in enumerate(waypoints):
-            cv2.putText(img_color,str(ii),(wp[1],wp[0]),cv2.FONT_HERSHEY_SIMPLEX,0.25,(255,255,255))
         if start_idx is not None:
             try:
                 for agent in range(len(start_idx)):
-                    cv2.circle(img_color, (waypoints[start_idx[agent],1],
-                                           waypoints[start_idx[agent],0]),
-                                           5,
-                                           self._path_colors[(((agent-1)*-1)+1)%self._num_colors])
+                    color = self._path_colors[(
+                        ((agent-1)*-1)+1) % self._num_colors]
+                    cv2.circle(img_color, (waypoints[start_idx[agent], 1],
+                                           waypoints[start_idx[agent], 0]),
+                                           5, color)
             except:
                 print ("INVALID STARTING LOCATIONS")
-
-        cv2.namedWindow('Map With Waypoints')
-        cv2.imshow('Map With Waypoints', img_color)
-        cv2.waitKey()
-        cv2.destroyWindow('Map With Waypoints')
+        plt.imshow(img_color)
+        plt.xticks([])
+        plt.yticks([])
+        if show_wp_num:
+            for ii, wp in enumerate(waypoints):
+                plt.text(wp[1], wp[0], str(ii), color='red', fontsize=8)
+            # cv2.putText(img_color,str(ii),(wp[1],wp[0]),cv2.FONT_HERSHEY_SIMPLEX,0.25,(255,255,255))
+        plt.show()
+        # cv2.namedWindow('Map With Waypoints')
+        # cv2.imshow('Map With Waypoints', img_color)
+        # cv2.waitKey()
+        # cv2.destroyWindow('Map With Waypoints')
 
     def visualizePath(self, waypoints, path_idx, fig):
         # make this draw lines instead of points
