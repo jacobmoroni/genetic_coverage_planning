@@ -174,10 +174,10 @@ Where $\mathcal{C}$ is the value used for the coverage constraint, $\mathcal{C}_
 
 \subsubsection{Minimize Flight Time}
 
-The second objective function minimizes flight time. To achieve this, we assume a constant velocity flight and compute the total distance flown in each path. To avoid excessive meandering and incentivize flying straight lines, we also added a turning cost proportional to the change in heading angle between waypoints.
+The second objective function minimizes flight time. To achieve this, we assume a constant velocity flight and compute the total distance flown in each path. To avoid excessive meandering and incentivize flying straight lines, we also added a turning cost proportional to the change in heading angle between waypoints. As shown below, we apply the cost as an exponent of the change in heading angle by $\frac{\pi}{2}$ to heavily penalize turning more than 90 degrees at any time.
 
 \begin{equation}%\nonumber
-    \text{flight time} = \sum_{i=0}^{l} (d_{w,i} + \rho\abs{\Delta \psi_i})
+    \text{flight time} = \sum_{i=0}^{l} \left(d_{w,i} + \rho\abs{\frac{\Delta \psi_i}{\pi/2}}^{\rho}\right)
 \end{equation}
 
 Where $l$ is the total number of waypoints in a given path, $d_{w,i}$ is the distance between the current waypoint and the next waypoint, $\rho$ is a tunable parameter to weight the cost of turning, and $\Delta \psi_i$ is the difference in heading angle between the current and next waypoint. This favors paths with fewer waypoints and less turning.
@@ -186,7 +186,7 @@ Where $l$ is the total number of waypoints in a given path, $d_{w,i}$ is the dis
 
 To save computation when generating or modifying paths, we pre-compute the traversability graph. The UAV is allowed to move to any waypoint defined in the traversability graph for its current position. For any given waypoint, we want to constrain movement only to adjacent waypoints that are not obscured by obstacles. To achieve this, we split up the space around each waypoint into octants. Then, we find the nearest waypoint in each octant and add an edge between it and the current waypoint. To prevent flying into obstacles, we prune the graph to remove any traversals that collide with obstacles.
 
-Using this traversability graph, we generate feasible paths for the UAV. Given a desired path length and starting location, a random waypoint is selected from the traversability graph. The probability of choosing the next waypoint favors forward motion, with probability decreasing as turning angle increases to reduce meandering. To avoid backtracking, we also encode a short term memory so that the UAV will not return to a recent waypoint unless there is no other choice.
+Using this traversability graph, we generate feasible paths for the UAV. Given a desired path length and starting location, a random waypoint is selected from the traversability graph. The probability of choosing the next waypoint favors forward motion, with probability decreasing as turning angle increases to reduce meandering. The probability drops off according to a logarithmic scale with a tunable weight to control how much the path will favor forward movement. To avoid backtracking, we also encode a short term memory so that the UAV will not return to a recent waypoint unless there is no other choice.
 
 Because of the computational cost of computing the modified viewable area at each waypoint, we use the information in the traversable graph to precompute the modified viewable area for every possible waypoint traversal. We also do this for the distances and angles between traversable waypoints used in computing flight time. By pre-computing this information and storing it. The optimization is able to run significantly faster.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -354,7 +354,6 @@ The low variance sampling did not need modification for the multi-agent architec
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{RESULTS}\label{results}
-\todo{this section needs to be updated to show new results single agent with loop closures and multi-agent}
 The designer is required to set many parameters for the genetic algorithm to work as derived in \cite{Parkinson2019}. The parameters we used, along with parameters specific to our implementation, are outlined in Table \ref{tab:parameters}.
 
 \begin{table}
@@ -383,8 +382,10 @@ Minimum Coverage Constraint Aging (Generations)    & 60                      \\
 Loop Closure Separation Threshold (Waypoints)      & 30                      \\
 Minimum Loop Closures                              & 2                       \\
 Path Memory (Waypoints)                            & 10                      \\
+Turning Cost Factor $\rho$                         & 8.0                     \\
+Log Scale Turning Weight                           & 0.7                     \\
+Fitness Pressure Factor                            & 0.5                     \\
 
-\todo{update this table to show all variables symbols}\\
 \end{tabular}
 \label{tab:parameters}
 \end{table}
@@ -399,13 +400,13 @@ Path Memory (Waypoints)                            & 10                      \\
 \label{fig:pareto_cheetos}
 \end{figure*}
 
-\begin{figure*}
+\begin{figure}
 \centering
-\includegraphics[width=1.0\linewidth]{figures/final_paths.png}
-\caption{Examples of final paths generated by the genetic algorithm. These paths show example paths from the extremes of the Pareto front that display shortest flight time with less coverage (left), and best coverage with higher flight time (right). The center shows a good path from the middle of the Pareto front, with a good balance of flight time and coverage.}
+\includegraphics[width=1.0\linewidth]{figures/single_agent_path.png}
+\caption{Example of a final path generated by the genetic algorithm for a single agent. This path shows excellent wall coverage and loop closure to generate a good map.}
 \label{fig:final_paths}
 
-\end{figure*}
+\end{figure}
 
 Fig. \ref{fig:pareto_cheetos} shows how the objective values of the organisms evolved from generation to generation. Four different snapshots are shown: the first, randomly generated set of parents, the state of the generation at about a third and two-thirds of the way through the selected number of generations, and last, the final result of the progression of 1000 generations. Fig. \ref{fig:objectives} shows how the average negative coverage and average flight time progresses over the course of the 600 generations. The coverage flattens out temporarily, but then continues to drop after 400 generations. The interesting result displayed is in the flight time objective value history. After about 30 generations, the flight time starts to rise again. This is due to the dynamic constraint that invalidates all organisms with coverage below the defined threshold at the defined generation number. Once the coverage constraint settles to a constant value, the organisms with good coverage dominate the generation population and the algorithm successfully lowers the flight time again to represent a useful Pareto front that has a good spread of options from which to choose.
 
@@ -427,7 +428,7 @@ Our algorithm was successful in generating useful paths, as seen in Fig. \ref{fi
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{CONCLUSIONS}\label{conclusions}
 
-We were able to successfully generate paths with reasonably good coverage that do not appear to meander too much for a single UAV. Future work on this project will include adding loop closure detection into the model to significantly increase the quality of generated 3D maps. We also plan to extend this to work with multiple UAVs flying simultaneously. We expect the need to use the paths generated with a lower level path planner that can dynamically change waypoints according to obstacles and other unmapped disparities. Finally we plan to test the paths generated both in high fidelity simulation as well as in hardware.
+\todo{changeme We were able to successfully generate paths with reasonably good coverage} that do not appear to meander too much for a single UAV. Future work on this project will include adding loop closure detection into the model to significantly increase the quality of generated 3D maps. We also plan to extend this to work with multiple UAVs flying simultaneously. We expect the need to use the paths generated with a lower level path planner that can dynamically change waypoints according to obstacles and other unmapped disparities. Finally we plan to test the paths generated both in high fidelity simulation as well as in hardware.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

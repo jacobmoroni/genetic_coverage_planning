@@ -39,9 +39,10 @@ cwd = os.getcwd() #current working directory
 ###############################################################################
 # parameters
 ###############################################################################
-# setting this to true will use waypoints and traversability that have already been genrated
-# set to false to re-generate waypoints and traversability graph for new map or altered parameters
-use_old_graph = True
+# setting this to true will use waypoints and traversability that have already 
+# been genrated set to false to re-generate waypoints and traversability graph 
+# for new map or altered parameters
+use_old_graph = False
 old_graph_fname = cwd + '/data/wilk_3_graph_new.npy'
 old_wpts_fname = cwd + '/data/wilk_3_wptsXY_new.npy'
 # old_graph_fname = cwd + '/data/wilk_3_graph.npy'
@@ -49,60 +50,101 @@ old_wpts_fname = cwd + '/data/wilk_3_wptsXY_new.npy'
 
 # file where the pre-scaled map is.
 scaled_map_file = cwd + "/data/map_scaled.png"
-raw_map_file = cwd + "/data/map.png"
+raw_map_file = cwd + "/data/map_large.png"
 
 # Parameters that remain the same regardless of number of agents
 # Map Generation parameters
-scale = 0.15 #scale from pixels to meters of scaled map
-narrowest_hall = 1.75 #width in meters of narrowest_hall
-num_rays = 15 #number of rays used to compute coverage with obstacles
-min_view = 0.2#0.5 #minimum distance the camera counts as viewed
-max_view = 7 #maximum distance the camera counts as viewed
-view_angle = 69.4*np.pi/180 #horizontal field of view of camera (in radians)
-bw_thresh = 90 # value used to threshold a new map when converting to black and white
-scale_px2m = 1/0.44*0.0254 #measured estimate of original image pixels to meters scale
+#scale from pixels to meters of scaled map
+scale = 0.15 
+ #width in meters of narrowest_hall
+narrowest_hall = 1.75
+#number of rays used to compute coverage with obstacles
+num_rays = 15 
+#0.5 #minimum distance the camera counts as viewed
+min_view = 0.2
+#maximum distance the camera counts as viewed
+max_view = 7 
+#horizontal field of view of camera (in radians)
+view_angle = 69.4*np.pi/180 
+# value used to threshold a new map when converting to black and white
+bw_thresh = 90 
+#measured estimate of original image pixels to meters scale
+scale_px2m = 1/0.44*0.0254 / 0.709
 
 # Map Training Parameters
-rho = 8.0 #turning penalty gain.
-coverage_blend = 1.0 #percentage of coverage score based on viewing walls vs all area
-solo_sep_thresh = [30,30,20,10,10] #threshold for separation between loop closures
+#turning penalty gain.
+rho = 8.0 
+#percentage of coverage score based on viewing walls vs all area
+coverage_blend = 1.0 
+#threshold for separation between loop closures
+solo_sep_thresh = [30,30,20,10,10,10] 
 
 #Path parameters
-path_memory = 10 #Memory of path where path generator will not return to unless no other option exists
-max_traverse_dist = 3.5 #max distance traversable with one step
-waypoint_dist_factor = 0.8 #factor multiplied by safety buffer to determine which waypoints are too close to eachother for pruning
-wall_waypoint_factor = 2.5 #factor multiplied by safety buffer to determine which waypoints are too far away from a wall to be usefull for pruning.
-log_scale_weight = 0.7 #1 #factor for assigning probability of moving forward when generating new paths or path segments (smaller = higher forward probability) 
+#Memory of path where path generator will not return to unless 
+# no other option exists
+path_memory = 10 
+#max distance traversable with one step
+max_traverse_dist = 3.5 
+#factor multiplied by safety buffer to determine which waypoints are 
+# too close to eachother for pruning
+waypoint_dist_factor = 0.8 
+#factor multiplied by safety buffer to determine which waypoints are 
+# too far away from a wall to be usefull for pruning.
+wall_waypoint_factor = 2.5 
+#factor for assigning probability of moving forward when generating new 
+# paths or path segments (smaller = higher forward probability) 
+log_scale_weight = 0.7 #1 
 
 #Genetic Algorithm Parameters
-gen_size = 150 #number of organisms per generation (must be even)
-starting_path_len = [200,150,100,100,75] #length of initial path
-num_agents = 3 #number of agents
-gamma = 0.5 #roulette exponent >=0. 0 means no fitness pressure
-coverage_constr_0 = 0.3 #starting coverage constraint
-coverage_constr_f = 0.9 #final coverage constraint
-coverage_aging = 80 #number of generations to age coverage constraint
+#number of organisms per generation (must be even)
+gen_size = 150 
+#length of initial path
+starting_path_len = [200,150,100,100,75,150] 
+#number of agents
+num_agents = 6 
+#roulette exponent >=0. 0 means no fitness pressure
+gamma = 0.5 
+#starting coverage constraint
+coverage_constr_0 = 0.3 
+#final coverage constraint
+coverage_constr_f = 0.8 
+#number of generations to age coverage constraint
+coverage_aging = 80 
 
 #Organism Parameters
 # waypoint index where all paths will begin (This is for the pruned map)
-start_idx = [[99], [99, 99], [0, 15, 184],
-             [99, 0, 15, 184], [99, 99, 0, 15, 184]]  # (This is for the pruned map)
+# (This is for the pruned map)
+start_idx = [[99], [99, 99], [93,93,93],#[0, 15, 184],
+             [99, 0, 15, 184], [99, 99, 0, 15, 184], [0,68,536,450,78,97]] 
+# (This is for the pruned map)
 # start_idx = [[111], [111, 111], [0, 15, 197],
-            #  [111, 0, 15, 197], [111, 111, 0, 15, 197]]  # (This is for the pruned map)
-# start_idx = [111,111,0,15,197,173] #waypoint index where all paths will begin (This is for the pruned map)
-# start_idx = [207,207,1,10,305,207] #waypoint index where all paths will begin (This is for the unpruned map)
-max_dna_len = [250,200,150,125,125] #maximum number of waypoints in a path
-min_dna_len = [70,60,50,30,30] #minimimum number of waypoints in a path
-crossover_prob = 0.7 #probability of performing crossover when generating new organisms
-crossover_time_thresh = 70 #how close crossover points need to be to eachother to be considered
-mutation_prob = 0#0.3 #probability of performing mutation on new organisms
-muterpolate_prob = 0#0.2#0.2 #probability of performing muterpolation on new organisms
-num_muterpolations = [20,20,15,15,10] #number of possible points to perform muterpolation
-muterpolation_srch_dist = 5 #how far ahead to look from each point when performing muterpolation
-muterpolation_sub_prob = 0.8 #probability of accepting muterpolation point
-min_solo_lcs = [5,5,3,2,1] #minimum number of loop closures each agent must have with their own path
-min_comb_lcs = [0,10,10,5,5] #minimum number of loop closures agents must have with other agents
-flight_time_scale = 0.0001 #scaling factor for flight time used in maximin fitnesses
+            #  [111, 0, 15, 197], [111, 111, 0, 15, 197]]  
+# #waypoint index where all paths will begin (This is for the unpruned map)
+# start_idx = [207,207,1,10,305,207] 
+#maximum number of waypoints in a path
+max_dna_len = [250,200,150,125,125,200] 
+#minimimum number of waypoints in a path
+min_dna_len = [70,60,50,30,30,30] 
+#probability of performing crossover when generating new organisms
+crossover_prob = 0.7 
+#how close crossover points need to be to eachother to be considered
+crossover_time_thresh = 70 
+#probability of performing mutation on new organisms
+mutation_prob = 0.3
+#probability of performing muterpolation on new organisms
+muterpolate_prob = 0.2#0.2 
+#number of possible points to perform muterpolation
+num_muterpolations = [20,20,15,15,10,20] 
+#how far ahead to look from each point when performing muterpolation
+muterpolation_srch_dist = 5 
+#probability of accepting muterpolation point
+muterpolation_sub_prob = 0.8 
+#minimum number of loop closures each agent must have with their own path
+min_solo_lcs = [5, 5, 0, 2, 1, 2]#[5, 5, 3, 2, 1]
+#minimum number of loop closures agents must have with other agents
+min_comb_lcs = [0,10,5,5,5,5] 
+#scaling factor for flight time used in maximin fitnesses
+flight_time_scale = 0.0001 
 
 ###############################################################################
 map_params = {'scale':scale,
@@ -165,11 +207,13 @@ else:
 
     print("Generating possible waypoints.")
     pather.smartlyPlaceDots()
-    print("Check waypoints placed and starting location(s). Press ESC to continue")
+    print("Check waypoints placed and starting location(s). \
+        Press ESC to continue")
     mappy.visualizeWaypoints(pather.waypoint_locs, start_idx, show_wp_num= True)
     print("Generating traversible graph.")
     pather.computeTraversableGraph()
-    print("new files have been saved. overwrite old files with new to use in future")
+    print("new files have been saved. \
+        overwrite old files with new to use in future")
     pather.saveTraversableGraph(cwd + '/data/wilk_3_graph_new.npy')
     pather.saveWptsXY(cwd + '/data/wilk_3_wptsXY_new.npy')
 
