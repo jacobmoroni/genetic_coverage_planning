@@ -418,8 +418,8 @@ Fig. \ref{fig:pareto_cheetos} shows how the objective values of the organisms ev
 \end{figure}
 
 \subsubsection{Paths Generated}
-
-Our algorithm was successful in generating useful paths, as seen in Fig. \ref{fig:final_paths}. The path on the left shows the option with the shortest flight time. However, it misses an entire room at the bottom left of the 2D map. Via our crossover and mutation schemes, the good elements that cause this path to have a short flight time, such as straighter paths with minimal overlap, are able to propagate to other path designs. The path on the right shows excellent coverage close to 100\%, but it also includes too much overlap with itself, wasting the drone battery supply. The path in the center of the figure shows how the maximin fitness and our implementation of the genetic algorithm were able to produce a design with the good elements from both. The path in the center includes coverage in the lower left room with minimal waste of the battery supply looping back over places already visited.
+\todo{working on it here}
+Our algorithm was successful in generating useful paths, as seen in Fig. \ref{fig:final_paths}. The path covers over 95\% of the walls, more than enough to generate a good map. The path also has a good loop closure with itself in The path on the left shows the option with the shortest flight time. However, it misses an entire room at the bottom left of the 2D map. Via our crossover and mutation schemes, the good elements that cause this path to have a short flight time, such as straighter paths with minimal overlap, are able to propagate to other path designs. The path on the right shows excellent coverage close to 100\%, but it also includes too much overlap with itself, wasting the drone battery supply. The path in the center of the figure shows how the maximin fitness and our implementation of the genetic algorithm were able to produce a design with the good elements from both. The path in the center includes coverage in the lower left room with minimal waste of the battery supply looping back over places already visited.
 
 
 \subsection{Multiple Agents}
