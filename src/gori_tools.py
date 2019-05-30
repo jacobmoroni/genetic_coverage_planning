@@ -39,8 +39,13 @@ def animateFlight(current_organism, waypoints, cov_img, img):
 
     paths = current_organism._dna
 
-    path_colors = [(1.0,0,0),(0,1.0,0),(0,0,1.0),(1.0,1.0,0.0),(0.0,1.0,1.0)]
-    num_colors = 5
+    path_colors = [(1.0,0,0),
+                     (0,1.0,0),
+                     (0,0,1.0),
+                     (0.8,0.8,0.0),
+                     (0.0,1.0,1.0),
+                     (1.0,0.0,1.0)]
+    num_colors = 6
     max_path_len = current_organism._max_dna_len
     num_agents = int(paths.shape[0])
     last_point = np.zeros(num_agents).astype(int)
@@ -83,7 +88,7 @@ def animateFlight(current_organism, waypoints, cov_img, img):
                 plt.plot(combo_path[agent, last_point[agent]+1, 0],
                          combo_path[agent, last_point[agent]+1, 1],
                          'ok')
-                
+
         plt.pause(0.01)
 
 def update_pareto(gen_num, data, population):
@@ -107,8 +112,8 @@ def plotParetoHist(pareto_hist):
     animation.FuncAnimation(fig1, update_pareto, num_gen,
                             fargs=(data, l), interval=50, blit=False)
     plt.show()
-    # this save file is kind of a bug, but it lets you get the images before it 
-    # finishes at high quality. 
+    # this save file is kind of a bug, but it lets you get the images before it
+    # finishes at high quality.
     # pareto_animation.save('pareto_history/frames.mp4',
     #                        writer = 'writer',codec = 'mp4')
 
@@ -134,16 +139,16 @@ def plotFitness(pareto_hist):
     ax1.tick_params(axis='y', labelcolor=color)
 
     # instantiate a second axes that shares the same x-axis
-    ax2 = ax1.twinx()  
+    ax2 = ax1.twinx()
 
     color = 'blue'
     # we already handled the x-label with ax1
-    ax2.set_ylabel('Flight Time', color=color)  
+    ax2.set_ylabel('Flight Time', color=color)
     ax2.plot(t, data2, color=color, label="Flight Time")
     ax2.tick_params(axis='y', labelcolor=color)
     # otherwise the right y-label is slightly clipped
-    fig2.tight_layout()  
-    plt.show()
+    fig2.tight_layout()
+    fig2.show()
 # ==============================================================================
 # ==============================================================================
 

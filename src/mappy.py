@@ -30,7 +30,7 @@ class Mappy(object):
         self._max_view = map_params['max_view']
         self._view_angle = map_params['view_angle']
         self._coverage_blend = map_params['coverage_blend']
-        self._grid = np.mgrid[0:self.shape[0]*self._scale:self._scale, 
+        self._grid = np.mgrid[0:self.shape[0]*self._scale:self._scale,
                               0:self.shape[1]*self._scale:self._scale]
 
         num_dilations = int(self._safety_buffer/self._scale)
@@ -38,9 +38,9 @@ class Mappy(object):
         map_dilated = cv2.dilate(self._img,kernel,iterations = num_dilations)
         self._safety_img = 0.25*self._img + 0.25*map_dilated
         self._all_waypoints = None
-        self._frustum = got.defineFrustumPts(self._scale, 
-                                             self._min_view, 
-                                             self._max_view, 
+        self._frustum = got.defineFrustumPts(self._scale,
+                                             self._min_view,
+                                             self._max_view,
                                              self._view_angle)
 
         # gain on turning penalty for paths
@@ -51,14 +51,16 @@ class Mappy(object):
         self._path_colors = [(1.0,0,0),
                              (0,1.0,0),
                              (0,0,1.0),
-                             (1.0,1.0,0.0),
-                             (0.0,1.0,1.0)]
-        self._num_colors = 5
+                             (0.8,0.8,0.0),
+                             (0.0,1.0,1.0),
+                             (1.0,0.0,1.0)]
+        self._num_colors = 6
         self._lc_colors = [(0.5,0.1,0),
                            (0,0.5,0.1),
                            (0.1,0,0.5),
                            (1.0,1.0,0.3),
-                           (0.3,1.0,1.0)]
+                           (0.3,1.0,1.0),
+                           (1.0,0.3,1.0)]
 
     def saveMap(self, output_file_name):
         cv2.imwrite(output_file_name, self._img)
@@ -70,9 +72,9 @@ class Mappy(object):
         if visualize:
             cv2.imshow('Originial Image',map_raw)
 
-        map_bw = cv2.threshold(map_raw, 
-                               self._bw_thresh, 
-                               255, 
+        map_bw = cv2.threshold(map_raw,
+                               self._bw_thresh,
+                               255,
                                cv2.THRESH_BINARY)[1]
         map_bw = cv2.bitwise_not(map_bw)
         if visualize:
@@ -120,7 +122,7 @@ class Mappy(object):
         return min_distances, min_angles
 
     def lineCollisionCheck(self, first, second, safety_buffer):
-        # Uses Line Equation to check for collisions along 
+        # Uses Line Equation to check for collisions along
         # new line made by connecting nodes
         x1 = first[0]
         y1 = first[1]
