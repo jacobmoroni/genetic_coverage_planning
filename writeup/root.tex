@@ -45,7 +45,7 @@
 Optimal Multi-Agent Coverage and Flight Time with Genetic Path Planning
 }
 
-\author{Jacob M. Olson$^{1}$, Craig C. Bidstrup, Brady K Anderson, Alan R. Parkinson$^{2}$% <-this % stops a space
+\author{Jacob M. Olson$^{1}$, Craig C. Bidstrup, Brady K Anderson, Alan R. Parkinson, Timothy W. McLain$^{2}$% <-this % stops a space
 %\thanks{This research was supported through the Center for Unmanned Aircraft Systems (C-UAS), a National Science Foundation-sponsored industry/university cooperative research center (I/UCRC) under NSF Award No. IIP-1650547 along with significant contributions from C-UAS industry members.}% <-this % stops a space
 \thanks{$^{1}$The corresponding author can be contacted at
         {\tt\small jacobmo at byu.edu}.}%
@@ -80,9 +80,9 @@ When generating 3D maps with unmanned aerial vehicles (UAVs), it is important fo
 %Talk about lit review and what we will be contributing to the space
 
 %add multi agent to this
-Autonomously generating an internal 3D map of a building requires intelligent control of the mapping vehicle. This ranges from manually planning a flight path with simple obstacle avoidance to full stack exploration and path planning algorithms.
+Autonomously generating an internal 3D map of a building requires intelligent control of the mapping vehicle. This ranges from manually planning a flight path with simple obstacle avoidance to full-stack exploration and path planning algorithms.
 
-Generating a flight path is a nontrivial task, especially when multiple objectives are considered. For example, the algorithm may want to maximize observed coverage of the space while minimizing flight time. This becomes tedious with each new space and more difficult as the complexity of the space increases with more rooms and inter-connecting hallways. When planning paths to achieve good coverage of the area rather than obstacle avoidance or traversability, it becomes much more complex. To plan effective flight paths in more complex flight spaces, using algorithms to plan the paths becomes a necessity.
+Generating a flight path is a nontrivial task, especially when multiple objectives are considered. For example, the algorithm may want to maximize observed coverage of the space while minimizing flight time. This becomes tedious with each new space and more difficult as the complexity of the space increases with more rooms and inter-connecting hallways. When planning paths to achieve good coverage of the area rather than obstacle avoidance or traversability, it becomes much more complex. To plan effective flight paths in more complex flight spaces, using algorithms becomes a necessity.
 
 When generating paths for the purpose of building a 3D map of the environment in a GPS-denied area such as indoors, enforcing loop closures becomes critical. Loop closures both between paths of different agents and between different segments of the same path are critical to successfully generate a usable map. Loop closures between different segments of the same path significantly reduce drift that occurs in visual odometry algorithms necessary for navigation and estimation with UAVs. Loop closures between paths of different agents ensures that the individual maps of each agent will combine into a single map.
 
@@ -107,7 +107,7 @@ The goal of our optimization is to generate paths through a simple floor plan wi
 
 \subsection{Discretization}
 
-The open-ended nature of path planning can make optimization difficult. To simplify the design space we discretize it as much as possible.
+The open-ended nature of path planning can make optimization difficult. To simplify the design space we discretize it by shrinking the map and constraining the path to only fly through predetermined waypoints.
 
 \subsubsection{Map Generation}
 
@@ -124,9 +124,9 @@ Once this map is segmented, it is scaled to represent the minimum resolution des
 
 \subsubsection{Waypoints}
 
-To further discretize and simplify the design space of the optimization, we place waypoints on the map and constrain the flight path to only fly through these waypoints. First, a grid is overlaid onto the map with a resolution of one half the width of the narrowest accessible hallway. This ensures that there are waypoints in every hallway and room to make the space fully traversable. Next, all waypoints overlapping occluded space are removed.
+To further discretize and simplify the design space of the optimization, we place waypoints on the map and constrain the flight path to fly only through these waypoints. First, a grid is overlaid onto the map with a resolution of one half the width of the narrowest accessible hallway. This ensures that there are waypoints in every hallway and room to make the space fully traversable. Next, all waypoints overlapping occluded space are removed.
 
-After removing occluded waypoints, the remaining waypoints are further pruned and adjusted to better cover the space. To remove waypoints that would cause the UAV to collide with obstacles, we generate a safety buffer around all occluded space greater than half the width of the UAV. Any waypoint that falls within this safety buffer is nudged away from the wall. The waypoints are then pruned to remove redundancy. The distance between adjacent waypoints is checked and any that are closer than the initial grid resolution are replaced with a single waypoint at the centroid of the cluster. This prevents over-crowding of waypoints in hallways and corners to make it simpler to generate flight paths in these areas. We create another waypoint grid that also removes waypoints that are not near walls to simplify the design space even more. Fig. \ref{fig:waypoints} shows an example of this waypoint pruning process. We chose to do this simplified discretization approach rather than computing Voronoi Graphs of the map as done by Sipahioglu et al. \cite{Sipahioglu2010} which tend to collapse rooms down into few waypoints. We wanted to allow more open-ended exploration in open areas such as large rooms.
+After removing occluded waypoints, the remaining waypoints are further pruned and adjusted to better cover the space. To remove waypoints that would cause the UAV to collide with obstacles, we generate a safety buffer around all occluded space greater than half the width of the UAV. Any waypoint that falls within this safety buffer is nudged away from the wall. The waypoints are then pruned to remove redundancy. The distance between adjacent waypoints is checked and any that are closer than the initial grid resolution are replaced with a single waypoint at the centroid of the cluster. This prevents over-crowding of waypoints in hallways and corners to make it simpler to generate flight paths in these areas. We create another waypoint grid that also removes waypoints that are not near walls to simplify the design space even more. Fig. \ref{fig:waypoints} shows an example of this waypoint pruning process. We chose to do this simplified discretization approach rather than computing Voronoi graphs of the map as done by Sipahioglu et al. \cite{Sipahioglu2010} which tend to collapse rooms down into few waypoints. We wanted to allow more open-ended exploration in open areas such as large rooms.
 
 \begin{figure}
 \centering
@@ -137,18 +137,18 @@ After removing occluded waypoints, the remaining waypoints are further pruned an
 
 \subsection{Objective Functions}
 
-We split the optimization into two competing objectives. First, to maximize coverage of the given map, and second, to minimize flight time.
+We split the optimization into two competing objectives: The first maximizes coverage of the given map, and the second minimizes flight time.
 
 \subsubsection{Maximize Coverage}
 
-The first objective is to maximize coverage of the environment.  To simplify the problem, we assume the UAV only flies forward. We use the camera's minimum and maximum viewable depths ($d_{min}$ and $d_{max}$) and horizontal field of view ($\theta_{fov}$) to construct the camera viewable area. Then at each camera pose, we subtract all explorable area occluded by obstacles from the viewable area by dividing the viewable area into $m$ sections and setting the distance of each section $d_{view,i}$ to
+The first objective is to maximize coverage of the environment.  To simplify the problem, we assume the UAV only flies forward. We use the camera's minimum and maximum viewable depths ($d_{\mathit{min}}$ and $d_{\mathit{max}}$) and horizontal field of view ($\theta_{\mathit{fov}}$) to construct the camera viewable area. Then at each camera pose, we subtract all explorable area occluded by obstacles from the viewable area by dividing the viewable area into $m$ sections and setting the distance of each section $d_{\mathit{view},i}$ to
 
 \begin{align}
-  d_{view,i} &= max(min(d_{max}, min(d_{obs,i})),d_{min}) \\
+  d_{\mathit{view},i} &= \max(\min(d_{\mathit{max}}, \min(d_{\mathit{obs},i})),d_{\mathit{min}}) \\
   i &= 0...m \nonumber
 \end{align}
-
-where $d_{obs,i}$ is an array composed of the distances to all obstacles in section $i$. As $m$ increases, the coverage calculation becomes more accurate, but also more more computationally costly. An example of how the coverage is evaluated is shown in Fig. \ref{fig:coverage_sections}.
+%
+where $d_{\mathit{obs},i}$ is an array composed of the distances to all obstacles in section $i$. As $m$ increases, the coverage calculation becomes more accurate, but also more more computationally costly. An example of how the coverage is evaluated is shown in Fig. \ref{fig:coverage_sections}.
 
 \begin{figure}
 \centering
@@ -157,13 +157,13 @@ where $d_{obs,i}$ is an array composed of the distances to all obstacles in sect
 \label{fig:coverage_sections}
 \end{figure}
 
-We then set the modified viewable area as explored at a waypoint. After repeating this process for every waypoint in the path, we calculate the percent of the explorable space in the map that is seen in that path. Mapping and visual odometry algorithms work better when the color and depth information from the camera is feature rich. Because of this, flying near walls is more beneficial than flying in open space like the middle of large rooms. To capture this, we compute a second coverage value which is the percent of safety buffer (computed when placing waypoints) seen by the path. We then preform an alpha blend (shown in equation \ref{eq:coverage}) on the two coverage types to get a single value that is used as the first objective value.
+ Next, we set the modified viewable area as explored at a waypoint. After repeating this process for every waypoint in the path, we calculate the percent of the explorable space in the map that is seen in that path. Mapping and visual odometry algorithms work better when the color and depth information from the camera is feature rich. Because of this, flying near walls is more beneficial than flying in open space like the middle of large rooms. To capture this, we compute a second coverage value which is the percent of safety buffer (computed when placing waypoints) seen by the path. We then perform an alpha blend (shown in equation \ref{eq:coverage}) on the two coverage types to get a single value that is used as the first objective value
 
 \begin{equation}\label{eq:coverage}%\nonumber
-    \mathcal{C} = \alpha_{cov} \mathcal{C}_{open} + \left(1-\alpha_{cov})\right. \mathcal{C}_{walls}
+    \mathcal{C} = \alpha_{\mathit{cov}} \mathcal{C}_{\mathit{open}} + \left(1-\alpha_{\mathit{cov}})\right. \mathcal{C}_{\mathit{walls}},
 \end{equation}
-
-Where $\mathcal{C}$ is the value used for the coverage constraint, $\mathcal{C}_{open}$ is the coverage of the open explorable space, $\mathcal{C}_{walls}$ is the coverage of the safety buffer, and $\alpha_{cov}$ is a tunable parameter to weight the importance of walls vs. empty space in the coverage calculation. See Fig. \ref{fig:coverage} for an example path and corresponding coverage from this step.
+%
+where $\mathcal{C}$ is the value used for the coverage constraint, $\mathcal{C}_{\mathit{open}}$ is the coverage of the open explorable space, $\mathcal{C}_{\mathit{walls}}$ is the coverage of the safety buffer, and $\alpha_{\mathit{cov}}$ is a tunable parameter to weight the importance of walls vs. empty space in the coverage calculation. See Fig. \ref{fig:coverage} for an example path and corresponding coverage from this step.
 
 \begin{figure}
 \centering
@@ -177,7 +177,7 @@ Where $\mathcal{C}$ is the value used for the coverage constraint, $\mathcal{C}_
 The second objective function minimizes flight time. To achieve this, we assume a constant velocity flight and compute the total distance flown in each path. To avoid excessive meandering and incentivize flying straight lines, we also added a turning cost proportional to the change in heading angle between waypoints. As shown below, we apply the cost as an exponent of the change in heading angle by $\frac{\pi}{2}$ to heavily penalize turning more than 90 degrees at any time.
 
 \begin{equation}%\nonumber
-    \text{flight time} = \sum_{i=0}^{l} \left(d_{w,i} + \rho\abs{\frac{\Delta \psi_i}{\pi/2}}^{\rho}\right)
+    \mathit{flight\: time} = \sum_{i=0}^{l} \left(d_{w,i} + \rho\abs{\frac{\Delta \psi_i}{\pi/2}}^{\rho}\right)
 \end{equation}
 
 Where $l$ is the total number of waypoints in a given path, $d_{w,i}$ is the distance between the current waypoint and the next waypoint, $\rho$ is a tunable parameter to weight the cost of turning, and $\Delta \psi_i$ is the difference in heading angle between the current and next waypoint. This favors paths with fewer waypoints and less turning.
@@ -188,16 +188,16 @@ To save computation when generating or modifying paths, we pre-compute the trave
 
 Using this traversability graph, we generate feasible paths for the UAV. Given a desired path length and starting location, a random waypoint is selected from the traversability graph. The probability of choosing the next waypoint favors forward motion, with probability decreasing as turning angle increases to reduce meandering. The probability drops off according to a logarithmic scale with a tunable weight to control how much the path will favor forward movement. To avoid backtracking, we also encode a short term memory so that the UAV will not return to a recent waypoint unless there is no other choice.
 
-Because of the computational cost of computing the modified viewable area at each waypoint, we use the information in the traversable graph to precompute the modified viewable area for every possible waypoint traversal. We also do this for the distances and angles between traversable waypoints used in computing flight time. By pre-computing this information and storing it. The optimization is able to run significantly faster.
+Because of the computational cost of computing the modified viewable area at each waypoint, we use the information in the traversable graph to precompute the modified viewable area for every possible waypoint traversal. We also do this for the distances and angles between traversable waypoints used in computing flight time. By pre-computing this information and storing it, the optimization is able to run significantly faster.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{APPROACH}\label{approach}
 \subsection{Single Agent Architecture}
 
-Performing coverage planning for a single agent is simpler than multi agent planning. We begin by detailing the architecture for a single agent as follows. The methodology of genetic algorithms is to structure the optimization problem in a way that mimics the genetics and evolution process observable in nature. The variables of the optimization are stored in a "chromosome" similarly to how genes are stored in nature. To enforce survival of the fittest, fitness pressure is applied through mate selection. Then to move from generation to generation, reproduction mechanisms such as gene crossover and mutation are implemented on the new organisms introduced to the population from mating.
+Performing coverage planning for a single agent is simpler than multi-agent planning. We begin by detailing the architecture for a single agent as follows. The methodology of genetic algorithms is to structure the optimization problem in a way that mimics the genetics and evolution process observable in nature. The variables of the optimization are stored in a chromosome data structure similarly to how genes are stored in nature. To enforce survival of the fittest, fitness pressure is applied through mate selection. Then to move from generation to generation, reproduction mechanisms such as gene crossover and mutation are implemented on the new organisms introduced to the population from mating.
 
 \subsubsection{Chromosome}
 
-The chromosome defining each member organism in a generation has a minimum, initial, and maximum number of genes. Each gene represents one waypoint in a path and its value encodes a location in the grid of possible waypoints, as seen in Fig. \ref{fig:waypoints}. The first generation of parents is spawned by generating a random path within the 2D map. The first step to create this path is to seed the same initial waypoint to each organism in the generation's population, representing the idea that the doorway to enter the building is always in the same place. All organisms in the first generation start with the same initial number of waypoints, however, the chromosome length is allowed to vary in crossover and mutation between the minimum and maximum number of genes. Once the chromosome is defined, both the coverage and flight time objective values are computed for that organism. To start the first generation with only feasible organisms, any chromosomes that do not satisfy the starting constraints as detailed in Section \ref{constraints} are thrown and a new organism is generated in its place. This process is repeated until the the desired number of organisms has been added to the first generation.
+The chromosome defining each member organism in a generation has a minimum, initial, and maximum number of genes. Each gene represents one waypoint in a path and its value encodes a location in the grid of possible waypoints, as seen in Fig. \ref{fig:waypoints}. The first generation of parents is spawned by generating a random path within the 2D map. The first step to create this path is to seed the same initial waypoint to each organism in the generation's population, representing the idea that the doorway to enter the building is always in the same place. All organisms in the first generation start with the same initial number of waypoints, however, the chromosome length is allowed to vary in crossover and mutation between the minimum and maximum number of genes. Once the chromosome is defined, both the coverage and flight time objective values are computed for that organism. To start the first generation with only feasible organisms, any chromosomes that do not satisfy the starting constraints are thrown and a new organism is generated in its place. This process is repeated until the the desired number of organisms has been added to the first generation.
 
 \subsubsection{Crossover}
 
@@ -221,7 +221,7 @@ After a new chromosome is generated, either by cloning or crossover, it is subje
 \label{fig:mutation}
 \end{figure}
 
-The second mutation ($\mathcal{B}$) is intended to straighten and shorten the paths. A random segment (random in position, static in length) of the chromosome is selected. The hamming distance from the first waypoint in the segment to all other waypoints in the segment, starting with the last point, is computed. If a point is found to be within two waypoints of the first point in the segment, all waypoints in the segment between those two are replaced with a shortcut, as illustrated in Fig. \ref{fig:muterpolation}. This is only completed according to a defined sub-probability of mutation, which is typically much higher than the overall mutation probability. The segment is left as is if no points are within a hamming distance of two. This type of mutation is applied to the chromosome a specified number of times with the intent of finding multiple useful shortcuts in the path.
+The second mutation ($\mathcal{B}$) is intended to straighten and shorten the paths. A random segment (random in position, static in length) of the chromosome is selected. The Hamming distance from the first waypoint in the segment to all other waypoints in the segment, starting with the last point, is computed. If a point is found to be within two waypoints of the first point in the segment, all waypoints in the segment between those two are replaced with a shortcut, as illustrated in Fig. \ref{fig:muterpolation}. This is only completed according to a defined sub-probability of mutation, which is typically much higher than the overall mutation probability. The segment is left as is if no points are within a Hamming distance of two. This type of mutation is applied to the chromosome a specified number of times with the intent of finding multiple useful shortcuts in the path.
 
 \begin{figure}
 \centering
@@ -242,7 +242,7 @@ We defined loop closures as anywhere that the path passes through the same waypo
 
 \begin{figure}
 \centering
-\includegraphics[width=1.0\linewidth]{figures/loop_closure.png}
+\includegraphics[width=0.8\linewidth]{figures/loop_closure.png}
 \caption{An example of single agent loop closure. A valid loop closure is marked in green where the path passes through the same waypoints in the same direction. Examples of times when the path crosses over its self but not loop closures are marked in red.}
 \label{fig:loop_closure}
 \end{figure}
@@ -254,7 +254,7 @@ As described in \cite{Parkinson2019}, constraints are applied to the fitness val
 After all of a generation's children have been created, the fitness of the parents and children is computed by using the maximin fitness function as described by Balling \cite{Balling2003}. In brief, the maximin scheme encourages a spread of designs across the Pareto front between competing objective values, with a target of minimizing the objectives. It does this by calculating the distance between each of the objective values of all the organisms, and finds the minimum difference of both objectives to each other. It then computes the maximum of all of these minima as the fitness value. Following the notation in \cite{Parkinson2019}, if $f_k^i$ is the computed $k^{\mathrm{th}}$ objective value for organism $i$, the maximin fitness for organism $i$ is computed by,
 
 \begin{equation}%\nonumber
-    fitness = \max_{i \neq j}\left(\min_{k}\left(f_k^i - f_k^j\right)\right).
+    \mathit{fitness} = \max_{i \neq j}\left(\min_{k}\left(f_k^i - f_k^j\right)\right).
 \end{equation}
 
 Once all parents and children have fitness values computed with respect to each other, the best $N$, comprising of the most negative fitness values, is selected as the next generation, where $N$ is the size of a generation.
@@ -266,21 +266,21 @@ We use a Roulette-style sampling method to pick parents in a way that gives orga
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Multi-Agent Architecture}
 
-The following section details the changes and addittions to the architecture to generate multi-agent paths.
+When modifying the algorithm to generate multi-agent paths, the crossover and mutation mechanisms remained largely unchanged. Each agent was treated separately and crossover and mutation were applied independently on each path. The maximin fitness function, elitism, and low variance sampling all remained unchanged, however the chromosome and constraints did need to be modified to accommodate the multi-agent architecture. The following section details these changes and additions to the architecture to generate multi-agent paths.
 
 \subsubsection{Chromosome}
-The chromosome was expanded to be of size $nxl_{max}$ where $n$ is the number of agents and $l_{max}$ is the maximum path length where each row represents the path of its respective agent. The genes each row have the same representation as in the single agent case. To accommodate for paths that are shorter than the maximum length, any path shorter than $l_max$ is padded with -1 at the end to populate any unused genes in the chromosome. We also allow for the agents to either start at the same waypoint as each other (if there were only one entry to the map), or different waypoints (if there are different entrances into the map).
+The chromosome was expanded to be of size $n$x$l_{max}$ where $n$ is the number of agents and $l_{max}$ is the maximum path length where each row represents the path of its respective agent. The genes each row have the same representation as in the single agent case. To accommodate for paths that are shorter than the maximum length, any path shorter than $l_max$ is padded with -1 at the end to populate any unused genes in the chromosome. We also allow for the agents to either start at the same waypoint as each other (if there were only one entry to the map), or different waypoints (if there are different entrances into the map).
 
-\subsubsection{Crossover}
-Crossover is largely the same as the single agent case. It treats each agent separately and preforms crossover on each path independantly.
-
-\subsubsection{Mutation}
-Much like crossover, the mutation mechanisms were only modified to accept the new chromosome structure. We treat each agent separately as mutation $\mathcal{A}$ and $\mathcal{B}$ are performed on the chromosome.
+% \subsubsection{Crossover}
+% Crossover is largely the same as the single agent case. It treats each agent separately and performs crossover on each path independently.
+%
+% \subsubsection{Mutation}
+% Much like crossover, the mutation mechanisms were only modified to accept the new chromosome structure. We treat each agent separately as mutation $\mathcal{A}$ and $\mathcal{B}$ are performed on the chromosome.
 
 \subsubsection{Constraints}
 The majority of the architecture change was in modeling the constraints for the multi-agent case. The constraint on coverage was applied to the combined coverage of the full chromosome, not the individual paths. The loop closure constraint had to be expanded to handle loop closures between agents. In order for a single 3D map to be generated when dealing with more than one agent, the agents must have loop closures between each other. For only two or three agents, this is still simple to enforce. After four agents, graph theory is necessary to efficiently evaluate the connectivity of the paths.
 
-To keep track of loop closures, we create a symmetric $nxn$ loop closure matrix $C$ with each element defined by
+To keep track of loop closures, we create a symmetric $n$x$n$ loop closure matrix $C$ with each element defined by
 
 \begin{align}
   c_{ij} &= \text{loop closures between agent } i \text{ and agent } j \\
@@ -289,7 +289,7 @@ To keep track of loop closures, we create a symmetric $nxn$ loop closure matrix 
 
 where $n$ is the number of agents. The values along the diagonal of $C$ are the number of loop closures the agent has with its own path. The off-diagonal terms store the total number of loop closures between agent $i$ and agent $j$. The loop closure constraint from the single agent architecture is applied here using these values to ensure that paths loop close with themselves. We also added a new constraint to ensure the agents paths are connected enough to build a single map.
 
-As described by \cite{Weisstein}, we create the $nxn$ symmetric adjacency matrix $A$ from the loop closure matrix $C$ with each element defined by
+As described by \cite{Weisstein}, we create the $n$x$n$ symmetric adjacency matrix $A$ from the loop closure matrix $C$ with each element defined by
 
 \begin{align}
   a_{ij} &=
@@ -299,21 +299,20 @@ As described by \cite{Weisstein}, we create the $nxn$ symmetric adjacency matrix
   \end{cases}\\
   i,j &=0 ...n \nonumber
 \end{align}
-
+%
 which encodes which agents are directly connected to other agents
 Then we create the $nxn$ diagonal degree matrix $D$ defined by
 
-\begin{align}
-  d_{ii} &= \sum_{j=0}^{n} a_{ij} \\
-  i &= 0 ... n \nonumber
-\end{align}
-
-So each element along the diagonal represents the number of agents that agent is directly connected to through loop closure. Next, we define the Graph Laplacian Matrix $L$ as
+\begin{equation}
+  d_{ii} = \sum_{j=0}^{n} a_{ij},\;\; i = 0 ... n \nonumber
+\end{equation}
+%
+so each element along the diagonal represents the number of agents that each agent is directly connected to through loop closure. Next, we define the graph Laplacian matrix $L$ as
 
 \begin{equation}
   L = D-A
 \end{equation}
-
+%
 which encodes the connectivity of the agents. We can determine whether there are enough loop closures between agents to connect all paths into a single map by looking at the eigenvalues of $L$. The number of zero eigenvalues represents the number of separate connected components in the graph. So if all agents are connected to each other, there will be only one zero eigenvalue. If there are not sufficient loop closures to combine into a single map, there will be more than one zero eigenvalue. We use this to set the last constraint used for the multi-agent architecture. There must be exactly one zero eigenvalue of $L$ to satisfy the constraint. An example connectivity graph for a system with five agents is shown in Fig. \ref{fig:connectivity}
 
 \begin{figure}
@@ -345,12 +344,11 @@ which encodes the connectivity of the agents. We can determine whether there are
 \label{fig:connectivity}
 \end{figure}
 
-
-\subsubsection{Maximin and Elitism}
-The maximin fitness function is the same as with a single agent except that the coverage value used is the total negative coverage of all the agents summed together and the scaled total flight time of all the agents are used as the objective values. Elitism remains the same.
-
-\subsubsection{Low-Variance Sampling}
-The low variance sampling did not need modification for the multi-agent architecture.
+% \subsubsection{Maximin and Elitism}
+% The maximin fitness function is the same as with a single agent except that the coverage value used is the total negative coverage of all the agents summed together and the scaled total flight time of all the agents are used as the objective values. Elitism remains the same.
+%
+% \subsubsection{Low-Variance Sampling}
+% The low variance sampling did not need modification for the multi-agent architecture.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{RESULTS}\label{results}
@@ -393,42 +391,58 @@ Fitness Pressure Factor                            & 0.5                     \\
 \subsection{Single Agent}
 \subsubsection{Fitness}
 
-\begin{figure*}
-\centering
-\includegraphics[width=1.0\linewidth]{figures/pareto_history3.png}
-\caption{History of the Pareto front across several generations. The dynamic constraint placed on coverage prioritizes high coverage but also induces high flight time for the first 100 generations. Afterward, the algorithm can work with high coverage organisms, optimizing them for lower flight times, while maintaining their high coverage properties.}
-\label{fig:pareto_cheetos}
-\end{figure*}
-
-\begin{figure}
-\centering
-\includegraphics[width=1.0\linewidth]{figures/single_agent_path.png}
-\caption{Example of a final path generated by the genetic algorithm for a single agent. This path shows excellent wall coverage and loop closure to generate a good map.}
-\label{fig:final_paths}
-
-\end{figure}
-
 Fig. \ref{fig:pareto_cheetos} shows how the objective values of the organisms evolved from generation to generation. Four different snapshots are shown: the first, randomly generated set of parents, the state of the generation at about a third and two-thirds of the way through the selected number of generations, and last, the final result of the progression of 1000 generations. Fig. \ref{fig:objectives} shows how the average negative coverage and average flight time progresses over the course of the 600 generations. The coverage flattens out temporarily, but then continues to drop after 400 generations. The interesting result displayed is in the flight time objective value history. After about 30 generations, the flight time starts to rise again. This is due to the dynamic constraint that invalidates all organisms with coverage below the defined threshold at the defined generation number. Once the coverage constraint settles to a constant value, the organisms with good coverage dominate the generation population and the algorithm successfully lowers the flight time again to represent a useful Pareto front that has a good spread of options from which to choose.
 
 \begin{figure}
 \centering
-\includegraphics[width=0.8\linewidth]{figures/fitness.png}
+\includegraphics[width=1.0\linewidth]{figures/fitness.png}
 \caption{A plot of the average objective values over 600 generations. Note how the average flight time initially decreases then sharply increases again, as the rolling constraint on coverage is applied. As the generations are then allowed to evolve, the flight time settles back down below the previous minimum.}
 \label{fig:objectives}
 \end{figure}
 
 \subsubsection{Paths Generated}
-\todo{working on it here}
-Our algorithm was successful in generating useful paths, as seen in Fig. \ref{fig:final_paths}. The path covers over 95\% of the walls, more than enough to generate a good map. The path also has a good loop closure with itself in The path on the left shows the option with the shortest flight time. However, it misses an entire room at the bottom left of the 2D map. Via our crossover and mutation schemes, the good elements that cause this path to have a short flight time, such as straighter paths with minimal overlap, are able to propagate to other path designs. The path on the right shows excellent coverage close to 100\%, but it also includes too much overlap with itself, wasting the drone battery supply. The path in the center of the figure shows how the maximin fitness and our implementation of the genetic algorithm were able to produce a design with the good elements from both. The path in the center includes coverage in the lower left room with minimal waste of the battery supply looping back over places already visited.
-
+Our algorithm was successful in generating useful paths, as seen in Fig. \ref{fig:final_paths}. The single agent path covers over 95\% of the walls and wastes little time returning to parts of the map that have already been visited. The only exception is generating a useful loop closure in the center hallway that would help in generating a 3D map.
+%The path also has a good loop closure with itself in The path on the left shows the option with the shortest flight time. However, it misses an entire room at the bottom left of the 2D map. Via our crossover and mutation schemes, the good elements that cause this path to have a short flight time, such as straighter paths with minimal overlap, are able to propagate to other path designs. The path on the right shows excellent coverage close to 100\%, but it also includes too much overlap with itself, wasting the drone battery supply. The path in the center of the figure shows how the maximin fitness and our implementation of the genetic algorithm were able to produce a design with the good elements from both. The path in the center includes coverage in the lower left room with minimal waste of the battery supply looping back over places already visited.
 
 \subsection{Multiple Agents}
 \subsubsection{Fitness}
+Similar to the single agent case, our algorithm was successful in exploring the design space to generate paths that had both good coverage and low flight times. Fig. \ref{fig:multi_fitness} shows the progression of the average objective values over 500 generations for a case with six agents on a much larger map. The six agents began distributed throughout the map, so the initial average coverage is much higher than the single agent case, so the average flight time does not have the same spikes as with the single agent case.
+
+\begin{figure}
+  \centering
+  \includegraphics[width=1.0\linewidth]{figures/multi_agent_pareto_hist.png}
+  \caption{A plot of the average objective values over 500 generations for six agents on a large map. Note how the average flight time initially decreases then sharply increases again, as the rolling constraint on coverage is applied. As the generations are then allowed to evolve, the flight time settles back down below the previous minimum.}
+  \label{fig:multi_fitness}
+\end{figure}
+
 \subsubsection{Paths Generated}
+Our algorithm was also successful in generating paths for two and three agents on the same map as shown in Fig. \ref{fig:final_paths} and for six agents on a larger, more complicated map as shown in Fig \ref{fig:six_path}. In the multi-agent case, the paths were not only able to create loop closures with themselves, they were able to connect with each other enough to create a single connected map between all agents.
+
+\begin{figure}
+  \centering
+  \includegraphics[width=1.0\linewidth]{figures/six_agent_path.png}
+  \caption{An example path generated for six agents on a larger, more complex map. Note the near perfect wall coverage and loop closures between all agents.}
+  \label{fig:six_path}
+\end{figure}
+
+\begin{figure*}
+\centering
+\includegraphics[width=0.8\linewidth]{figures/pareto_history3.png}
+\caption{History of the Pareto front across several generations. The dynamic constraint placed on coverage prioritizes high coverage but also induces high flight time for the first 100 generations. Afterward, the algorithm can work with high coverage organisms, optimizing them for lower flight times, while maintaining their high coverage properties.}
+\label{fig:pareto_cheetos}
+\end{figure*}
+
+\begin{figure*}
+\centering
+\includegraphics[width=1.0\linewidth]{figures/paths.png}
+\caption{Example of final paths generated by the genetic algorithm for a single agent (left), two agents (center), and three agents (right) on the same map. These paths show excellent wall coverage and loop closures both with themselves (shown in teal) and with each other (shown in orange) to generate a single well structured map.}
+\label{fig:final_paths}
+\end{figure*}
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{CONCLUSIONS}\label{conclusions}
 
-\todo{changeme We were able to successfully generate paths with reasonably good coverage} that do not appear to meander too much for a single UAV. Future work on this project will include adding loop closure detection into the model to significantly increase the quality of generated 3D maps. We also plan to extend this to work with multiple UAVs flying simultaneously. We expect the need to use the paths generated with a lower level path planner that can dynamically change waypoints according to obstacles and other unmapped disparities. Finally we plan to test the paths generated both in high fidelity simulation as well as in hardware.
+We were able to successfully generate paths with sufficient coverage to generate a high-fidelity map of the environment that do not appear to meander too much for a single UAV. Future work on this project will include improving the loop closure implementation to allow the algorithm to explore the design space better without getting caught in local minima. This will enable more efficient paths to be created. We expect the need to use the paths generated with a lower level path planner that can dynamically change waypoints according to obstacles and other unmapped disparities. Finally we plan to test the paths generated both in high fidelity simulation as well as in hardware.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
