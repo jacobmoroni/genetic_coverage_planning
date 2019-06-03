@@ -164,6 +164,9 @@ class Organism():
         if do_it < self._muterpolate_probability:
             self.muterpolate()
 
+        #prune u-turns
+        self.pruneUTurns()
+
         # compute values of both objectives
         self._obj_val = self.calcObj()
         self._obj_val_sc = [None, None]
@@ -330,3 +333,28 @@ class Organism():
                                                   np.ones(self._max_dna_len - \
                                                   self._len_dna[agent]) * -1).astype(int)
         self._dna = np.vstack(self._dna_list)
+
+    def pruneUTurns(self):
+        pruned = False
+        for agent in range(self._num_agents):
+            _, dups = self._mappy.getDuplicateWPs(self._dna[agent][self._dna[agent]!=-1])
+            for dup in dups:
+                dup = np.sort(dup)
+                diffs = np.diff(dup)
+                for ii,diff in enumerate(diffs):
+                    if diff <= 2:
+                        self._dna[agent,dup[ii]:dup[ii+1]] = -1
+                        set_trace()
+                        pruned = True
+            if pruned == True:
+                set_trace()
+            self._dna_list[agent] = self._dna[agent][self._dna[agent] != -1]
+            self._len_dna[agent] = len(self._dna_list[agent])
+        self.addTelomere()
+        if pruned == True:
+            set_trace()
+            # set_trace()
+            #TODO: Work on this to prune away waypoints that are 1 or 2 away from eachother. 
+            # try to do it vectorized
+            # for dup in dups:
+                

@@ -42,15 +42,16 @@ cwd = os.getcwd() #current working directory
 # setting this to true will use waypoints and traversability that have already
 # been genrated set to false to re-generate waypoints and traversability graph
 # for new map or altered parameters
-use_old_graph = False
-old_graph_fname = cwd + '/data/wilk_3_graph_new.npy'
-old_wpts_fname = cwd + '/data/wilk_3_wptsXY_new.npy'
-# old_graph_fname = cwd + '/data/wilk_3_graph.npy'
-# old_wpts_fname = cwd + '/data/wilk_3_wpts.npy'
+use_old_graph = True
+# old_graph_fname = cwd + '/data/wilk_3_graph_new.npy'
+# old_wpts_fname = cwd + '/data/wilk_3_wptsXY_new.npy'
+old_graph_fname = cwd + '/data/wilk_3_graph.npy'
+old_wpts_fname = cwd + '/data/wilk_3_wpts.npy'
 
 # file where the pre-scaled map is.
 scaled_map_file = cwd + "/data/map_scaled.png"
-raw_map_file = cwd + "/data/map_large.png"
+# raw_map_file = cwd + "/data/map_large.png"
+raw_map_file = cwd + "/data/map.png"
 
 # Parameters that remain the same regardless of number of agents
 # Map Generation parameters
@@ -101,7 +102,7 @@ gen_size = 100
 #length of initial path
 starting_path_len = [200,150,100,100,75,150]
 #number of agents
-num_agents = 6
+num_agents = 2
 #roulette exponent >=0. 0 means no fitness pressure
 gamma = 0.5
 #starting coverage constraint
