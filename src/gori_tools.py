@@ -251,3 +251,33 @@ def savePopulation(population,filename):
 def loadPopulation(filename):
     population = pickle.load( open(filename, "rb"))
     return population
+
+# =======================================
+# =======================================
+
+def pruneWps(wps):
+    prev_angle = None
+    pruned_pts = []
+    for ii,wp in enumerate(wps):
+        if wp[2]==prev_angle:
+            pruned_pts.append(ii-1)
+        prev_angle = wp[2]
+    wps = np.delete(wps,pruned_pts,0)
+    return wps
+def savePath(organism, height):
+    path = organism._dna
+    wp_locs = organism._pather._XY*organism._scale
+    trav_angs = organism._mappy._traverse_angles
+    num_agents = path.shape[0]
+    for agent in range(num_agents):
+        current_path = path[agent][path[agent] !=-1]
+        waypoint = wp_locs[current_path]
+        path_diff = np.vstack((current_path,np.roll(current_path,-1))).T
+        angle = np.expand_dims(trav_angs[path_diff[:,0],path_diff[:,1]],1)
+        wp_height = np.expand_dims(np.ones(len(current_path))*height,1)
+        unpruned_wps = np.hstack((waypoint, angle, wp_height))
+        pruned_wps = pruneWps(unpruned_wps)
+        # set_trace()
+
+
+            

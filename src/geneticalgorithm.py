@@ -175,7 +175,9 @@ class Organism():
         self.addTelomere()
 
     def calcObj(self):
-        coverage, travel_dist = self._mappy.getCoverage(self._dna)
+        coverage, travel_dist, turning_cost = self._mappy.getCoverage(self._dna)
+        travel_dist = np.sum(travel_dist)
+        turning_cost = np.sum(turning_cost)
         lc_mat = self._mappy.getLoopClosures(self._dna)
         # total number of solo_loop closures
         solo_lcs = np.diagonal(lc_mat)
@@ -191,12 +193,12 @@ class Organism():
         eig, _ = np.linalg.eig(graph_laplacian)
         num_con = self._num_agents - np.sum(eig > 1e-6)
 
-        travel_dist = travel_dist * self._ft_scale
+        travel_cost = (travel_dist + turning_cost) * self._ft_scale
         # apply contstraints by zeroing coverage
         if ((solo_lcs < self._min_solo_lcs).any()
-                or combo_lcs < self._min_comb_lcs or num_con) > 1:
+                or combo_lcs < self._min_comb_lcs or num_con > 1):
             coverage = 0
-        return [coverage, travel_dist]
+        return [coverage, travel_cost]
 
     def padMinDNA(self, dna):
         dna = dna[dna != -1]
@@ -335,7 +337,6 @@ class Organism():
         self._dna = np.vstack(self._dna_list)
 
     def pruneUTurns(self):
-        pruned = False
         for agent in range(self._num_agents):
             _, dups = self._mappy.getDuplicateWPs(self._dna[agent][self._dna[agent]!=-1])
             for dup in dups:
@@ -344,17 +345,8 @@ class Organism():
                 for ii,diff in enumerate(diffs):
                     if diff <= 2:
                         self._dna[agent,dup[ii]:dup[ii+1]] = -1
-                        set_trace()
-                        pruned = True
-            if pruned == True:
-                set_trace()
             self._dna_list[agent] = self._dna[agent][self._dna[agent] != -1]
             self._len_dna[agent] = len(self._dna_list[agent])
         self.addTelomere()
-        if pruned == True:
-            set_trace()
-            # set_trace()
-            #TODO: Work on this to prune away waypoints that are 1 or 2 away from eachother. 
             # try to do it vectorized
-            # for dup in dups:
                 

@@ -17,7 +17,6 @@ import os
 
 from matplotlib import pyplot as plt
 from matplotlib import gridspec
-# plt.ion()
 
 import gori_tools as got
 import pathmaker
@@ -43,10 +42,10 @@ cwd = os.getcwd() #current working directory
 # been genrated set to false to re-generate waypoints and traversability graph
 # for new map or altered parameters
 use_old_graph = True
-# old_graph_fname = cwd + '/data/wilk_3_graph_new.npy'
-# old_wpts_fname = cwd + '/data/wilk_3_wptsXY_new.npy'
-old_graph_fname = cwd + '/data/wilk_3_graph.npy'
-old_wpts_fname = cwd + '/data/wilk_3_wpts.npy'
+old_graph_fname = cwd + '/data/wilk_3_graph_new.npy'
+old_wpts_fname = cwd + '/data/wilk_3_wptsXY_new.npy'
+# old_graph_fname = cwd + '/data/wilk_3_graph.npy'
+# old_wpts_fname = cwd + '/data/wilk_3_wpts.npy'
 
 # file where the pre-scaled map is.
 scaled_map_file = cwd + "/data/map_scaled.png"
@@ -70,11 +69,11 @@ view_angle = 69.4*np.pi/180
 # value used to threshold a new map when converting to black and white
 bw_thresh = 90
 #measured estimate of original image pixels to meters scale
-scale_px2m = 1/0.44*0.0254 / 0.709
+scale_px2m = 1/0.44*0.0254 #/ 0.709
 
 # Map Training Parameters
 #turning penalty gain.
-rho = 8.0
+rho = 4.0
 #percentage of coverage score based on viewing walls vs all area
 coverage_blend = 1.0
 #threshold for separation between loop closures
@@ -133,7 +132,7 @@ crossover_time_thresh = 70
 #probability of performing mutation on new organisms
 mutation_prob = 0.3
 #probability of performing muterpolation on new organisms
-muterpolate_prob = 0.2#0.2
+muterpolate_prob = 0.2
 #number of possible points to perform muterpolation
 num_muterpolations = [20,20,15,15,10,20]
 #how far ahead to look from each point when performing muterpolation
@@ -141,7 +140,7 @@ muterpolation_srch_dist = 5
 #probability of accepting muterpolation point
 muterpolation_sub_prob = 0.8
 #minimum number of loop closures each agent must have with their own path
-min_solo_lcs = [5, 5, 0, 2, 1, 2]#[5, 5, 3, 2, 1]
+min_solo_lcs = [5, 5, 5, 2, 1, 2]#[5, 5, 3, 2, 1]
 #minimum number of loop closures agents must have with other agents
 min_comb_lcs = [0,10,5,5,5,5]
 #scaling factor for flight time used in maximin fitnesses

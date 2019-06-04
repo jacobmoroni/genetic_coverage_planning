@@ -50,16 +50,18 @@ class PointSelector(object):
         self._points.set_data(self._objectives[nearest_point,0],self._objectives[nearest_point,1])
         self._points.figure.canvas.draw()
         current_organism = self.population._gen_parent[nearest_point]
-        coverage, travel_dist, coverage_map = self.mappy.getCoverage(current_organism._dna,return_map=True)
-        _,loop_closures = self.mappy.getLoopClosures(current_organism._dna, return_loop_close=True)
+        coverage, travel_dist, turning_cost, coverage_map = self.mappy.getCoverage(current_organism._dna,return_map=True)
+        lc_mat,loop_closures = self.mappy.getLoopClosures(current_organism._dna, return_loop_close=True)
         if event.button == 1:
             self.mappy.visualizePathWithCoverage(self.pather._XY,
                                              current_organism._dna,
                                              self._fig,
                                              coverage_map,
+                                             lc_mat,
                                              loop_closures,
                                              coverage,
                                              travel_dist,
+                                             turning_cost,
                                              nearest_point)
         if event.button == 3:
             got.animateFlight(current_organism, self.pather._XY, coverage_map, self.mappy._safety_img.copy())

@@ -221,7 +221,7 @@ class Mappy(object):
         plt.imshow(img_color)
         plt.show()
 
-    def visualizePathWithCoverage(self, waypoints, path_idx, fig, coverage_map, loop_closures, coverage, travel_dist, nearest_point):
+    def visualizePathWithCoverage(self, waypoints, path_idx, fig, coverage_map, lc_mat, loop_closures, coverage, travel_dist, turning_cost, nearest_point):
         # make this draw lines instead of points
         img = self._safety_img.copy()
         cov_img = coverage_map
@@ -259,7 +259,14 @@ class Mappy(object):
         ax.set_yticks([])
         plt.tight_layout()
         plt.imshow(img_color)
-        label = "Path #: " + str(nearest_point) + "\n Coverage: " + str(round(-coverage*100,2)) + "%\n Travel Distance: " + str(round(travel_dist*self._scale,2)) + "m"
+        travel_dist = travel_dist*self._scale
+        turning_cost = turning_cost*self._scale
+        np.set_printoptions(precision=2)
+        label = ("Path #: " + str(nearest_point) + 
+            "\n Coverage: " + str(round(-coverage*100,2)) + "%" +
+            "\n Travel Distance: " + str(travel_dist) + "m" +
+            "\n Turning Cost: " + str(turning_cost) +
+            "\n Loop Closures:\n" + str(lc_mat))
         plt.xlabel(label)
         plt.show()
 
@@ -329,7 +336,8 @@ class Mappy(object):
         draw_map = np.copy(cover_map)
         buffer_mask = np.logical_and(self._safety_img<0.3,self._safety_img>0)
 
-        travel_cost = 0.0
+        travel_cost = np.zeros(num_agents)
+        turning_cost = np.zeros(num_agents)
         for agent in range(num_agents):
             prev_theta = 0
             for idx, wpt in enumerate(waypoints[agent]):
@@ -340,7 +348,8 @@ class Mappy(object):
                 wpt_theta = self._traverse_angles[wpt,waypoints[agent][idx+1]]
                 delta_theta = got.rad_wrap_pi(wpt_theta - prev_theta)
 
-                travel_cost += self._traverse_dists[wpt,waypoints[agent][idx+1]] + abs(delta_theta/(np.pi/2))**self._rho
+                travel_cost[agent] += self._traverse_dists[wpt,waypoints[agent][idx+1]]
+                turning_cost[agent] += self._rho * abs(delta_theta/(np.pi/2))**self._rho
                 center = (int(wpt_loc[1]), int(wpt_loc[0]))
                 frustum = self._traverse_frustum[wpt,waypoints[agent][idx+1]]
                 cv2.fillPoly(draw_map, [frustum], 1, offset=center)
@@ -356,9 +365,9 @@ class Mappy(object):
 
         # minimize negative coverage and minimize travel distance
         if return_map:
-            return -coverage, travel_cost, draw_map
+            return -coverage, travel_cost, turning_cost, draw_map
         else:
-            return -coverage, travel_cost
+            return -coverage, travel_cost, turning_cost
 
     def getDuplicateWPs(self, wpt_sequence):
 
