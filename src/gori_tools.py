@@ -105,7 +105,7 @@ def plotParetoHist(pareto_hist):
     data = np.transpose(pareto_hist, (2,1,0))
     l, = plt.plot([], [], 'r.')
     plt.xlim(-1, -0.3)
-    plt.ylim(0.1, 0.4)
+    plt.ylim(0.1, 4)
     plt.xlabel('-Coverage')
     plt.ylabel('Flight Time')
     plt.title('Pareto History')
@@ -254,6 +254,21 @@ def loadPopulation(filename):
 
 # =======================================
 # =======================================
+def checkFeasability(path):
+    for agent1 in range(path.shape[0]):
+        for agent2 in range(1,path.shape[0]):
+            path1 = path[agent1][path[agent1]!=-1]
+            path2 = path[agent2][path[agent2]!=-1]
+            brd_wps = np.abs(path1[:, None] -
+                       path2[None, :])
+            common_wps = np.array(np.where(brd_wps == 0)).T
+            wp_diffs = np.diff(common_wps)
+            
+            set_trace()
+    return 1
+
+def getLcs(path):
+    return 1
 
 def pruneWps(wps):
     prev_angle = None
@@ -264,11 +279,15 @@ def pruneWps(wps):
         prev_angle = wp[2]
     wps = np.delete(wps,pruned_pts,0)
     return wps
+    
 def savePath(organism, height):
     path = organism._dna
     wp_locs = organism._pather._XY*organism._scale
     trav_angs = organism._mappy._traverse_angles
     num_agents = path.shape[0]
+    waypoints = []
+    feas = checkFeasability(path)
+    lcs = getLcs(path)
     for agent in range(num_agents):
         current_path = path[agent][path[agent] !=-1]
         waypoint = wp_locs[current_path]
@@ -277,7 +296,8 @@ def savePath(organism, height):
         wp_height = np.expand_dims(np.ones(len(current_path))*height,1)
         unpruned_wps = np.hstack((waypoint, angle, wp_height))
         pruned_wps = pruneWps(unpruned_wps)
-        # set_trace()
+        waypoints.append(pruned_wps)
+    return waypoints
 
 
             
