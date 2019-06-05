@@ -63,7 +63,7 @@ class Mappy(object):
                            (1.0,0.3,1.0)]
 
     def saveMap(self, output_file_name):
-        cv2.imwrite(output_file_name, self._img)
+        cv2.imwrite(output_file_name, self._img*255)
 
     def setWaypoints(self, new_waypoints):
         self._all_waypoints = new_waypoints
@@ -383,7 +383,7 @@ class Mappy(object):
 
         return len(dup_ids),dup_idx
 
-    def getLoopClosures(self, waypoints, return_loop_close = False):
+    def getLoopClosures(self, waypoints, return_loop_close = False, return_lc_path = False):
         num_agents = waypoints.shape[0]
         path_splits = (np.zeros(num_agents)).astype(int)
 
@@ -392,9 +392,12 @@ class Mappy(object):
 
         if return_loop_close:
             lc_data = np.empty((num_agents,num_agents),dtype=np.object)
+            lc_path = np.empty((num_agents,num_agents),dtype=list)
+
             for ii in range(num_agents):
                 for jj in range(num_agents):
                     lc_data[ii][jj] = []
+                    lc_path[ii][jj] = []
 
         path_split_idx = 0
         for agent in range(num_agents):
@@ -413,16 +416,22 @@ class Mappy(object):
                             lc_mat[unq_lc[0],unq_lc[0]] += 1
                         if return_loop_close:
                             lc_data[unq_lc[0],unq_lc[0]].append(wpt_sequence[dup][0])
+                        if return_lc_path:
+                            lc_path[unq_lc[0], unq_lc[0]].append(dup)
                     elif len(unq_lc)==2:
                         lc_mat[unq_lc[0],unq_lc[1]] += 1
                         if return_loop_close:
                             lc_data[unq_lc[0],unq_lc[1]].append(wpt_sequence[dup][0])
+                        if return_lc_path:
+                            lc_path[unq_lc[0], unq_lc[1]].append(dup)
                     else:
                         for ii in range(len(unq_lc)):
                             for jj in range(ii+1,len(unq_lc)):
                                 lc_mat[unq_lc[ii],unq_lc[jj]] += 1
                                 if return_loop_close:
                                     lc_data[unq_lc[ii],unq_lc[jj]].append(wpt_sequence[dup][0])
+                                if return_lc_path:
+                                    lc_path[unq_lc[ii], unq_lc[jj]].append(dup)
         unq_combo_lcs = []
         for ii in range(num_agents):
             for jj in range(ii+1,num_agents):
@@ -431,4 +440,7 @@ class Mappy(object):
         if not return_loop_close:
             return lc_mat
         else:
-            return lc_mat,lc_data
+            if not return_lc_path:
+                return lc_mat,lc_data
+            else:
+                return lc_mat,lc_data,lc_path,path_splits

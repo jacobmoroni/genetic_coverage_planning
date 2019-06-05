@@ -34,7 +34,7 @@ from geneticalgorithm import GeneticalGorithm
 from pointselector import PointSelector
 
 cwd = os.getcwd() #current working directory
-
+sys.path.insert(0, '/src')
 ###############################################################################
 # parameters
 ###############################################################################
@@ -42,15 +42,22 @@ cwd = os.getcwd() #current working directory
 # been genrated set to false to re-generate waypoints and traversability graph
 # for new map or altered parameters
 use_old_graph = True
-old_graph_fname = cwd + '/data/wilk_3_graph_new.npy'
-old_wpts_fname = cwd + '/data/wilk_3_wptsXY_new.npy'
+number_of_agents = 6
+if number_of_agents == 6:
+    old_graph_fname = cwd + '/data/wilk_3_graph_big.npy'
+    old_wpts_fname = cwd + '/data/wilk_3_wpts_big.npy'
+    scaled_map_file = cwd + "/data/big_map_scaled.png"
+    raw_map_file = cwd + "/data/map_large.png"
+else:
+    old_graph_fname = cwd + '/data/wilk_3_graph_new.npy'
+    old_wpts_fname = cwd + '/data/wilk_3_wptsXY_new.npy'
+    # file where the pre-scaled map is.
+    scaled_map_file = cwd + "/data/map_scaled.png"
+    raw_map_file = cwd + "/data/map.png"
+
 # old_graph_fname = cwd + '/data/wilk_3_graph.npy'
 # old_wpts_fname = cwd + '/data/wilk_3_wpts.npy'
 
-# file where the pre-scaled map is.
-scaled_map_file = cwd + "/data/map_scaled.png"
-# raw_map_file = cwd + "/data/map_large.png"
-raw_map_file = cwd + "/data/map.png"
 
 # Parameters that remain the same regardless of number of agents
 # Map Generation parameters
@@ -69,7 +76,7 @@ view_angle = 69.4*np.pi/180
 # value used to threshold a new map when converting to black and white
 bw_thresh = 90
 #measured estimate of original image pixels to meters scale
-scale_px2m = 1/0.44*0.0254 #/ 0.709
+scale_px2m = 1/0.44*0.0254 / 0.709
 
 # Map Training Parameters
 #turning penalty gain.
@@ -101,7 +108,7 @@ gen_size = 100
 #length of initial path
 starting_path_len = [200,150,100,100,75,150]
 #number of agents
-num_agents = 2
+num_agents = number_of_agents
 #roulette exponent >=0. 0 means no fitness pressure
 gamma = 0.5
 #starting coverage constraint

@@ -8,6 +8,8 @@ import matplotlib.pyplot as plt
 from matplotlib import gridspec
 import matplotlib.animation as animation
 import pickle
+import math
+from functools import reduce
 
 from tqdm import tqdm
 import pointselector
@@ -111,7 +113,7 @@ def plotParetoHist(pareto_hist):
     plt.title('Pareto History')
     animation.FuncAnimation(fig1, update_pareto, num_gen,
                             fargs=(data, l), interval=50, blit=False)
-    plt.show()
+    fig1.show()
     # this save file is kind of a bug, but it lets you get the images before it
     # finishes at high quality.
     # pareto_animation.save('pareto_history/frames.mp4',
@@ -254,20 +256,108 @@ def loadPopulation(filename):
 
 # =======================================
 # =======================================
-def checkFeasability(path):
-    for agent1 in range(path.shape[0]):
-        for agent2 in range(1,path.shape[0]):
-            path1 = path[agent1][path[agent1]!=-1]
-            path2 = path[agent2][path[agent2]!=-1]
+
+
+def findNearest(array, value):
+    idx = np.searchsorted(array, value, side="left")
+    if idx > 0 and (idx == len(array) or math.fabs(value - array[idx-1]) < math.fabs(value - array[idx])):
+        return array[idx-1]
+    else:
+        return array[idx]
+
+
+def getCandidates(num_agents, path, window_poss, offset_window, offset_threshold):
+    offset_candidates = np.zeros((num_agents, num_agents, 2*offset_window))
+    feasibility = np.ones((num_agents, num_agents, 2*offset_window))
+    for agent1 in range(num_agents):
+        for agent2 in range(agent1+1, num_agents):
+            path1 = path[agent1][path[agent1] != -1]
+            path2 = path[agent2][path[agent2] != -1]
             brd_wps = np.abs(path1[:, None] -
-                       path2[None, :])
+                             path2[None, :])
             common_wps = np.array(np.where(brd_wps == 0)).T
             wp_diffs = np.diff(common_wps)
-            
-            set_trace()
-    return 1
+            sorted_diffs = np.sort(wp_diffs.T)
+            for ii, offset in enumerate(window_poss):
+                if ((sorted_diffs - offset) == 0).any():
+                    feasibility[agent1, agent2, ii] = 0
 
-def getLcs(path):
+                offset_candidates[agent1, agent2, ii] = \
+                    (np.sum(abs(sorted_diffs-offset) < offset_threshold))
+            if (offset_candidates[agent1,agent2] != 0).all():
+                print ("No clean path between agent", agent1, "and", agent2, "try relaxing constraints")
+
+    return feasibility, offset_candidates
+
+
+def findBestOffset(num_agents, window_poss, offset_candidates, feasibility):
+    offset_mat = np.zeros((num_agents, num_agents)).astype(int)
+    offset_poss = np.zeros((num_agents, num_agents)).astype(object)
+    for agent1 in range(num_agents):
+        for agent2 in range(agent1+1, num_agents):
+            try:
+                best = findNearest(
+                    window_poss[offset_candidates[agent1, agent2, :] == 0], 0)
+                offset_poss[agent1,
+                           agent2] = window_poss[offset_candidates[agent1, agent2, :] == 0]
+            except:
+                if (feasibility[agent1, agent2, :] == 1).any():
+                    feasible_cand = offset_candidates[agent1,
+                                                      agent2, :][feasibility[agent1, agent2, :] == 1]
+                    feasible_pos = window_poss[feasibility[agent1,
+                                                           agent2, :] == 1]
+                else:
+                    print("Feasible path not possible between", agent1,
+                          "and", agent2, "relax constraints, or fly with caution")
+                    feasible_cand = offset_candidates[agent1, agent2, :]
+                    feasible_pos = window_poss
+                min_cand = feasible_cand == min(feasible_cand)
+                offset_poss[agent1, agent2] = feasible_pos[min_cand]
+                best = findNearest(feasible_pos[min_cand], 0)
+                    
+            offset_mat[agent1, agent2] = best
+    return offset_mat, offset_poss
+
+def getPathOffsets(path, offset_window, offset_threshold):
+    num_agents = path.shape[0]
+    window_poss = np.arange(-offset_window, offset_window, 1)
+    feasibility, offset_candidates = getCandidates(num_agents, path, window_poss, offset_window,offset_threshold)
+    offset_mat, offset_poss = findBestOffset(num_agents, window_poss,offset_candidates,feasibility)
+    for agent2 in range(2,num_agents):
+        for agent1 in range(num_agents):
+            offset_poss[agent1, agent2] -= offset_mat[agent1, agent2-1]
+
+        offsets = offset_poss[0:agent2,agent2]
+        new_cand = reduce(np.intersect1d,offsets)
+        try:
+            best = findNearest(new_cand, 0)
+            for agent1 in range(agent2):
+                offset_mat[agent1,agent2] = best + offset_mat[agent1,agent2-1]
+        except:
+            print("Could not find feasible path offset for agent", agent1,"relax constraint or fly with caution")
+    return offset_mat[0,:]
+
+def formatLoopClosures(path,loop_closures,path_splits):
+    num_agents = loop_closures.shape[0]
+    forecasted_lc = np.zeros((num_agents,num_agents)).astype(object)
+    path_splits_idx = np.insert(path_splits,0,0)
+    for agent1 in range(num_agents):
+        for agent2 in range(agent1,num_agents):
+            lc_array = np.array(loop_closures[agent1,agent2])
+            try:
+                agent_num = np.digitize(lc_array,path_splits)
+            except:
+                pass
+                #TODO: the digitize breaks when a duplicate has more than 2 and can no longer fit into a normal array. not sure how to fix it.
+                # set_trace()
+            if agent1 == agent2:
+                forecasted_lc[agent1,agent2] = np.sort(lc_array-path_splits_idx[agent_num], axis=1)
+            else:
+                sorted_lc_array = lc_array-path_splits_idx[agent_num]
+                forecasted_lc[agent1, agent2] = sorted_lc_array[agent_num == agent1]
+                forecasted_lc[agent2, agent1] = sorted_lc_array[agent_num == agent2]
+
+    # set_trace()
     return 1
 
 def pruneWps(wps):
@@ -280,14 +370,18 @@ def pruneWps(wps):
     wps = np.delete(wps,pruned_pts,0)
     return wps
     
-def savePath(organism, height):
+
+def savePath(organism, height, offset_window, offset_threshold):
     path = organism._dna
     wp_locs = organism._pather._XY*organism._scale
     trav_angs = organism._mappy._traverse_angles
     num_agents = path.shape[0]
     waypoints = []
-    feas = checkFeasability(path)
-    lcs = getLcs(path)
+    path_offset = getPathOffsets(path, offset_window, offset_threshold)
+    print (path_offset)
+    _, loop_closures, lc_path, path_splits = organism._mappy.getLoopClosures(
+        path, return_loop_close=True, return_lc_path = True)
+    # lcs = formatLoopClosures(path,lc_path, path_splits)
     for agent in range(num_agents):
         current_path = path[agent][path[agent] !=-1]
         waypoint = wp_locs[current_path]
