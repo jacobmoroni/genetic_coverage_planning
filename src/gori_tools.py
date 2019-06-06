@@ -318,6 +318,7 @@ def findBestOffset(num_agents, window_poss, offset_candidates, feasibility):
             offset_mat[agent1, agent2] = best
     return offset_mat, offset_poss
 
+
 def getPathOffsets(path, offset_window, offset_threshold):
     num_agents = path.shape[0]
     window_poss = np.arange(-offset_window, offset_window, 1)
@@ -337,56 +338,63 @@ def getPathOffsets(path, offset_window, offset_threshold):
             print("Could not find feasible path offset for agent", agent1,"relax constraint or fly with caution")
     return offset_mat[0,:]
 
+
+def splitLoopClosures(lc):
+    lcs = []
+    for ii in range(len(lc)):
+        for jj in range(ii+1,len(lc)):
+            lcs.append([lc[ii],lc[jj]])
+    return np.array(lcs)
+
+
 def formatLoopClosures(path,loop_closures,path_splits):
     num_agents = path.shape[0]
-    #TODO working here to split loop closures and put them in a nx2 single array
+    lc_array = np.array([[0,0]])
     for lc in loop_closures:
         if len(lc)>2:
-            lcs = splitLcs(lc)
-
-    forecasted_lc = np.zeros((num_agents,num_agents)).astype(object)
+            lcs = splitLoopClosures(lc)
+            lc_array = np.vstack((lc_array,lcs))
+        elif len(lc)==2:
+            lc_array = np.vstack((lc_array,lc))
+    lc_array = np.delete(lc_array,0,0)
+    lc_array = np.sort(lc_array)
+    agent_num = np.digitize(lc_array,path_splits)
+    forecasted_lc = np.stack((agent_num,lc_array))
     path_splits_idx = np.insert(path_splits,0,0)
-    for agent1 in range(num_agents):
-        for agent2 in range(agent1,num_agents):
-            lc_array = np.array(loop_closures[agent1,agent2])
-            try:
-                agent_num = np.digitize(lc_array,path_splits)
-            except:
-                pass
-                #TODO: the digitize breaks when a duplicate has more than 2 and can no longer fit into a normal array. not sure how to fix it.
-                # set_trace()
-            if agent1 == agent2:
-                forecasted_lc[agent1,agent2] = np.sort(lc_array-path_splits_idx[agent_num], axis=1)
-            else:
-                sorted_lc_array = lc_array-path_splits_idx[agent_num]
-                forecasted_lc[agent1, agent2] = sorted_lc_array[agent_num == agent1]
-                forecasted_lc[agent2, agent1] = sorted_lc_array[agent_num == agent2]
+    for ii in range(num_agents):
+        forecasted_lc[1][agent_num == ii] -= path_splits_idx[ii]
+    return forecasted_lc
 
-    # set_trace()
-    return 1
 
 def pruneWps(wps):
     prev_angle = None
     pruned_pts = []
+    wp_idx = np.arange(0,len(wps),1)
     for ii,wp in enumerate(wps):
         if wp[2]==prev_angle:
-            pruned_pts.append(ii-1)
+            pruned_pts.append(ii)
         prev_angle = wp[2]
+    pruned_pts = np.array(pruned_pts)
+    pruned_pts = pruned_pts[pruned_pts!=len(wps)]
+    wp_idx = np.delete(wp_idx,pruned_pts)
     wps = np.delete(wps,pruned_pts,0)
-    return wps
-    
+    return wps, wp_idx
 
-def savePath(organism, height, offset_window, offset_threshold):
+def pruneLoopClosures(lcs,wp_idx,num_agents):
+    for agent in range(num_agents):
+        lcs[1][lcs[0] == agent] = np.digitize(
+            lcs[1][lcs[0] == agent], wp_idx[agent])
+    lcs = np.unique(lcs, axis=1)
+    return lcs
+
+def savePath(organism, height, offset_window, offset_threshold, prune=True):
     path = organism._dna
     wp_locs = organism._pather._XY*organism._scale
     trav_angs = organism._mappy._traverse_angles
     num_agents = path.shape[0]
+    unpruned_waypoints = []
     waypoints = []
-    path_offset = getPathOffsets(path, offset_window, offset_threshold)
-    print (path_offset)
-    loop_closures, path_splits = organism._mappy.getLoopClosures(
-        path, return_loop_close=True, return_lc_path = True)
-    lcs = formatLoopClosures(path,loop_closures, path_splits)
+    wp_idx = []
     for agent in range(num_agents):
         current_path = path[agent][path[agent] !=-1]
         waypoint = wp_locs[current_path]
@@ -394,9 +402,20 @@ def savePath(organism, height, offset_window, offset_threshold):
         angle = np.expand_dims(trav_angs[path_diff[:,0],path_diff[:,1]],1)
         wp_height = np.expand_dims(np.ones(len(current_path))*height,1)
         unpruned_wps = np.hstack((waypoint, angle, wp_height))
-        pruned_wps = pruneWps(unpruned_wps)
+        pruned_wps, pruned_wp_idx = pruneWps(unpruned_wps)
         waypoints.append(pruned_wps)
-    return waypoints
+        unpruned_waypoints.append(unpruned_wps)
+        wp_idx.append(pruned_wp_idx)
+    path_offset = getPathOffsets(path, offset_window, offset_threshold)
+    loop_closures, path_splits = organism._mappy.getLoopClosures(
+        path, return_lc_path = True)
+    unpruned_lcs = formatLoopClosures(path,loop_closures, path_splits)
+    lcs = pruneLoopClosures(unpruned_lcs,wp_idx,num_agents)
+
+    if prune == True:
+        return waypoints, lcs, path_offset
+    else: 
+        return unpruned_waypoints, unpruned_lcs, path_offset
 
 
             

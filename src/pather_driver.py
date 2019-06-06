@@ -42,7 +42,7 @@ sys.path.insert(0, '/src')
 # been genrated set to false to re-generate waypoints and traversability graph
 # for new map or altered parameters
 use_old_graph = True
-number_of_agents = 3
+number_of_agents = 2
 if number_of_agents == 6:
     old_graph_fname = cwd + '/data/wilk_3_graph_big.npy'
     old_wpts_fname = cwd + '/data/wilk_3_wpts_big.npy'
@@ -223,7 +223,7 @@ else:
         overwrite old files with new to use in future")
     pather.saveTraversableGraph(cwd + '/data/wilk_3_graph_new.npy')
     pather.saveWptsXY(cwd + '/data/wilk_3_wptsXY_new.npy')
-
+mappy.visualize()
 mappy.setWaypoints(pather.waypoint_locs)
 print("Precomputing coverage map.")
 mappy.computeFrustums(pather._graph)
