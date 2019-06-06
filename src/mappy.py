@@ -443,4 +443,4 @@ class Mappy(object):
             if not return_lc_path:
                 return lc_mat,lc_data
             else:
-                return lc_mat,lc_data,lc_path,path_splits
+                return dup_idx, path_splits

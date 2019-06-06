@@ -338,7 +338,12 @@ def getPathOffsets(path, offset_window, offset_threshold):
     return offset_mat[0,:]
 
 def formatLoopClosures(path,loop_closures,path_splits):
-    num_agents = loop_closures.shape[0]
+    num_agents = path.shape[0]
+    #TODO working here to split loop closures and put them in a nx2 single array
+    for lc in loop_closures:
+        if len(lc)>2:
+            lcs = splitLcs(lc)
+
     forecasted_lc = np.zeros((num_agents,num_agents)).astype(object)
     path_splits_idx = np.insert(path_splits,0,0)
     for agent1 in range(num_agents):
@@ -379,9 +384,9 @@ def savePath(organism, height, offset_window, offset_threshold):
     waypoints = []
     path_offset = getPathOffsets(path, offset_window, offset_threshold)
     print (path_offset)
-    _, loop_closures, lc_path, path_splits = organism._mappy.getLoopClosures(
+    loop_closures, path_splits = organism._mappy.getLoopClosures(
         path, return_loop_close=True, return_lc_path = True)
-    # lcs = formatLoopClosures(path,lc_path, path_splits)
+    lcs = formatLoopClosures(path,loop_closures, path_splits)
     for agent in range(num_agents):
         current_path = path[agent][path[agent] !=-1]
         waypoint = wp_locs[current_path]
