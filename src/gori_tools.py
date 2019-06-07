@@ -96,6 +96,7 @@ def animateFlight(current_organism, waypoints, cov_img, img):
 def update_pareto(gen_num, data, population):
     population.set_data(data[..., gen_num])
     plt.xlim(-1,max(data[0,:,gen_num])+0.05)
+    plt.ylim(0,max(data[1,:,gen_num])+0.1)
     # text = "generation number: "+str(gen_num)
     # plt.text(-1,0.38,text, fontsize=14)
     return population,
@@ -107,16 +108,17 @@ def plotParetoHist(pareto_hist):
     data = np.transpose(pareto_hist, (2,1,0))
     l, = plt.plot([], [], 'r.')
     plt.xlim(-1, -0.3)
-    plt.ylim(0.1, 4)
+    plt.ylim(0.1, 2)
     plt.xlabel('-Coverage')
     plt.ylabel('Flight Time')
     plt.title('Pareto History')
-    animation.FuncAnimation(fig1, update_pareto, num_gen,
+    animate = animation.FuncAnimation(fig1, update_pareto, num_gen,
                             fargs=(data, l), interval=50, blit=False)
-    fig1.show()
+    fig1.show(animate)
+    return animate
     # this save file is kind of a bug, but it lets you get the images before it
     # finishes at high quality.
-    # pareto_animation.save('pareto_history/frames.mp4',
+    # animate.save('frames.mp4',
     #                        writer = 'writer',codec = 'mp4')
 
 def plotFitness(pareto_hist):
@@ -387,7 +389,7 @@ def pruneLoopClosures(lcs,wp_idx,num_agents):
     lcs = np.unique(lcs, axis=1)
     return lcs
 
-def savePath(organism, height, offset_window, offset_threshold, prune=True):
+def generateWaypointData(organism, height, offset_window, offset_threshold, prune=True):
     path = organism._dna
     wp_locs = organism._pather._XY*organism._scale
     trav_angs = organism._mappy._traverse_angles
@@ -418,4 +420,8 @@ def savePath(organism, height, offset_window, offset_threshold, prune=True):
         return unpruned_waypoints, unpruned_lcs, path_offset
 
 
+def savePath(organism, height, offset_window, offset_threshold, prune=True):
+    waypoints, lcs, path_offset = generateWaypointData(
+        organism, height, offset_window, offset_threshold, prune=True)
+    
             
