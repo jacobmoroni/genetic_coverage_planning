@@ -382,7 +382,8 @@ def pruneWps(wps):
     wps = np.delete(wps,pruned_pts,0)
     return wps, wp_idx
 
-def pruneLoopClosures(lcs,wp_idx,num_agents):
+def pruneLoopClosures(unpruned_lcs,wp_idx,num_agents):
+    lcs = unpruned_lcs.copy()
     for agent in range(num_agents):
         lcs[1][lcs[0] == agent] = np.digitize(
             lcs[1][lcs[0] == agent], wp_idx[agent])
@@ -420,8 +421,8 @@ def generateWaypointData(organism, height, offset_window, offset_threshold, prun
         return unpruned_waypoints, unpruned_lcs, path_offset
 
 
-def savePath(organism, height, offset_window, offset_threshold, prune=True):
+def savePath(organism, height, offset_window, offset_threshold, prune=False):
     waypoints, lcs, path_offset = generateWaypointData(
-        organism, height, offset_window, offset_threshold, prune=True)
-    
+        organism, height, offset_window, offset_threshold, prune)
+    np.savez("waypoints.npz", *waypoints[0:], lcs=lcs.astype(np.double), offsets=path_offset.astype(np.double))
             
