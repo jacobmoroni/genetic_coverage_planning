@@ -314,6 +314,13 @@ class Organism():
         for agent in range(self._dna.shape[0]):
             dna_poss = self._dna[agent][self._dna[agent] != -1]
             mate_poss = dna_mate[agent][dna_mate[agent] != -1]
+
+            #Only select crossover points where there is more than one option 
+            # of where to move other than where it has been
+            poss_mask = np.isin(dna_poss, self._pather._crossover_cand)
+            dna_poss[~poss_mask]=-1
+            poss_mask = np.isin(mate_poss, self._pather._crossover_cand)
+            mate_poss[~poss_mask]= -10
             # broadcast is brd
             brd_diff_mat = np.abs(dna_poss[keepout_idx:self._len_dna[agent]+1, None] -
                                   mate_poss[None, keepout_idx:len_dna_mate[agent]+1])

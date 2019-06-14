@@ -59,22 +59,41 @@ class PathMaker(object):
         idx_bool = np.logical_xor(waypoint_I, idx_bool)
         pruning_idx = np.array(np.where(idx_bool)).T
         pruning_idx = np.unique(np.sort(pruning_idx), axis=0)
-
-        # prune waypoints where 2 are close to a single waypoint
+        
+        # prune waypoints clusters(move one to centroid and delete the rest)
         unq, _, unq_count = np.unique(np.sort(pruning_idx, axis=None),
                                       return_inverse=True,
                                       return_counts=True)
         count_mask = unq_count > 1
         dup_ids = unq[count_mask]
+        skip_nums = np.array([])
         for num in dup_ids:
-            row, _ = np.where(pruning_idx == num)
-            prune = pruning_idx[row][pruning_idx[row] != num]
-            XY_scale[prune] = -1
-            pruning_idx[row] = -1
+            if np.isin(num,skip_nums):
+                continue
+            else:
+                row, _ = np.where(pruning_idx == num)
+                prune = pruning_idx[row][pruning_idx[row] != num]
+                nums2 = dup_ids[dup_ids == prune[np.isin(prune, dup_ids)]]
+                new_row = row
+                new_prune = prune
+                for num2 in nums2:
+                    row2, _ = np.where(pruning_idx == num2)
+                    prune2 = pruning_idx[row2][pruning_idx[row2] != num2]
+                    new_prune = np.append(new_prune,prune2)
+                    new_prune = np.append(new_prune,num2)
+                    skip_nums = np.append(skip_nums,num2)
+                    new_row = np.append(new_row,row2)
+                new_prune = np.append(new_prune,num)
+                new_prune = np.unique(new_prune)
+                print (num,prune)
+                XY_scale[num] = np.mean(XY_scale[new_prune], axis=0)
+                XY_scale[new_prune[new_prune!=num]] = -1
+                row = np.unique(new_row)
+                pruning_idx[row] = -1
         row, _ = np.where(pruning_idx == -1)
         pruning_idx = np.delete(pruning_idx, row, 0)
 
-        # where 2 are close to eachother, move one halfway and delete the other
+        # # where 2 are close to eachother, move one halfway and delete the other
         for wp in pruning_idx:
             XY_scale[wp[0], 0] = XY_scale[wp[0], 0] - \
                 (XY_scale[wp[0], 0] - XY_scale[wp[1], 0])/2
@@ -85,7 +104,7 @@ class PathMaker(object):
         row, _ = np.where(XY_scale == -1)
         XY_scale = np.delete(XY_scale, row, 0)
 
-        # prune away waypoints that arent near a wall
+        # # prune away waypoints that arent near a wall
         min_distances, min_angles = self._mappy.getClosestObstacles(XY_scale)
         idx_bool_far = min_distances > \
             self._safety_buffer*self._wall_waypoint_factor
@@ -133,6 +152,13 @@ class PathMaker(object):
                                               self._XY[edge[1]],
                                               self._safety_buffer/3):
                 self._graph[edge[0], edge[1]] = 1
+        self.findCrossoverCand()
+
+    def findCrossoverCand(self):
+        options = []
+        for i in range(self._graph.shape[0]):
+            options.append(np.array(np.where(self._graph[i] == 1)).shape[1])
+        self._crossover_cand = np.where(np.array(options)>2)
 
     def saveTraversableGraph(self, file_name):
         np.save(file_name, self._graph, allow_pickle=False, fix_imports=False)

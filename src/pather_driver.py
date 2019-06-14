@@ -41,7 +41,7 @@ sys.path.insert(0, '/src')
 # setting this to true will use waypoints and traversability that have already
 # been genrated set to false to re-generate waypoints and traversability graph
 # for new map or altered parameters
-use_old_graph = True
+use_old_graph = False
 number_of_agents = 2
 if number_of_agents == 6:
     old_graph_fname = cwd + '/data/wilk_3_graph_big.npy'
@@ -53,7 +53,8 @@ else:
     old_wpts_fname = cwd + '/data/wilk_3_wptsXY_new.npy'
     # file where the pre-scaled map is.
     scaled_map_file = cwd + "/data/map_scaled.png"
-    raw_map_file = cwd + "/data/map.png"
+    raw_map_file = cwd + "/data/map_no_hall.png"
+    # raw_map_file = cwd + "/data/map.png"
 
 # old_graph_fname = cwd + '/data/wilk_3_graph.npy'
 # old_wpts_fname = cwd + '/data/wilk_3_wpts.npy'
@@ -64,7 +65,7 @@ else:
 #scale from pixels to meters of scaled map
 scale = 0.15
  #width in meters of narrowest_hall
-narrowest_hall = 1.75
+narrowest_hall = 2.5#1.75
 #number of rays used to compute coverage with obstacles
 num_rays = 15
 #0.5 #minimum distance the camera counts as viewed
@@ -91,10 +92,10 @@ solo_sep_thresh = [30,30,20,10,10,10]
 # no other option exists
 path_memory = 10
 #max distance traversable with one step
-max_traverse_dist = 3.5
+max_traverse_dist = 4.0#3.5
 #factor multiplied by safety buffer to determine which waypoints are
 # too close to eachother for pruning
-waypoint_dist_factor = 0.8
+waypoint_dist_factor = 0.9 #0.8
 #factor multiplied by safety buffer to determine which waypoints are
 # too far away from a wall to be usefull for pruning.
 wall_waypoint_factor = 2.5
@@ -120,9 +121,12 @@ coverage_aging = 80
 
 #Organism Parameters
 # waypoint index where all paths will begin (This is for the pruned map)
-# (This is for the pruned map)
-start_idx = [[99], [99, 99], [93,93,93],#[0, 15, 184],
-             [99, 0, 15, 184], [99, 99, 0, 15, 184], [0,68,536,450,78,97]]
+# (This is for the pruned map with no center hall)
+start_idx = [[70], [70, 70], [93, 93, 93],  # [0, 15, 184],
+             [99, 0, 15, 184], [99, 99, 0, 15, 184], [0, 68, 536, 450, 78, 97]]
+# # (This is for the pruned map)
+# start_idx = [[99], [99, 99], [93,93,93],#[0, 15, 184],
+#              [99, 0, 15, 184], [99, 99, 0, 15, 184], [0,68,536,450,78,97]]
 # (This is for the pruned map)
 # start_idx = [[111], [111, 111], [0, 15, 197],
             #  [111, 0, 15, 197], [111, 111, 0, 15, 197]]

@@ -404,7 +404,7 @@ def generateWaypointData(organism, height, offset_window, offset_threshold, prun
         path_diff = np.vstack((current_path,np.roll(current_path,-1))).T
         angle = np.expand_dims(trav_angs[path_diff[:,0],path_diff[:,1]],1)
         wp_height = np.expand_dims(np.ones(len(current_path))*height,1)
-        unpruned_wps = np.hstack((waypoint, angle, wp_height))
+        unpruned_wps = np.hstack((waypoint*[-1,1], angle, wp_height))
         pruned_wps, pruned_wp_idx = pruneWps(unpruned_wps)
         waypoints.append(pruned_wps)
         unpruned_waypoints.append(unpruned_wps)
@@ -421,7 +421,7 @@ def generateWaypointData(organism, height, offset_window, offset_threshold, prun
         return unpruned_waypoints, unpruned_lcs, path_offset
 
 
-def savePath(organism, height, offset_window, offset_threshold, prune=False):
+def savePath(organism, height, offset_window, offset_threshold, file_name, prune=False):
     waypoints, lcs, path_offset = generateWaypointData(
         organism, height, offset_window, offset_threshold, prune)
     np.savez("waypoints.npz", *waypoints[0:], lcs=lcs.astype(np.double), offsets=path_offset.astype(np.double))
