@@ -36,8 +36,12 @@ ___
 `pointselector.py` -- class that enables interaction with population visualization plot
 ___
 ## Writeup
-![image](writeup/jpg_writeup/PDF-1.jpg "pg1")
-![image](writeup/jpg_writeup/PDF-2.jpg "pg2")
-![image](writeup/jpg_writeup/PDF-3.jpg "pg3")
-![image](writeup/jpg_writeup/PDF-4.jpg "pg4")
-![image](writeup/jpg_writeup/PDF-5.jpg "pg5")
+![image](writeup/jpg_writeup/writeup-1.png "pg1")
+![image](writeup/jpg_writeup/writeup-2.png "pg2")
+![image](writeup/jpg_writeup/writeup-3.png "pg3")
+![image](writeup/jpg_writeup/writeup-4.png "pg4")
+![image](writeup/jpg_writeup/writeup-5.png "pg5")
+![image](writeup/jpg_writeup/writeup-6.png "pg6")
+![image](writeup/jpg_writeup/writeup-7.png "pg7")
+![image](writeup/jpg_writeup/writeup-8.png "pg8")
+![image](writeup/jpg_writeup/writeup-9.png "pg9")
