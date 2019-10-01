@@ -16,7 +16,7 @@ to check where a waypoint index is on the map (useful for changing starting loca
 `mappy.visualizeWaypoints(pather._XY, 207)` , change out 207 with desired waypoint idx. NOTE: since this is opencv, to avoid crashing, press any key to close window while window is selected. otherwise you could cause a hangup
 
 to visualize pareto front over time:
-`got.plotParetoHist(pareto_hist)` NOTE: to continue updating the pareto histor after first 100 evolutions use `pareto_hist += population.RunEvolution(10)` rather than `population.RunEvolution(10)`.
+`got.plotParetoHist(pareto_hist)` NOTE: to continue updating the pareto history after first 100 evolutions use `pareto_hist += population.RunEvolution(10)` rather than `population.RunEvolution(10)`.
 
 to visualize average objective values over time:
 `got.plotFitness(pareto_hist)`
