@@ -41,8 +41,8 @@ sys.path.insert(0, '/src')
 # setting this to true will use waypoints and traversability that have already
 # been genrated set to false to re-generate waypoints and traversability graph
 # for new map or altered parameters
-use_old_graph = False
-number_of_agents = 2
+use_old_graph = True
+number_of_agents = 6
 if number_of_agents == 6:
     old_graph_fname = cwd + '/data/wilk_3_graph_big.npy'
     old_wpts_fname = cwd + '/data/wilk_3_wpts_big.npy'
