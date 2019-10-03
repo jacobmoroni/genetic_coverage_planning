@@ -12,6 +12,7 @@ to visualize current population:
 `got.plotty(population,pather,mappy)`
 
 An example of what the visualization looks like:
+
 ![image](6_agent_pop.gif "6 Agent Population")
 
 to continue evolving:
