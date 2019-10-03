@@ -32,7 +32,7 @@ I use pickle to save off populations to use them again later. An example of how 
 To save:`got.savePopulation(population, "six_agent_pop.pickle")`
 To load:`population = got.loadPopulation("pickle_files/six_agent_pop.pickle")`
 
-After a path is selected and satisfactory. It can be saved to an npz file to be loaded into a c++ waypoint manager. Use savePath(organism, height, offset_window, offset_threshold, file_name, prune=False). Here is an example of this call: `got.savePath(population._gen_parent[0], -1.5, 20,5, "waypoints.npz", prune=False)` To load these waypoints in, use the [relative waypoint manager package](https://magiccvs.byu.edu/gitlab/jacobmo/relative_waypoint_manager) or [qt_planner package](https://magiccvs.byu.edu/gitlab/jacobmo/qt_planner). Neither of these has full support for it, but it was being built.
+After a path is selected and satisfactory. It can be saved to an npz file to be loaded into a c++ waypoint manager. Use savePath(organism, height, offset_window, offset_threshold, file_name, prune=False). Here is an example of this call: `got.savePath(population._gen_parent[0], -1.5, 20,5, "waypoints.npz", prune=False)` To load these waypoints in, use the [relative waypoint manager package](https://magiccvs.byu.edu/gitlab/jacobmo/relative_waypoint_manager) or [qt_planner package](https://magiccvs.byu.edu/gitlab/jacobmo/qt_planner). Neither of these have full support for it, but it was being built.
 
 For everything else, I did my best to document the code so good luck?
 ___
